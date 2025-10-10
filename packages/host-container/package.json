@@ -1,5 +1,5 @@
 {
-  "name": "@spektr/host-container",
+  "name": "@novasamatech/spektr-dapp-host-container",
   "type": "module",
   "version": "0.0.1",
   "description": "",
@@ -17,7 +17,7 @@
   ],
   "dependencies": {
     "@polkadot-api/json-rpc-provider": "0.0.4",
-    "@spektr/sdk-shared": "0.0.1",
-    "@spektr/sdk-transport": "0.0.1"
+    "@novasamatech/spektr-sdk-shared": "0.0.1",
+    "@novasamatech/spektr-sdk-transport": "0.0.1"
   }
 }

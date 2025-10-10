@@ -1,5 +1,5 @@
 {
-  "name": "@spektr/sdk-transport",
+  "name": "@novasamatech/spektr-sdk-transport",
   "type": "module",
   "version": "0.0.1",
   "description": "",
@@ -16,7 +16,7 @@
     "README.md"
   ],
   "dependencies": {
-    "@spektr/sdk-shared": "0.0.1",
+    "@novasamatech/spektr-sdk-shared": "0.0.1",
     "@polkadot-api/pjs-signer": "0.6.15",
     "scale-ts": "1.6.1"
   }

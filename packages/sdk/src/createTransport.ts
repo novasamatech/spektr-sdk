@@ -1,10 +1,10 @@
-import { HANDSHAKE_INTERVAL, isValidMessage, promiseWithResolvers } from '@spektr/sdk-shared';
+import { HANDSHAKE_INTERVAL, isValidMessage, promiseWithResolvers } from '@novasamatech/spektr-sdk-shared';
 import {
   messageEncoder,
   type MessagePayloadSchema,
   type MessageType,
   type PickMessagePayload,
-} from '@spektr/sdk-transport';
+} from '@novasamatech/spektr-sdk-transport';
 import { nanoid } from 'nanoid';
 import { getParentWindow, inIframe } from './utils';
 

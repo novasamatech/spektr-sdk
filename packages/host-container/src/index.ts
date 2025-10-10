@@ -1,12 +1,12 @@
 import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
-import { type HexString, isValidMessage } from '@spektr/sdk-shared';
+import { type HexString, isValidMessage } from '@novasamatech/spektr-sdk-shared';
 import {
   type InjectedAccountSchema,
   messageEncoder,
   type MessagePayloadSchema,
   type MessageType,
   type PickMessagePayload,
-} from '@spektr/sdk-transport';
+} from '@novasamatech/spektr-sdk-transport';
 
 export function createContainer(url: string) {
   const iframe = document.createElement('iframe');

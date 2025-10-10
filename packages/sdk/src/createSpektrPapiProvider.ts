@@ -1,6 +1,6 @@
 import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
-import { type HexString } from '@spektr/sdk-shared';
-import { unwrapResponseOrThrow } from '@spektr/sdk-transport';
+import { type HexString } from '@novasamatech/spektr-sdk-shared';
+import { unwrapResponseOrThrow } from '@novasamatech/spektr-sdk-transport';
 import { createTransport, defaultProvider, type Provider } from './createTransport';
 
 type Params = {

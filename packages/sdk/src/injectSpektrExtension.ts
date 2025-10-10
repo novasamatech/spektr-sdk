@@ -1,6 +1,6 @@
 import type { Injected } from '@polkadot/extension-inject/types';
 import { injectExtension } from '@polkadot/extension-inject';
-import { unwrapResponseOrThrow } from '@spektr/sdk-transport';
+import { unwrapResponseOrThrow } from '@novasamatech/spektr-sdk-transport';
 import { SpektrExtensionName, Version } from './constants';
 import { type Transport, createTransport, defaultProvider, type Provider } from './createTransport';
 
