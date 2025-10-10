@@ -1,7 +1,7 @@
 {
   "name": "@novasamatech/spektr-dapp-host-container",
   "type": "module",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "",
   "main": "dist/index.js",
   "exports": {
@@ -17,8 +17,8 @@
   ],
   "dependencies": {
     "@polkadot-api/json-rpc-provider": "0.0.4",
-    "@novasamatech/spektr-sdk-shared": "0.0.5",
-    "@novasamatech/spektr-sdk-transport": "0.0.5"
+    "@novasamatech/spektr-sdk-shared": "0.0.6",
+    "@novasamatech/spektr-sdk-transport": "0.0.6"
   },
   "publishConfig": {
     "access": "public"
