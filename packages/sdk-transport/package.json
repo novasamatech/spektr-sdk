@@ -1,7 +1,7 @@
 {
   "name": "@novasamatech/spektr-sdk-transport",
   "type": "module",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "",
   "main": "dist/index.js",
   "exports": {
@@ -16,7 +16,7 @@
     "README.md"
   ],
   "dependencies": {
-    "@novasamatech/spektr-sdk-shared": "0.0.2",
+    "@novasamatech/spektr-sdk-shared": "0.0.3",
     "@polkadot-api/pjs-signer": "0.6.16",
     "scale-ts": "1.6.1"
   },
