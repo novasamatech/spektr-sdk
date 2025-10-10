@@ -150,7 +150,7 @@ export function createContainer(url: string) {
       disposed = true;
       disposeSubscribers.forEach(callback => callback());
       listeners.forEach(listener => {
-        iframe.contentWindow?.removeEventListener('message', listener);
+        window.removeEventListener('message', listener);
       });
 
       disposeSubscribers.clear();
