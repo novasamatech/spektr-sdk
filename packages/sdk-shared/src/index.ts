@@ -1,6 +1,6 @@
 export type HexString = `0x${string}`;
 
-export const HANDSHAKE_INTERVAL = 100;
+export const HANDSHAKE_INTERVAL = 50;
 
 export function isValidMessage(event: MessageEvent, source: Window, currentWindow: Window) {
   return (

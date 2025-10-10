@@ -1,4 +1,5 @@
-import { HANDSHAKE_INTERVAL, type HexString, isValidMessage } from '@spektr/sdk-shared';
+import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
+import { type HexString, isValidMessage } from '@spektr/sdk-shared';
 import {
   type InjectedAccountSchema,
   messageEncoder,
@@ -15,30 +16,23 @@ export function createContainer(url: string) {
   const disposeSubscribers = new Set<VoidFunction>();
   let disposed = false;
 
-  function waitForIframe(): Promise<Window> {
-    return new Promise((resolve, reject) => {
-      if (iframe.contentWindow) {
-        return resolve(iframe.contentWindow);
-      }
+  function waitForIframe(callback: (iframe: Window | null) => void) {
+    if (iframe.contentWindow) {
+      return callback(iframe.contentWindow);
+    }
 
-      const interval = setInterval(() => {
-        if (disposed) {
-          clearInterval(interval);
-          reject();
-          return;
-        }
-
-        if (iframe.contentWindow) {
-          clearInterval(interval);
-          resolve(iframe.contentWindow);
-        }
-      }, HANDSHAKE_INTERVAL);
-    });
+    iframe.addEventListener(
+      'load',
+      () => {
+        callback(iframe.contentWindow ?? null);
+      },
+      { once: true },
+    );
   }
 
   function postMessage(id: string, payload: MessagePayloadSchema) {
-    waitForIframe().then(iframe => {
-      if (disposed) return;
+    waitForIframe(iframe => {
+      if (disposed || !iframe) return;
 
       const encoded = messageEncoder.enc({ id, payload });
       iframe.postMessage(encoded, '*', [encoded.buffer]);
@@ -49,10 +43,11 @@ export function createContainer(url: string) {
     type: Request,
     handler: (message: PickMessagePayload<Request>['value']) => Promise<PickMessagePayload<Response> | void>,
   ) {
-    waitForIframe().then(iframe => {
-      if (disposed) return;
+    if (disposed) return;
 
-      const messageHandler = (event: MessageEvent) => {
+    const messageHandler = (event: MessageEvent) => {
+      waitForIframe(iframe => {
+        if (!iframe) return;
         if (!isValidMessage(event, iframe, window)) return;
 
         let message;
@@ -70,12 +65,12 @@ export function createContainer(url: string) {
             postMessage(message.id, result);
           });
         }
-      };
+      });
+    };
 
-      window.addEventListener('message', messageHandler);
+    window.addEventListener('message', messageHandler);
 
-      listeners.add(messageHandler);
-    });
+    listeners.add(messageHandler);
   }
 
   handleMessage<'handshakeRequestV1', 'handshakeResponseV1'>('handshakeRequestV1', async () => ({
@@ -89,21 +84,32 @@ export function createContainer(url: string) {
   const api = {
     iframe,
 
-    connectToPapiProvider(chainId: HexString, callback: (message: string) => void) {
-      return handleMessage<'papiProviderSendMessageV1', 'papiProviderReceiveMessageV1'>(
-        'papiProviderSendMessageV1',
-        async message => {
-          if (message.chainId === chainId) {
-            callback(message.message);
-          }
-        },
-      );
+    connectToPapiProvider(chainId: HexString, provider: JsonRpcProvider) {
+      let connection: JsonRpcConnection | null = null;
+
+      return handleMessage('papiProviderSendMessageV1', async message => {
+        if (!connection) {
+          connection = provider(message => {
+            postMessage('_', {
+              tag: 'papiProviderReceiveMessageV1',
+              value: { tag: 'success', value: { chainId, message } },
+            });
+          });
+        }
+
+        if (message.chainId === chainId) {
+          connection.send(message.message);
+        }
+      });
     },
 
-    handleAccounts(
-      get: () => Promise<InjectedAccountSchema[]>,
-      subscribe: (callback: (accounts: InjectedAccountSchema[]) => void) => () => void,
-    ) {
+    handleAccounts({
+      get,
+      subscribe,
+    }: {
+      get: () => Promise<InjectedAccountSchema[]>;
+      subscribe: (callback: (accounts: InjectedAccountSchema[]) => void) => () => void;
+    }) {
       handleMessage<'getAccountsRequestV1', 'getAccountsResponseV1'>('getAccountsRequestV1', async () => {
         try {
           const accounts = await get();

@@ -32,21 +32,30 @@ export const defaultProvider: Provider = {
   },
 };
 
+export type Transport = NonNullable<ReturnType<typeof createTransport>>;
+
 export function createTransport(provider: Provider = defaultProvider) {
   if (!inIframe()) {
     return null;
   }
 
-  const connected = false;
+  const readyAbortController = new AbortController();
+  const connected: boolean | null = null;
 
   const api = {
-    isSpektrReady() {
-      if (connected) {
-        return Promise.resolve(true);
+    isSpektrReady(): Promise<boolean> {
+      if (connected !== null) {
+        return Promise.resolve(connected);
       }
 
-      return new Promise<true>(resolve => {
+      const request = new Promise<boolean>(resolve => {
         const interval = setInterval(() => {
+          if (readyAbortController.signal.aborted) {
+            clearInterval(interval);
+            resolve(false);
+            return;
+          }
+
           const id = nanoid();
           const encoded = messageEncoder.enc({ id, payload: { tag: 'handshakeRequestV1', value: undefined } });
 
@@ -60,6 +69,16 @@ export function createTransport(provider: Provider = defaultProvider) {
           provider.send(encoded);
         }, HANDSHAKE_INTERVAL);
       });
+
+      return Promise.race([
+        request,
+        new Promise<boolean>(resolve => {
+          setTimeout(() => {
+            readyAbortController.abort();
+            resolve(false);
+          }, 1_000);
+        }),
+      ]);
     },
 
     subscribeAny(callback: (id: string, payload: MessagePayloadSchema) => void) {
@@ -93,7 +112,10 @@ export function createTransport(provider: Provider = defaultProvider) {
     },
 
     async request(payload: MessagePayloadSchema): Promise<MessagePayloadSchema> {
-      await api.isSpektrReady();
+      const ready = await api.isSpektrReady();
+      if (!ready) {
+        throw new Error('Spektr is not ready');
+      }
 
       const id = nanoid();
       const { resolve, promise } = promiseWithResolvers<MessagePayloadSchema>();

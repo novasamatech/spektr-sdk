@@ -10,7 +10,7 @@ export default defineConfig([
   ...nx.configs['flat/typescript'],
   ...nx.configs['flat/javascript'],
 
-  globalIgnores(['dist']),
+  globalIgnores(['**/dist']),
 
   {
     files: ['**/*.{ts,tsx}'],
