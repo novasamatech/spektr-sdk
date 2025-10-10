@@ -7,6 +7,7 @@
     "packages/*"
   ],
   "scripts": {
+    "prepublishOnly": "npm run build && npm run lint",
     "build": "nx run-many -t build --exclude sdk-example",
     "build:watch": "nx watch --all -- nx run \\$NX_PROJECT_NAME:build",
     "typecheck": "nx run-many -t typecheck",
