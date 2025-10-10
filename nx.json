@@ -3,6 +3,11 @@
   "tui": {
     "autoExit": true
   },
+  "release": {
+    "version": {
+      "preVersionCommand": "npm run prepublishOnly"
+    }
+  },
   "plugins": [
     {
       "plugin": "@nx/eslint/plugin",
