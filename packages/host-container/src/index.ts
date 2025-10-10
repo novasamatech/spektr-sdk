@@ -8,35 +8,92 @@ import {
   type PickMessagePayload,
 } from '@novasamatech/spektr-sdk-transport';
 
-export function createContainer(url: string) {
-  const iframe = document.createElement('iframe');
+type DappProvider = {
+  postMessage(message: Uint8Array): void;
+  handleMessage(callback: (message: Uint8Array) => void): VoidFunction;
+  dispose(): void;
+};
+
+export function createIframeProvider(iframe: HTMLIFrameElement, url: string): DappProvider {
   iframe.src = url;
 
-  const listeners = new Set<(message: MessageEvent) => void>();
-  const disposeSubscribers = new Set<VoidFunction>();
   let disposed = false;
+  let iframePromise: Promise<Window | null> | null = null;
+  const subscribers = new Set<VoidFunction>();
 
   function waitForIframe(callback: (iframe: Window | null) => void) {
     if (iframe.contentWindow) {
       return callback(iframe.contentWindow);
     }
 
-    iframe.addEventListener(
-      'load',
-      () => {
-        callback(iframe.contentWindow ?? null);
-      },
-      { once: true },
-    );
+    if (iframePromise) {
+      iframePromise.then(callback);
+      return;
+    }
+
+    iframePromise = new Promise<Window | null>(resolve => {
+      iframe.addEventListener(
+        'load',
+        () => {
+          resolve(iframe.contentWindow ?? null);
+          callback(iframe.contentWindow ?? null);
+          iframePromise = null;
+        },
+        { once: true },
+      );
+    });
   }
 
-  function postMessage(id: string, payload: MessagePayloadSchema) {
-    waitForIframe(iframe => {
-      if (disposed || !iframe) return;
+  return {
+    postMessage(message) {
+      if (disposed) return;
+      waitForIframe(iframe => {
+        if (!iframe) return;
+        if (disposed) return;
 
-      const encoded = messageEncoder.enc({ id, payload });
-      iframe.postMessage(encoded, '*', [encoded.buffer]);
-    });
+        iframe.postMessage(message, '*', [message.buffer]);
+      });
+    },
+    handleMessage(callback) {
+      const messageHandler = (event: MessageEvent) => {
+        if (disposed) return;
+        waitForIframe(iframe => {
+          if (disposed) return;
+          if (!iframe) return;
+          if (!isValidMessage(event, iframe, window)) return;
+
+          callback(event.data);
+        });
+      };
+
+      window.addEventListener('message', messageHandler);
+
+      const unsubscribe = () => {
+        window.removeEventListener('message', messageHandler);
+      };
+
+      subscribers.add(unsubscribe);
+      return unsubscribe;
+    },
+    dispose() {
+      disposed = true;
+      iframe.src = '';
+      iframePromise = null;
+      subscribers.forEach(callback => callback());
+      subscribers.clear();
+    },
+  };
+}
+
+export function createContainer(provider: DappProvider) {
+  const papiSubscribers = new Set<VoidFunction>();
+  let disposed = false;
+
+  function postMessage(id: string, payload: MessagePayloadSchema) {
+    if (disposed) return;
+
+    const encoded = messageEncoder.enc({ id, payload });
+    provider.postMessage(encoded);
   }
 
   function handleMessage<Request extends MessageType, Response extends MessageType>(
@@ -45,32 +102,24 @@ export function createContainer(url: string) {
   ) {
     if (disposed) return;
 
-    const messageHandler = (event: MessageEvent) => {
-      waitForIframe(iframe => {
-        if (!iframe) return;
-        if (!isValidMessage(event, iframe, window)) return;
+    return provider.handleMessage(data => {
+      let message;
+      try {
+        // @ts-expect-error Somehow buffer is required here
+        message = messageEncoder.dec(data.buffer);
+      } catch (e) {
+        console.error(e);
+        return;
+      }
 
-        let message;
-        try {
-          message = messageEncoder.dec(event.data.buffer);
-        } catch (e) {
-          console.error(e);
-          return;
-        }
+      if (message.payload.tag == type) {
+        handler(message.payload.value as PickMessagePayload<Request>['value']).then(result => {
+          if (!result) return;
 
-        if (message.payload.tag == type) {
-          handler(message.payload.value as PickMessagePayload<Request>['value']).then(result => {
-            if (!result) return;
-
-            postMessage(message.id, result);
-          });
-        }
-      });
-    };
-
-    window.addEventListener('message', messageHandler);
-
-    listeners.add(messageHandler);
+          postMessage(message.id, result);
+        });
+      }
+    });
   }
 
   handleMessage<'handshakeRequestV1', 'handshakeResponseV1'>('handshakeRequestV1', async () => ({
@@ -82,8 +131,6 @@ export function createContainer(url: string) {
   }));
 
   const api = {
-    iframe,
-
     connectToPapiProvider(chainId: HexString, provider: JsonRpcProvider) {
       let connection: JsonRpcConnection | null = null;
 
@@ -115,9 +162,9 @@ export function createContainer(url: string) {
           const accounts = await get();
 
           return {
-            tag: 'getAccountsResponseV1' as const,
+            tag: 'getAccountsResponseV1',
             value: {
-              tag: 'success' as const,
+              tag: 'success',
               value: accounts,
             },
           };
@@ -125,16 +172,16 @@ export function createContainer(url: string) {
           const message = e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';
 
           return {
-            tag: 'getAccountsResponseV1' as const,
+            tag: 'getAccountsResponseV1',
             value: {
-              tag: 'error' as const,
+              tag: 'error',
               value: message,
             },
           };
         }
       });
 
-      disposeSubscribers.add(
+      papiSubscribers.add(
         subscribe(accounts => {
           postMessage('_', { tag: 'getAccountsResponseV1', value: { tag: 'success', value: accounts } });
         }),
@@ -148,13 +195,9 @@ export function createContainer(url: string) {
 
     dispose() {
       disposed = true;
-      disposeSubscribers.forEach(callback => callback());
-      listeners.forEach(listener => {
-        window.removeEventListener('message', listener);
-      });
-
-      disposeSubscribers.clear();
-      listeners.clear();
+      provider.dispose();
+      papiSubscribers.forEach(callback => callback());
+      papiSubscribers.clear();
     },
   };
 
