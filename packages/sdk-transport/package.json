@@ -19,5 +19,8 @@
     "@novasamatech/spektr-sdk-shared": "0.0.2",
     "@polkadot-api/pjs-signer": "0.6.15",
     "scale-ts": "1.6.1"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
