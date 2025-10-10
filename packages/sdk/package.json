@@ -1,7 +1,7 @@
 {
   "name": "@novasamatech/spektr-sdk",
   "type": "module",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "",
   "main": "dist/index.js",
   "exports": {
@@ -18,8 +18,8 @@
   "dependencies": {
     "@polkadot/extension-inject": "0.62.1",
     "@polkadot-api/json-rpc-provider": "0.0.4",
-    "@novasamatech/spektr-sdk-shared": "0.0.3",
-    "@novasamatech/spektr-sdk-transport": "0.0.3",
+    "@novasamatech/spektr-sdk-shared": "0.0.4",
+    "@novasamatech/spektr-sdk-transport": "0.0.4",
     "nanoid": "5.1.6"
   },
   "publishConfig": {
