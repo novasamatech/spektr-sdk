@@ -40,13 +40,15 @@ export function createTransport(provider: Provider) {
   }
 
   const readyAbortController = new AbortController();
-  const connected: boolean | null = null;
+  let connected: boolean | null = null;
 
   const api = {
     isSpektrReady(): Promise<boolean> {
       if (connected !== null) {
         return Promise.resolve(connected);
       }
+
+      let resolved = false;
 
       const request = new Promise<boolean>(resolve => {
         const interval = setInterval(() => {
@@ -63,6 +65,7 @@ export function createTransport(provider: Provider) {
             if (receivedId !== id) return;
             clearInterval(interval);
             unsubscribe();
+            resolved = true;
             resolve(true);
           });
 
@@ -74,9 +77,14 @@ export function createTransport(provider: Provider) {
         request,
         new Promise<boolean>(resolve => {
           setTimeout(() => {
-            readyAbortController.abort();
-            resolve(false);
+            if (!resolved) {
+              readyAbortController.abort();
+              resolve(false);
+            }
           }, 1_000);
+        }).then(result => {
+          connected = result;
+          return result;
         }),
       ]);
     },
