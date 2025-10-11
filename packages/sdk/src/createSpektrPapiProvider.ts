@@ -1,16 +1,19 @@
 import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
 import { type HexString } from '@novasamatech/spektr-sdk-shared';
 import { unwrapResponseOrThrow } from '@novasamatech/spektr-sdk-transport';
-import { createTransport, defaultProvider, type Provider } from './createTransport';
+import { defaultTransport, type Transport } from './createTransport';
 
 type Params = {
   chainId: HexString;
   fallback: JsonRpcProvider;
-  provider?: Provider;
 };
 
-export function createSpektrPapiProvider({ chainId, fallback, provider = defaultProvider }: Params): JsonRpcProvider {
-  const transport = createTransport(provider);
+type InternalParams = {
+  transport: Transport | null;
+};
+
+export function createSpektrPapiProvider({ chainId, fallback }: Params, internal?: InternalParams): JsonRpcProvider {
+  const transport = internal?.transport ?? defaultTransport;
   if (!transport) return fallback;
 
   const spektrProvider: JsonRpcProvider = onMessage => {

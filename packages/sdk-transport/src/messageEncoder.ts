@@ -23,13 +23,18 @@ export type MessagePayloadSchema = CodecType<typeof messagePayloadEncoder>;
 export const messagePayloadEncoder = Enum({
   handshakeRequestV1: handshakeRequestV1Encoder,
   handshakeResponseV1: responseEncoder(handshakeResponseV1Encoder),
+
   getAccountsRequestV1: getAccountsRequestV1Encoder,
   getAccountsResponseV1: responseEncoder(getAccountsResponseV1Encoder),
+
   papiProviderSendMessageV1: papiProviderSendMessageV1Encoder,
   papiProviderReceiveMessageV1: responseEncoder(papiProviderReceiveMessageV1Encoder),
+
   signRawRequestV1: signRawRequestV1Encoder,
   signPayloadRequestV1: signPayloadRequestV1Encoder,
-  signPayloadResponseV1: responseEncoder(signResponseV1Encoder),
+  signResponseV1: responseEncoder(signResponseV1Encoder),
+
+  locationChangedV1: str,
 });
 
 export type MessageSchema = CodecType<typeof messageEncoder>;

@@ -1,14 +1,15 @@
+import type { SignerPayloadRaw, SignerPayloadJSON, SignerResult } from '@polkadot/types/types';
 import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
 import { type HexString, isValidMessage } from '@novasamatech/spektr-sdk-shared';
 import {
-  type InjectedAccountSchema,
   messageEncoder,
+  type InjectedAccountSchema,
   type MessagePayloadSchema,
   type MessageType,
   type PickMessagePayload,
 } from '@novasamatech/spektr-sdk-transport';
 
-type DappProvider = {
+export type DappProvider = {
   postMessage(message: Uint8Array): void;
   handleMessage(callback: (message: Uint8Array) => void): VoidFunction;
   dispose(): void;
@@ -73,7 +74,10 @@ export function createIframeProvider(iframe: HTMLIFrameElement, url: string): Da
       };
 
       subscribers.add(unsubscribe);
-      return unsubscribe;
+      return () => {
+        unsubscribe();
+        subscribers.delete(unsubscribe);
+      };
     },
     dispose() {
       disposed = true;
@@ -84,6 +88,8 @@ export function createIframeProvider(iframe: HTMLIFrameElement, url: string): Da
     },
   };
 }
+
+export type Container = ReturnType<typeof createContainer>;
 
 export function createContainer(provider: DappProvider) {
   const papiSubscribers = new Set<VoidFunction>();
@@ -100,7 +106,11 @@ export function createContainer(provider: DappProvider) {
     type: Request,
     handler: (message: PickMessagePayload<Request>['value']) => Promise<PickMessagePayload<Response> | void>,
   ) {
-    if (disposed) return;
+    if (disposed) {
+      return () => {
+        /* empty */
+      };
+    }
 
     return provider.handleMessage(data => {
       let message;
@@ -163,20 +173,14 @@ export function createContainer(provider: DappProvider) {
 
           return {
             tag: 'getAccountsResponseV1',
-            value: {
-              tag: 'success',
-              value: accounts,
-            },
+            value: { tag: 'success', value: accounts },
           };
         } catch (e) {
           const message = e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';
 
           return {
             tag: 'getAccountsResponseV1',
-            value: {
-              tag: 'error',
-              value: message,
-            },
+            value: { tag: 'error', value: message },
           };
         }
       });
@@ -188,9 +192,52 @@ export function createContainer(provider: DappProvider) {
       );
     },
 
-    handleSignRequest(callback: (payload: any) => Promise<string | undefined>) {
-      callback({});
-      // TODO implement
+    handleSignRequest({
+      signRaw,
+      signPayload,
+    }: {
+      signRaw: (raw: SignerPayloadRaw) => Promise<SignerResult>;
+      signPayload: (payload: SignerPayloadJSON) => Promise<SignerResult>;
+    }) {
+      handleMessage<'signRawRequestV1', 'signResponseV1'>('signRawRequestV1', async message => {
+        try {
+          const result = await signRaw(message);
+          return {
+            tag: 'signResponseV1',
+            value: { tag: 'success', value: result },
+          };
+        } catch (e) {
+          const message = e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';
+
+          return {
+            tag: 'signResponseV1',
+            value: { tag: 'error', value: message },
+          };
+        }
+      });
+
+      handleMessage<'signPayloadRequestV1', 'signResponseV1'>('signPayloadRequestV1', async message => {
+        try {
+          const result = await signPayload(message);
+          return {
+            tag: 'signResponseV1',
+            value: { tag: 'success', value: result },
+          };
+        } catch (e) {
+          const message = e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';
+
+          return {
+            tag: 'signResponseV1',
+            value: { tag: 'error', value: message },
+          };
+        }
+      });
+    },
+
+    handleLocationChange(callback: (location: string) => void) {
+      handleMessage('locationChangedV1', async location => {
+        callback(location);
+      });
     },
 
     dispose() {

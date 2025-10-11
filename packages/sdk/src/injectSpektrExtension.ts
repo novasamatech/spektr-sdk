@@ -2,7 +2,7 @@ import type { Injected } from '@polkadot/extension-inject/types';
 import { injectExtension } from '@polkadot/extension-inject';
 import { unwrapResponseOrThrow } from '@novasamatech/spektr-sdk-transport';
 import { SpektrExtensionName, Version } from './constants';
-import { type Transport, createTransport, defaultProvider, type Provider } from './createTransport';
+import { type Transport, defaultTransport } from './createTransport';
 
 function injectPolkadotExtension(transport: Transport) {
   async function enable(): Promise<Injected> {
@@ -31,7 +31,7 @@ function injectPolkadotExtension(transport: Transport) {
       signer: {
         signRaw(raw) {
           return transport.request({ tag: 'signRawRequestV1', value: raw }).then(response => {
-            if (response.tag === 'signPayloadResponseV1') {
+            if (response.tag === 'signResponseV1') {
               return unwrapResponseOrThrow(response.value);
             }
             throw new Error(`Invalid response, got ${response.tag} message`);
@@ -39,7 +39,7 @@ function injectPolkadotExtension(transport: Transport) {
         },
         signPayload(payload) {
           return transport.request({ tag: 'signPayloadRequestV1', value: payload }).then(response => {
-            if (response.tag === 'signPayloadResponseV1') {
+            if (response.tag === 'signResponseV1') {
               return unwrapResponseOrThrow(response.value);
             }
             throw new Error(`Invalid response, got ${response.tag} message`);
@@ -52,8 +52,7 @@ function injectPolkadotExtension(transport: Transport) {
   injectExtension(enable, { name: SpektrExtensionName, version: Version });
 }
 
-export async function injectSpektrExtension(provider: Provider = defaultProvider) {
-  const transport = createTransport(provider);
+export async function injectSpektrExtension(transport: Transport | null = defaultTransport) {
   if (!transport) return false;
 
   const ready = await transport.isSpektrReady();

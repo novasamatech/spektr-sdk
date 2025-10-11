@@ -34,7 +34,7 @@ export const defaultProvider: Provider = {
 
 export type Transport = NonNullable<ReturnType<typeof createTransport>>;
 
-export function createTransport(provider: Provider = defaultProvider) {
+export function createTransport(provider: Provider) {
   if (!inIframe()) {
     return null;
   }
@@ -135,3 +135,5 @@ export function createTransport(provider: Provider = defaultProvider) {
 
   return api;
 }
+
+export const defaultTransport = createTransport(defaultProvider);
