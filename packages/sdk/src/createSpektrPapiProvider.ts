@@ -1,7 +1,7 @@
 import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
 import { type HexString } from '@novasamatech/spektr-sdk-shared';
-import { unwrapResponseOrThrow } from '@novasamatech/spektr-sdk-transport';
-import { defaultTransport, type Transport } from './createTransport';
+import { type Transport, unwrapResponseOrThrow } from '@novasamatech/spektr-sdk-transport';
+import { defaultTransport } from './transport';
 
 type Params = {
   chainId: HexString;
@@ -16,8 +16,35 @@ export function createSpektrPapiProvider({ chainId, fallback }: Params, internal
   const transport = internal?.transport ?? defaultTransport;
   if (!transport) return fallback;
 
+  const isReady = transport.isReady;
+  const request = transport.request;
+  const subscribe = transport.subscribe;
+  const postMessage = transport.postMessage;
+
+  function checkIfReady() {
+    return isReady().then(ready => {
+      if (!ready) return false;
+
+      return request({ tag: 'supportFeatureRequestV1', value: { tag: 'chain', value: { chainId } } })
+        .then(response => {
+          if (response.tag === 'supportFeatureResponseV1') {
+            const result = unwrapResponseOrThrow(response.value);
+
+            if (result.tag === 'chain' && result.value.chainId === chainId) {
+              return result.value.result;
+            }
+          }
+          throw new Error(`Invalid response, got ${response.tag} message`);
+        })
+        .catch(e => {
+          console.error('Error checking chain support', e);
+          return false;
+        });
+    });
+  }
+
   const spektrProvider: JsonRpcProvider = onMessage => {
-    const unsubscribe = transport.subscribe('papiProviderReceiveMessageV1', (_, message) => {
+    const unsubscribe = subscribe('papiProviderReceiveMessageV1', (_, message) => {
       const unwrapped = unwrapResponseOrThrow(message.value);
       if (unwrapped.chainId === chainId) {
         onMessage(unwrapped.message);
@@ -26,7 +53,7 @@ export function createSpektrPapiProvider({ chainId, fallback }: Params, internal
 
     return {
       send(message) {
-        transport.send('_', { tag: 'papiProviderSendMessageV1', value: { chainId, message } });
+        postMessage('_', { tag: 'papiProviderSendMessageV1', value: { chainId, message } });
       },
       disconnect() {
         unsubscribe();
@@ -40,7 +67,7 @@ export function createSpektrPapiProvider({ chainId, fallback }: Params, internal
     let connection: JsonRpcConnection | null;
     let disconnected = false;
 
-    transport.isSpektrReady().then(ready => {
+    checkIfReady().then(ready => {
       if (disconnected) return;
 
       if (ready) {

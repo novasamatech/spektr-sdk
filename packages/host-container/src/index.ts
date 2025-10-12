@@ -2,25 +2,29 @@ import type { SignerPayloadRaw, SignerPayloadJSON, SignerResult } from '@polkado
 import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
 import { type HexString, isValidMessage } from '@novasamatech/spektr-sdk-shared';
 import {
-  messageEncoder,
   type InjectedAccountSchema,
-  type MessagePayloadSchema,
-  type MessageType,
-  type PickMessagePayload,
+  type TransportProvider,
+  createTransport,
 } from '@novasamatech/spektr-sdk-transport';
 
-export type DappProvider = {
-  postMessage(message: Uint8Array): void;
-  handleMessage(callback: (message: Uint8Array) => void): VoidFunction;
-  dispose(): void;
-};
+function hasWindow() {
+  try {
+    return typeof window !== 'undefined';
+  } catch {
+    return false;
+  }
+}
 
-export function createIframeProvider(iframe: HTMLIFrameElement, url: string): DappProvider {
+function formatError(e: unknown) {
+  return e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';
+}
+
+export function createIframeProvider(iframe: HTMLIFrameElement, url: string): TransportProvider {
   iframe.src = url;
 
   let disposed = false;
   let iframePromise: Promise<Window | null> | null = null;
-  const subscribers = new Set<VoidFunction>();
+  const subscribers = new Set<(message: Uint8Array) => void>();
 
   function waitForIframe(callback: (iframe: Window | null) => void) {
     if (iframe.contentWindow) {
@@ -45,9 +49,30 @@ export function createIframeProvider(iframe: HTMLIFrameElement, url: string): Da
     });
   }
 
+  const messageHandler = (event: MessageEvent) => {
+    if (disposed) return;
+    waitForIframe(iframe => {
+      if (disposed) return;
+      if (!iframe) return;
+      if (!isValidMessage(event, iframe, window)) return;
+
+      for (const subscriber of subscribers) {
+        subscriber(event.data);
+      }
+    });
+  };
+
+  if (hasWindow()) {
+    window.addEventListener('message', messageHandler);
+  }
+
   return {
+    isCorrectEnvironment() {
+      return hasWindow();
+    },
     postMessage(message) {
       if (disposed) return;
+
       waitForIframe(iframe => {
         if (!iframe) return;
         if (disposed) return;
@@ -55,99 +80,39 @@ export function createIframeProvider(iframe: HTMLIFrameElement, url: string): Da
         iframe.postMessage(message, '*', [message.buffer]);
       });
     },
-    handleMessage(callback) {
-      const messageHandler = (event: MessageEvent) => {
-        if (disposed) return;
-        waitForIframe(iframe => {
-          if (disposed) return;
-          if (!iframe) return;
-          if (!isValidMessage(event, iframe, window)) return;
-
-          callback(event.data);
-        });
-      };
-
-      window.addEventListener('message', messageHandler);
-
-      const unsubscribe = () => {
-        window.removeEventListener('message', messageHandler);
-      };
-
-      subscribers.add(unsubscribe);
+    subscribe(callback) {
+      subscribers.add(callback);
       return () => {
-        unsubscribe();
-        subscribers.delete(unsubscribe);
+        subscribers.delete(callback);
       };
     },
     dispose() {
       disposed = true;
       iframe.src = '';
       iframePromise = null;
-      subscribers.forEach(callback => callback());
       subscribers.clear();
+
+      if (hasWindow()) {
+        window.removeEventListener('message', messageHandler);
+      }
     },
   };
 }
 
 export type Container = ReturnType<typeof createContainer>;
 
-export function createContainer(provider: DappProvider) {
+export function createContainer(provider: TransportProvider) {
+  const transport = createTransport(provider);
   const papiSubscribers = new Set<VoidFunction>();
-  let disposed = false;
 
-  function postMessage(id: string, payload: MessagePayloadSchema) {
-    if (disposed) return;
-
-    const encoded = messageEncoder.enc({ id, payload });
-    provider.postMessage(encoded);
-  }
-
-  function handleMessage<Request extends MessageType, Response extends MessageType>(
-    type: Request,
-    handler: (message: PickMessagePayload<Request>['value']) => Promise<PickMessagePayload<Response> | void>,
-  ) {
-    if (disposed) {
-      return () => {
-        /* empty */
-      };
-    }
-
-    return provider.handleMessage(data => {
-      let message;
-      try {
-        // @ts-expect-error Somehow buffer is required here
-        message = messageEncoder.dec(data.buffer);
-      } catch (e) {
-        console.error(e);
-        return;
-      }
-
-      if (message.payload.tag == type) {
-        handler(message.payload.value as PickMessagePayload<Request>['value']).then(result => {
-          if (!result) return;
-
-          postMessage(message.id, result);
-        });
-      }
-    });
-  }
-
-  handleMessage<'handshakeRequestV1', 'handshakeResponseV1'>('handshakeRequestV1', async () => ({
-    tag: 'handshakeResponseV1',
-    value: {
-      tag: 'success',
-      value: undefined,
-    },
-  }));
-
-  const api = {
+  return {
     connectToPapiProvider(chainId: HexString, provider: JsonRpcProvider) {
       let connection: JsonRpcConnection | null = null;
 
-      return handleMessage('papiProviderSendMessageV1', async message => {
+      return transport?.handleMessage('papiProviderSendMessageV1', async message => {
         if (!connection) {
           connection = provider(message => {
-            postMessage('_', {
+            transport.postMessage('_', {
               tag: 'papiProviderReceiveMessageV1',
               value: { tag: 'success', value: { chainId, message } },
             });
@@ -167,7 +132,7 @@ export function createContainer(provider: DappProvider) {
       get: () => Promise<InjectedAccountSchema[]>;
       subscribe: (callback: (accounts: InjectedAccountSchema[]) => void) => () => void;
     }) {
-      handleMessage<'getAccountsRequestV1', 'getAccountsResponseV1'>('getAccountsRequestV1', async () => {
+      transport?.handleMessage<'getAccountsRequestV1', 'getAccountsResponseV1'>('getAccountsRequestV1', async () => {
         try {
           const accounts = await get();
 
@@ -176,18 +141,16 @@ export function createContainer(provider: DappProvider) {
             value: { tag: 'success', value: accounts },
           };
         } catch (e) {
-          const message = e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';
-
           return {
             tag: 'getAccountsResponseV1',
-            value: { tag: 'error', value: message },
+            value: { tag: 'error', value: formatError(e) },
           };
         }
       });
 
       papiSubscribers.add(
         subscribe(accounts => {
-          postMessage('_', { tag: 'getAccountsResponseV1', value: { tag: 'success', value: accounts } });
+          transport?.postMessage('_', { tag: 'getAccountsResponseV1', value: { tag: 'success', value: accounts } });
         }),
       );
     },
@@ -199,7 +162,7 @@ export function createContainer(provider: DappProvider) {
       signRaw: (raw: SignerPayloadRaw) => Promise<SignerResult>;
       signPayload: (payload: SignerPayloadJSON) => Promise<SignerResult>;
     }) {
-      handleMessage<'signRawRequestV1', 'signResponseV1'>('signRawRequestV1', async message => {
+      transport?.handleMessage<'signRawRequestV1', 'signResponseV1'>('signRawRequestV1', async message => {
         try {
           const result = await signRaw(message);
           return {
@@ -207,16 +170,14 @@ export function createContainer(provider: DappProvider) {
             value: { tag: 'success', value: result },
           };
         } catch (e) {
-          const message = e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';
-
           return {
             tag: 'signResponseV1',
-            value: { tag: 'error', value: message },
+            value: { tag: 'error', value: formatError(e) },
           };
         }
       });
 
-      handleMessage<'signPayloadRequestV1', 'signResponseV1'>('signPayloadRequestV1', async message => {
+      transport?.handleMessage<'signPayloadRequestV1', 'signResponseV1'>('signPayloadRequestV1', async message => {
         try {
           const result = await signPayload(message);
           return {
@@ -224,29 +185,49 @@ export function createContainer(provider: DappProvider) {
             value: { tag: 'success', value: result },
           };
         } catch (e) {
-          const message = e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';
-
           return {
             tag: 'signResponseV1',
-            value: { tag: 'error', value: message },
+            value: { tag: 'error', value: formatError(e) },
           };
         }
       });
     },
 
     handleLocationChange(callback: (location: string) => void) {
-      handleMessage('locationChangedV1', async location => {
+      transport?.handleMessage('locationChangedV1', async location => {
         callback(location);
       });
     },
 
+    handleChainSupportCheck(callback: (chainId: HexString) => boolean) {
+      transport?.handleMessage<'supportFeatureRequestV1', 'supportFeatureResponseV1'>(
+        'supportFeatureRequestV1',
+        async message => {
+          if (message.tag === 'chain') {
+            try {
+              const result = callback(message.value.chainId);
+              return {
+                tag: 'supportFeatureResponseV1',
+                value: {
+                  tag: 'success',
+                  value: { tag: 'chain', value: { chainId: message.value.chainId, result } },
+                },
+              };
+            } catch (e) {
+              return {
+                tag: 'supportFeatureResponseV1',
+                value: { tag: 'error', value: formatError(e) },
+              };
+            }
+          }
+        },
+      );
+    },
+
     dispose() {
-      disposed = true;
-      provider.dispose();
+      transport?.dispose();
       papiSubscribers.forEach(callback => callback());
       papiSubscribers.clear();
     },
   };
-
-  return api;
 }

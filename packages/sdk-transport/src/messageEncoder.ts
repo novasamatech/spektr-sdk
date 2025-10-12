@@ -1,5 +1,7 @@
 import { Enum, str, Struct, type CodecType, type Codec } from 'scale-ts';
+import { hexEncoder } from './commonEncoders';
 import { getAccountsResponseV1Encoder, getAccountsRequestV1Encoder } from './interactions/accounts';
+import { supportFeatureRequestV1, supportFeatureResponseV1 } from './interactions/features';
 import { handshakeRequestV1Encoder, handshakeResponseV1Encoder } from './interactions/handshake';
 import { papiProviderReceiveMessageV1Encoder, papiProviderSendMessageV1Encoder } from './interactions/papiProvider';
 import { signPayloadRequestV1Encoder, signRawRequestV1Encoder, signResponseV1Encoder } from './interactions/sign';
@@ -26,6 +28,13 @@ export const messagePayloadEncoder = Enum({
 
   getAccountsRequestV1: getAccountsRequestV1Encoder,
   getAccountsResponseV1: responseEncoder(getAccountsResponseV1Encoder),
+
+  supportFeatureRequestV1: supportFeatureRequestV1,
+  supportFeatureResponseV1: responseEncoder(supportFeatureResponseV1),
+
+  supportChainRequestV1: Struct({
+    chainId: hexEncoder,
+  }),
 
   papiProviderSendMessageV1: papiProviderSendMessageV1Encoder,
   papiProviderReceiveMessageV1: responseEncoder(papiProviderReceiveMessageV1Encoder),

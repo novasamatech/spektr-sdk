@@ -18,7 +18,8 @@
   "dependencies": {
     "@novasamatech/spektr-sdk-shared": "0.0.9",
     "@polkadot-api/pjs-signer": "0.6.16",
-    "scale-ts": "1.6.1"
+    "scale-ts": "1.6.1",
+    "nanoid": "5.1.6"
   },
   "publishConfig": {
     "access": "public"

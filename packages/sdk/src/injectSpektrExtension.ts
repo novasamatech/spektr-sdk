@@ -1,8 +1,8 @@
 import type { Injected } from '@polkadot/extension-inject/types';
 import { injectExtension } from '@polkadot/extension-inject';
-import { unwrapResponseOrThrow } from '@novasamatech/spektr-sdk-transport';
+import { type Transport, unwrapResponseOrThrow } from '@novasamatech/spektr-sdk-transport';
 import { SpektrExtensionName, Version } from './constants';
-import { type Transport, defaultTransport } from './createTransport';
+import { defaultTransport } from './transport';
 
 function injectPolkadotExtension(transport: Transport) {
   async function enable(): Promise<Injected> {
@@ -55,7 +55,7 @@ function injectPolkadotExtension(transport: Transport) {
 export async function injectSpektrExtension(transport: Transport | null = defaultTransport) {
   if (!transport) return false;
 
-  const ready = await transport.isSpektrReady();
+  const ready = await transport.isReady();
   if (!ready) return false;
 
   injectPolkadotExtension(transport);
