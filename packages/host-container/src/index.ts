@@ -16,7 +16,9 @@ function hasWindow() {
 }
 
 function formatError(e: unknown) {
-  return e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';
+  const message = e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';
+
+  return { tag: 'error' as const, value: message };
 }
 
 export function createIframeProvider(iframe: HTMLIFrameElement, url: string): TransportProvider {
@@ -143,7 +145,7 @@ export function createContainer(provider: TransportProvider) {
         } catch (e) {
           return {
             tag: 'getAccountsResponseV1',
-            value: { tag: 'error', value: formatError(e) },
+            value: formatError(e),
           };
         }
       });
@@ -172,7 +174,7 @@ export function createContainer(provider: TransportProvider) {
         } catch (e) {
           return {
             tag: 'signResponseV1',
-            value: { tag: 'error', value: formatError(e) },
+            value: formatError(e),
           };
         }
       });
@@ -187,7 +189,7 @@ export function createContainer(provider: TransportProvider) {
         } catch (e) {
           return {
             tag: 'signResponseV1',
-            value: { tag: 'error', value: formatError(e) },
+            value: formatError(e),
           };
         }
       });
@@ -216,7 +218,7 @@ export function createContainer(provider: TransportProvider) {
             } catch (e) {
               return {
                 tag: 'supportFeatureResponseV1',
-                value: { tag: 'error', value: formatError(e) },
+                value: formatError(e),
               };
             }
           }
