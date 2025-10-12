@@ -104,7 +104,7 @@ export function createIframeProvider(iframe: HTMLIFrameElement, url: string): Tr
 export type Container = ReturnType<typeof createContainer>;
 
 export function createContainer(provider: TransportProvider) {
-  const transport = createTransport(provider);
+  const transport = createTransport(provider, { handshakeTimeout: Number.POSITIVE_INFINITY });
   const papiSubscribers = new Set<VoidFunction>();
 
   return {
