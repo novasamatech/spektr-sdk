@@ -17,7 +17,7 @@ function injectPolkadotExtension(transport: Transport) {
           });
         },
         subscribe(callback) {
-          return transport.subscribe('getAccountsResponseV1', (_, message) => {
+          const unsubscribe = transport.subscribe('getAccountsResponseV1', (_, message) => {
             try {
               const accounts = unwrapResponseOrThrow(message.value);
               callback(accounts);
@@ -25,6 +25,13 @@ function injectPolkadotExtension(transport: Transport) {
               console.error('Invalid account response, got', message.value.value);
             }
           });
+
+          transport.postMessage('_', { tag: 'accountSubscriptionV1', value: undefined });
+
+          return () => {
+            transport.postMessage('_', { tag: 'accountUnsubscriptionV1', value: undefined });
+            unsubscribe();
+          };
         },
       },
 

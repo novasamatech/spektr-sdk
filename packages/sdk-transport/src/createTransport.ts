@@ -1,6 +1,12 @@
 import { HANDSHAKE_INTERVAL, promiseWithResolvers } from '@novasamatech/spektr-sdk-shared';
 import { nanoid } from 'nanoid';
-import { messageEncoder, type MessagePayloadSchema, type MessageType, type PickMessagePayload } from './messageEncoder';
+import {
+  messageEncoder,
+  type MessagePayloadSchema,
+  type MessageType,
+  type PickMessagePayload,
+  type PickMessagePayloadValue,
+} from './messageEncoder';
 
 export type TransportProvider = {
   isCorrectEnvironment(): boolean;
@@ -27,7 +33,7 @@ export type Transport = {
 
   handleMessage<Request extends MessageType, Response extends MessageType>(
     type: Request,
-    handler: (message: PickMessagePayload<Request>['value']) => Promise<PickMessagePayload<Response> | void>,
+    handler: (message: PickMessagePayloadValue<Request>) => Promise<PickMessagePayload<Response> | void>,
   ): VoidFunction;
 
   dispose(): void;
@@ -99,9 +105,7 @@ export function createTransport(provider: TransportProvider, params?: TransportP
             return;
           }
 
-          const encoded = messageEncoder.enc({ id, payload: { tag: 'handshakeRequestV1', value: undefined } });
-
-          provider.postMessage(encoded);
+          transportInstance.postMessage(id, { tag: 'handshakeRequestV1', value: undefined });
         }, HANDSHAKE_INTERVAL);
 
         const unsubscribe = transportInstance.subscribe('handshakeResponseV1', responseId => {
@@ -191,12 +195,12 @@ export function createTransport(provider: TransportProvider, params?: TransportP
 
     handleMessage<Request extends MessageType, Response extends MessageType>(
       type: Request,
-      handler: (message: PickMessagePayload<Request>['value']) => Promise<PickMessagePayload<Response> | void>,
+      handler: (message: PickMessagePayloadValue<Request>) => Promise<PickMessagePayload<Response> | void>,
     ) {
       throwIfDisposed();
 
       return transportInstance.subscribe(type, (id, message) => {
-        handler(message.value as PickMessagePayload<Request>['value']).then(result => {
+        handler(message.value as PickMessagePayloadValue<Request>).then(result => {
           if (!result) return;
           transportInstance.postMessage(id, result);
         });

@@ -49,3 +49,5 @@ const injectedAccountEncoder = createTransportEncoder<InjectedAccount, typeof in
 
 export const getAccountsRequestV1Encoder = _void;
 export const getAccountsResponseV1Encoder = Vector(injectedAccountEncoder);
+export const accountSubscriptionV1Encoder = _void;
+export const accountUnsubscriptionV1Encoder = _void;

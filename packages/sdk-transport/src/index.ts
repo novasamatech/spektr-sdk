@@ -1,12 +1,12 @@
+export { messageEncoder, unwrapResponseOrThrow } from './messageEncoder';
 export {
-  messageEncoder,
-  unwrapResponseOrThrow,
   type MessagePayloadSchema,
   type MessageType,
   type PickMessagePayload,
+  type PickMessagePayloadValue,
 } from './messageEncoder';
 
-export type { Transport, TransportProvider } from './createTransport';
 export { createTransport } from './createTransport';
+export type { Transport, TransportProvider } from './createTransport';
 
 export { type InjectedAccountSchema } from './interactions/accounts';

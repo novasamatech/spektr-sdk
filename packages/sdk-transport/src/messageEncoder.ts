@@ -1,7 +1,12 @@
 import { Enum, str, Struct, type CodecType, type Codec } from 'scale-ts';
 import { hexEncoder } from './commonEncoders';
-import { getAccountsResponseV1Encoder, getAccountsRequestV1Encoder } from './interactions/accounts';
-import { supportFeatureRequestV1, supportFeatureResponseV1 } from './interactions/features';
+import {
+  getAccountsResponseV1Encoder,
+  getAccountsRequestV1Encoder,
+  accountSubscriptionV1Encoder,
+  accountUnsubscriptionV1Encoder,
+} from './interactions/accounts';
+import { supportFeatureRequestV1Encoder, supportFeatureResponseV1 } from './interactions/features';
 import { handshakeRequestV1Encoder, handshakeResponseV1Encoder } from './interactions/handshake';
 import { papiProviderReceiveMessageV1Encoder, papiProviderSendMessageV1Encoder } from './interactions/papiProvider';
 import { signPayloadRequestV1Encoder, signRawRequestV1Encoder, signResponseV1Encoder } from './interactions/sign';
@@ -28,8 +33,10 @@ export const messagePayloadEncoder = Enum({
 
   getAccountsRequestV1: getAccountsRequestV1Encoder,
   getAccountsResponseV1: responseEncoder(getAccountsResponseV1Encoder),
+  accountSubscriptionV1: accountSubscriptionV1Encoder,
+  accountUnsubscriptionV1: accountUnsubscriptionV1Encoder,
 
-  supportFeatureRequestV1: supportFeatureRequestV1,
+  supportFeatureRequestV1: supportFeatureRequestV1Encoder,
   supportFeatureResponseV1: responseEncoder(supportFeatureResponseV1),
 
   supportChainRequestV1: Struct({
@@ -55,3 +62,4 @@ export const messageEncoder = Struct({
 export type MessageType = MessagePayloadSchema['tag'];
 
 export type PickMessagePayload<T extends MessageType> = Extract<MessagePayloadSchema, { tag: T }>;
+export type PickMessagePayloadValue<T extends MessageType> = PickMessagePayload<T>['value'];
