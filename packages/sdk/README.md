@@ -4,7 +4,11 @@ Easy way to embed Spektr functionality into your dapp.
 
 ## Overview
 
-TODO
+Spektr SDK provides a set of tools to integrate your application in Spektr dapp browser.
+Core features:
+- Generic account provider similar to [polkadot-js extension](https://polkadot.js.org/extension/).
+- Redirect [PAPI](https://papi.how/) requests to host application
+- Receive additional information from host application - supported chains, theme, etc.
 
 ## Installation
 
