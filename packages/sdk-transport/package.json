@@ -2,7 +2,7 @@
   "name": "@novasamatech/spektr-sdk-transport",
   "type": "module",
   "version": "0.0.12",
-  "description": "",
+  "license": "Apache-2.0",
   "main": "dist/index.js",
   "exports": {
     "./package.json": "./package.json",

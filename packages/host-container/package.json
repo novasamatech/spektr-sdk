@@ -2,7 +2,9 @@
   "name": "@novasamatech/spektr-dapp-host-container",
   "type": "module",
   "version": "0.0.12",
-  "description": "",
+  "description": "Container for hosting and managing dapps within the Polkadot ecosystem.",
+  "license": "Apache-2.0",
+  "keywords": ["polkadot", "spektr", "dapp"],
   "main": "dist/index.js",
   "exports": {
     "./package.json": "./package.json",

@@ -2,7 +2,9 @@
   "name": "@novasamatech/spektr-sdk",
   "type": "module",
   "version": "0.0.12",
-  "description": "",
+  "description": "Spektr SDK: integrate and run your dapp inside Polkadot dapp browsers.",
+  "license": "Apache-2.0",
+  "keywords": ["polkadot", "spektr", "dapp"],
   "main": "dist/index.js",
   "exports": {
     "./package.json": "./package.json",
