@@ -1,3 +1,7 @@
+## 0.0.13 (2025-10-14)
+
+This was a version bump only, there were no code changes.
+
 ## 0.0.12 (2025-10-13)
 
 This was a version bump only, there were no code changes.

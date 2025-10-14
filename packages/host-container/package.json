@@ -1,10 +1,14 @@
 {
   "name": "@novasamatech/spektr-dapp-host-container",
   "type": "module",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "Container for hosting and managing dapps within the Polkadot ecosystem.",
   "license": "Apache-2.0",
-  "keywords": ["polkadot", "spektr", "dapp"],
+  "keywords": [
+    "polkadot",
+    "spektr",
+    "dapp"
+  ],
   "main": "dist/index.js",
   "exports": {
     "./package.json": "./package.json",
@@ -19,8 +23,8 @@
   ],
   "dependencies": {
     "@polkadot-api/json-rpc-provider": "0.0.4",
-    "@novasamatech/spektr-sdk-shared": "0.0.12",
-    "@novasamatech/spektr-sdk-transport": "0.0.12"
+    "@novasamatech/spektr-sdk-shared": "0.0.13",
+    "@novasamatech/spektr-sdk-transport": "0.0.13"
   },
   "publishConfig": {
     "access": "public"
