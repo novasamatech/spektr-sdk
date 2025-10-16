@@ -4,8 +4,8 @@ A robust solution for hosting and managing decentralized applications (dapps) wi
 
 ## Docs
 
-* [SDK README](./packages/host-container/README.md) (for dapp developers)
-* [Host container README](./packages/sdk/README.md) (for host application developers)
+* [SDK README](./packages/sdk/README.md) (for dapp developers)
+* [Host container README](./packages/host-container/README.md) (for host application developers)
 
 ## Architecture
 

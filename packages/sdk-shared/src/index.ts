@@ -7,8 +7,6 @@ export function isValidMessage(event: MessageEvent, source: Window, currentWindo
     event.source !== currentWindow &&
     event.source === source &&
     event.data &&
-    'constructor' &&
-    event.data &&
     event.data.constructor.name === 'Uint8Array'
   );
 }
