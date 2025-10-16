@@ -24,6 +24,7 @@
   "dependencies": {
     "@polkadot/extension-inject": "0.62.1",
     "@polkadot-api/json-rpc-provider": "0.0.4",
+    "@polkadot-api/json-rpc-provider-proxy": "0.2.5",
     "@novasamatech/spektr-sdk-shared": "0.0.14",
     "@novasamatech/spektr-sdk-transport": "0.0.14"
   },

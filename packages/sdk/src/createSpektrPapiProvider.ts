@@ -1,4 +1,5 @@
-import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
+import type { JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
+import { getSyncProvider } from '@polkadot-api/json-rpc-provider-proxy';
 import { type HexString } from '@novasamatech/spektr-sdk-shared';
 import { type Transport, unwrapResponseOrThrow } from '@novasamatech/spektr-sdk-transport';
 import { defaultTransport } from './transport';
@@ -20,6 +21,24 @@ export function createSpektrPapiProvider({ chainId, fallback }: Params, internal
   const request = transport.request;
   const subscribe = transport.subscribe;
   const postMessage = transport.postMessage;
+
+  const spektrProvider: JsonRpcProvider = onMessage => {
+    const unsubscribe = subscribe('papiProviderReceiveMessageV1', (_, message) => {
+      const unwrapped = unwrapResponseOrThrow(message.value);
+      if (unwrapped.chainId === chainId) {
+        onMessage(unwrapped.message);
+      }
+    });
+
+    return {
+      send(message) {
+        postMessage('_', { tag: 'papiProviderSendMessageV1', value: { chainId, message } });
+      },
+      disconnect() {
+        unsubscribe();
+      },
+    };
+  };
 
   function checkIfReady() {
     return isReady().then(ready => {
@@ -43,59 +62,5 @@ export function createSpektrPapiProvider({ chainId, fallback }: Params, internal
     });
   }
 
-  const spektrProvider: JsonRpcProvider = onMessage => {
-    const unsubscribe = subscribe('papiProviderReceiveMessageV1', (_, message) => {
-      const unwrapped = unwrapResponseOrThrow(message.value);
-      if (unwrapped.chainId === chainId) {
-        onMessage(unwrapped.message);
-      }
-    });
-
-    return {
-      send(message) {
-        postMessage('_', { tag: 'papiProviderSendMessageV1', value: { chainId, message } });
-      },
-      disconnect() {
-        unsubscribe();
-      },
-    };
-  };
-
-  const messagesPool = new Set<string>();
-
-  return onMessage => {
-    let connection: JsonRpcConnection | null;
-    let disconnected = false;
-
-    checkIfReady().then(ready => {
-      if (disconnected) return;
-
-      if (ready) {
-        connection = spektrProvider(onMessage);
-      } else {
-        connection = fallback(onMessage);
-      }
-
-      messagesPool.forEach(message => {
-        connection?.send(message);
-      });
-      messagesPool.clear();
-    });
-
-    return {
-      send(message) {
-        if (connection) {
-          connection.send(message);
-        } else {
-          messagesPool.add(message);
-        }
-      },
-      disconnect() {
-        disconnected = true;
-        if (connection) {
-          connection.disconnect();
-        }
-      },
-    };
-  };
+  return getSyncProvider(() => checkIfReady().then(ready => (ready ? spektrProvider : fallback)));
 }

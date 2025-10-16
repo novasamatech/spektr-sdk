@@ -1,4 +1,4 @@
-# Navasama dapp SDK and execution container
+# Novasama dapp SDK and execution container
 
 A robust solution for hosting and managing decentralized applications (dapps) within the Polkadot ecosystem.
 
