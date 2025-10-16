@@ -2,6 +2,11 @@
 
 A robust solution for hosting and managing decentralized applications (dapps) within the Polkadot ecosystem.
 
+> [!WARNING]
+> **🔬 Proof of Concept**
+> 
+> This project is currently a **Proof of Concept (POC)** implementation. It is intended for experimental and demonstration purposes. Features, APIs, and architecture may change significantly as the project evolves. Not recommended for production use at this stage.
+
 ## Docs
 
 * [SDK README](./packages/sdk/README.md) (for dapp developers)
