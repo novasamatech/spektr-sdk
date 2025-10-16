@@ -1,0 +1,26 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+node_modules
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+.nx/cache
+.nx/workspace-data
+.cursor/rules/nx-rules.mdc
+vite.config.*.timestamp*
+vitest.config.*.timestamp*
+
+packages/*/dist

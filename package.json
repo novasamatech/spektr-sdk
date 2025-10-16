@@ -1,0 +1,34 @@
+{
+  "name": "spektr-sdk-monorepo",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "prepublishOnly": "npm run build && npm run lint",
+    "release": "nx release",
+    "build": "nx run-many -t build --exclude sdk-example",
+    "build:watch": "nx watch --all -- nx run \\$NX_PROJECT_NAME:build",
+    "typecheck": "nx run-many -t typecheck",
+    "lint": "nx run-many -t lint"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.37.0",
+    "@nx/eslint": "21.6.3",
+    "@nx/eslint-plugin": "21.6.3",
+    "@nx/js": "21.6.3",
+    "@nx/vite": "21.6.3",
+    "@nx/web": "21.6.3",
+    "@types/node": "24.7.0",
+    "eslint": "9.37.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-prettier": "5.5.4",
+    "globals": "16.4.0",
+    "nx": "21.6.3",
+    "prettier": "3.6.2",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.45.0"
+  }
+}

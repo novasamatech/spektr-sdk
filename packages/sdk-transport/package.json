@@ -1,0 +1,31 @@
+{
+  "name": "@novasamatech/spektr-sdk-transport",
+  "type": "module",
+  "version": "0.0.16",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/novasamatech/spektr-sdk.git"
+  },
+  "main": "dist/index.js",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "dependencies": {
+    "@novasamatech/spektr-sdk-shared": "0.0.16",
+    "@polkadot-api/pjs-signer": "0.6.16",
+    "scale-ts": "1.6.1",
+    "nanoid": "5.1.6"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
