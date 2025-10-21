@@ -4,7 +4,10 @@ import { type Transport, unwrapResponseOrThrow } from '@novasamatech/spektr-sdk-
 import { SpektrExtensionName, Version } from './constants';
 import { defaultTransport } from './transport';
 
-function injectPolkadotExtension(transport: Transport) {
+export async function createExtensionEnableFactory(transport: Transport) {
+  const ready = await transport.isReady();
+  if (!ready) return null;
+
   async function enable(): Promise<Injected> {
     return {
       accounts: {
@@ -56,16 +59,23 @@ function injectPolkadotExtension(transport: Transport) {
     };
   }
 
-  injectExtension(enable, { name: SpektrExtensionName, version: Version });
+  return enable;
 }
 
 export async function injectSpektrExtension(transport: Transport | null = defaultTransport) {
   if (!transport) return false;
 
-  const ready = await transport.isReady();
-  if (!ready) return false;
+  try {
+    const enable = await createExtensionEnableFactory(transport);
 
-  injectPolkadotExtension(transport);
-
-  return true;
+    if (enable) {
+      injectExtension(enable, { name: SpektrExtensionName, version: Version });
+      return true;
+    } else {
+      return false;
+    }
+  } catch (e) {
+    console.error('Error injecting extension', e);
+    return false;
+  }
 }

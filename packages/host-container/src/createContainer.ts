@@ -44,6 +44,10 @@ const defaultHandlers: ContainerHandlers = {
 
 export function createContainer(provider: TransportProvider) {
   const transport = createTransport(provider, { handshakeTimeout: Number.POSITIVE_INFINITY });
+  if (transport === null) {
+    throw new Error('Transport is not available: dapp provider has incorrect environment');
+  }
+
   const externalHandlers: Partial<ContainerHandlers> = {};
 
   // account subscription

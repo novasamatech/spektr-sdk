@@ -7,12 +7,13 @@
     "packages/*"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run lint",
+    "prepublishOnly": "npm run build && npm run lint && npm run test",
     "release": "nx release",
-    "build": "nx run-many -t build --exclude sdk-example",
+    "build": "nx run-many -t build",
     "build:watch": "nx watch --all -- nx run \\$NX_PROJECT_NAME:build",
     "typecheck": "nx run-many -t typecheck",
-    "lint": "nx run-many -t lint"
+    "lint": "nx run-many -t lint",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@eslint/js": "9.37.0",
@@ -26,9 +27,12 @@
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-prettier": "5.5.4",
     "globals": "16.4.0",
+    "mitt": "3.0.1",
     "nx": "21.6.3",
     "prettier": "3.6.2",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.45.0"
+    "typescript-eslint": "8.45.0",
+    "vite": "7.1.11",
+    "vitest": "3.2.4"
   }
 }
