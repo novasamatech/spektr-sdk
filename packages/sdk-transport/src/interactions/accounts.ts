@@ -1,5 +1,7 @@
 import type { InjectedAccount, KeypairType } from '@polkadot-api/pjs-signer';
-import { _void, type Codec, type CodecType, Enum, Option, str, Struct, Vector } from 'scale-ts';
+import type { Codec, CodecType } from 'scale-ts';
+import { Enum, Option, Struct, Vector, _void, str } from 'scale-ts';
+
 import { createTransportEncoder } from '../createTransportEncoder';
 
 const keypairCodec = Enum<Record<KeypairType, Codec<undefined>>>({
@@ -30,12 +32,7 @@ export type InjectedAccountSchema = CodecType<typeof injectedAccountEncoder>;
 const injectedAccountEncoder = createTransportEncoder<InjectedAccount, typeof injectedAccountCodec>({
   codec: injectedAccountCodec,
   from(decoded) {
-    return {
-      address: decoded.address,
-      genesisHash: decoded.genesisHash,
-      name: decoded.name,
-      type: decoded.type,
-    };
+    return decoded;
   },
   to(value) {
     return {

@@ -1,4 +1,5 @@
-import { type Codec, type CodecType, enhanceCodec } from 'scale-ts';
+import type { Codec, CodecType } from 'scale-ts';
+import { enhanceCodec } from 'scale-ts';
 
 export type TransportEncoder<Public, Transported extends Codec<any>> = {
   codec: Transported;

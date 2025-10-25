@@ -1,10 +1,12 @@
-import { Enum, str, Struct, type CodecType, type Codec } from 'scale-ts';
+import type { Codec, CodecType } from 'scale-ts';
+import { Enum, Struct, str } from 'scale-ts';
+
 import { hexEncoder } from './commonEncoders';
 import {
-  getAccountsResponseV1Encoder,
-  getAccountsRequestV1Encoder,
   accountSubscriptionV1Encoder,
   accountUnsubscriptionV1Encoder,
+  getAccountsRequestV1Encoder,
+  getAccountsResponseV1Encoder,
 } from './interactions/accounts';
 import { supportFeatureRequestV1Encoder, supportFeatureResponseV1 } from './interactions/features';
 import { handshakeRequestV1Encoder, handshakeResponseV1Encoder } from './interactions/handshake';

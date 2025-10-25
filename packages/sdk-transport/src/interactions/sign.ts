@@ -1,5 +1,7 @@
-import type { SignerPayloadRaw, SignerPayloadJSON, SignerResult } from '@polkadot/types/types';
-import { _void, bool, Bytes, type CodecType, Enum, Option, str, Struct, u32, Vector } from 'scale-ts';
+import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types';
+import type { CodecType } from 'scale-ts';
+import { Bytes, Enum, Option, Struct, Vector, _void, bool, str, u32 } from 'scale-ts';
+
 import { hexEncoder } from '../commonEncoders';
 import { createTransportEncoder } from '../createTransportEncoder';
 

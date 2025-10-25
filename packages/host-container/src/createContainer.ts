@@ -1,11 +1,9 @@
-import type { SignerPayloadRaw, SignerPayloadJSON, SignerResult } from '@polkadot/types/types';
+import type { HexString } from '@novasamatech/spektr-sdk-shared';
+import type { InjectedAccountSchema, TransportProvider } from '@novasamatech/spektr-sdk-transport';
+import { createTransport } from '@novasamatech/spektr-sdk-transport';
+import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types';
 import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
-import { type HexString } from '@novasamatech/spektr-sdk-shared';
-import {
-  type InjectedAccountSchema,
-  type TransportProvider,
-  createTransport,
-} from '@novasamatech/spektr-sdk-transport';
+
 import { createComplexSubscriber } from './createComplexSubscriber';
 
 function formatError(e: unknown) {
@@ -44,7 +42,7 @@ const defaultHandlers: ContainerHandlers = {
 
 export function createContainer(provider: TransportProvider) {
   const transport = createTransport(provider, { handshakeTimeout: Number.POSITIVE_INFINITY });
-  if (transport === null) {
+  if (!transport.isCorrectEnvironment()) {
     throw new Error('Transport is not available: dapp provider has incorrect environment');
   }
 
@@ -52,7 +50,7 @@ export function createContainer(provider: TransportProvider) {
 
   // account subscription
 
-  transport?.handleMessage<'getAccountsRequestV1', 'getAccountsResponseV1'>('getAccountsRequestV1', async () => {
+  transport.handleMessage<'getAccountsRequestV1', 'getAccountsResponseV1'>('getAccountsRequestV1', async () => {
     try {
       const handler = externalHandlers.accounts ?? defaultHandlers.accounts;
       const accounts = await handler.get();
@@ -91,7 +89,7 @@ export function createContainer(provider: TransportProvider) {
 
   // sign subscription
 
-  transport?.handleMessage<'signRawRequestV1', 'signResponseV1'>('signRawRequestV1', async message => {
+  transport.handleMessage<'signRawRequestV1', 'signResponseV1'>('signRawRequestV1', async message => {
     try {
       const signRaw = externalHandlers.sign?.signRaw ?? defaultHandlers.sign.signRaw;
       const result = await signRaw(message);
@@ -107,7 +105,7 @@ export function createContainer(provider: TransportProvider) {
     }
   });
 
-  transport?.handleMessage<'signPayloadRequestV1', 'signResponseV1'>('signPayloadRequestV1', async message => {
+  transport.handleMessage<'signPayloadRequestV1', 'signResponseV1'>('signPayloadRequestV1', async message => {
     try {
       const signPayload = externalHandlers.sign?.signPayload ?? defaultHandlers.sign.signPayload;
       const result = await signPayload(message);
@@ -125,7 +123,7 @@ export function createContainer(provider: TransportProvider) {
 
   // chain support subscription
 
-  transport?.handleMessage<'supportFeatureRequestV1', 'supportFeatureResponseV1'>(
+  transport.handleMessage<'supportFeatureRequestV1', 'supportFeatureResponseV1'>(
     'supportFeatureRequestV1',
     async message => {
       if (message.tag === 'chain') {
@@ -153,7 +151,7 @@ export function createContainer(provider: TransportProvider) {
     connectToPapiProvider(chainId: HexString, provider: JsonRpcProvider) {
       let connection: JsonRpcConnection | null = null;
 
-      return transport?.handleMessage('papiProviderSendMessageV1', async message => {
+      return transport.handleMessage('papiProviderSendMessageV1', async message => {
         if (!connection) {
           connection = provider(message => {
             transport.postMessage('_', {
@@ -183,13 +181,13 @@ export function createContainer(provider: TransportProvider) {
     },
 
     subscribeLocationChange(callback: (location: string) => void) {
-      transport?.handleMessage('locationChangedV1', async location => {
+      transport.handleMessage('locationChangedV1', async location => {
         callback(location);
       });
     },
 
     dispose() {
-      transport?.dispose();
+      transport.dispose();
     },
   };
 }

@@ -1,8 +1,10 @@
-import type { HexString } from '@novasamatech/spektr-sdk-shared';
-import { createTransport } from '@novasamatech/spektr-sdk-transport';
-import { createSpektrPapiProvider, WellKnownChain } from '@novasamatech/spektr-sdk';
 import { createContainer } from '@novasamatech/spektr-dapp-host-container';
-import { assert, describe, expect, it } from 'vitest';
+import { WellKnownChain, createSpektrPapiProvider } from '@novasamatech/spektr-sdk';
+import { type HexString } from '@novasamatech/spektr-sdk-shared';
+import { createTransport } from '@novasamatech/spektr-sdk-transport';
+
+import { describe, expect, it } from 'vitest';
+
 import { createProviders } from './__mocks__/providers';
 
 function delay(ttl: number) {
@@ -13,8 +15,6 @@ function setup(chainId: HexString) {
   const providers = createProviders();
   const container = createContainer(providers.host);
   const sdkTransport = createTransport(providers.sdk);
-
-  assert(sdkTransport, 'SDK transport is not available');
 
   const provider = createSpektrPapiProvider(
     {

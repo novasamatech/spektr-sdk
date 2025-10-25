@@ -1,4 +1,4 @@
-import { str, Struct } from 'scale-ts';
+import { Struct, str } from 'scale-ts';
 
 export const papiProviderSendMessageV1Encoder = Struct({
   chainId: str,
