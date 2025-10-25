@@ -40,7 +40,6 @@ export default defineConfig([
         },
       ],
 
-      // 'sort-imports': ['error', { ignoreDeclarationSort: true }],
       'import-x/no-named-as-default': 'error',
       'import-x/no-unresolved': 'off',
       'import-x/consistent-type-specifier-style': ['error', 'prefer-top-level'],

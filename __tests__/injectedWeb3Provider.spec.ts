@@ -1,9 +1,10 @@
 import { createContainer } from '@novasamatech/spektr-dapp-host-container';
 import { createExtensionEnableFactory } from '@novasamatech/spektr-sdk';
-import { type HexString } from '@novasamatech/spektr-sdk-shared';
-import { type InjectedAccountSchema, createTransport } from '@novasamatech/spektr-sdk-transport';
+import type { HexString } from '@novasamatech/spektr-sdk-shared';
+import type { InjectedAccountSchema } from '@novasamatech/spektr-sdk-transport';
+import { createTransport } from '@novasamatech/spektr-sdk-transport';
 
-import { type SignerResult } from '@polkadot/types/types';
+import type { SignerResult } from '@polkadot/types/types';
 import { default as mitt } from 'mitt';
 import { assert, describe, expect, it } from 'vitest';
 

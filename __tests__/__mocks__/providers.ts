@@ -1,4 +1,5 @@
 import type { TransportProvider } from '@novasamatech/spektr-sdk-transport';
+
 import { default as mitt } from 'mitt';
 
 export function createProviders() {
