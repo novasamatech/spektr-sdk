@@ -12,8 +12,10 @@
     "build": "nx run-many -t build",
     "build:watch": "nx watch --all -- nx run \\$NX_PROJECT_NAME:build",
     "typecheck": "nx run-many -t typecheck",
-    "lint": "nx run-many -t lint",
-    "test": "vitest run"
+    "lint": "nx run-many -t lint && eslint ./__tests__",
+    "lint:fix": "nx run-many -t lint --fix && && eslint ./__tests__ --fix",
+    "test": "vitest run",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@eslint/js": "9.37.0",
@@ -25,8 +27,11 @@
     "@types/node": "24.7.0",
     "eslint": "9.37.0",
     "eslint-config-prettier": "10.1.8",
+    "eslint-import-resolver-typescript": "4.4.4",
+    "eslint-plugin-import-x": "4.16.1",
     "eslint-plugin-prettier": "5.5.4",
     "globals": "16.4.0",
+    "husky": "9.1.7",
     "mitt": "3.0.1",
     "nx": "21.6.3",
     "prettier": "3.6.2",

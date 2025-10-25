@@ -1,5 +1,6 @@
 import { isValidMessage } from '@novasamatech/spektr-sdk-shared';
-import { createTransport, type TransportProvider } from '@novasamatech/spektr-sdk-transport';
+import type { TransportProvider } from '@novasamatech/spektr-sdk-transport';
+import { createTransport } from '@novasamatech/spektr-sdk-transport';
 
 function getParentWindow() {
   if (window.top) {

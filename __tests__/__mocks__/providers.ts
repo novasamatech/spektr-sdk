@@ -1,9 +1,10 @@
 import type { TransportProvider } from '@novasamatech/spektr-sdk-transport';
+
 import { default as mitt } from 'mitt';
 
 export function createProviders() {
   type Events = 'toHost' | 'toSdk';
-  const bus = mitt<{ toHost: Uint8Array; toSdk: Uint8Array }>();
+  const bus = mitt<Record<Events, Uint8Array>>();
 
   function createProvider(listenTo: Events, postTo: Events): TransportProvider {
     return {

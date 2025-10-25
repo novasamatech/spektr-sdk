@@ -1,18 +1,19 @@
-import type { HexString } from '@novasamatech/spektr-sdk-shared';
-import { createTransport, type InjectedAccountSchema } from '@novasamatech/spektr-sdk-transport';
-import { createExtensionEnableFactory } from '@novasamatech/spektr-sdk';
 import { createContainer } from '@novasamatech/spektr-dapp-host-container';
+import { createExtensionEnableFactory } from '@novasamatech/spektr-sdk';
+import type { HexString } from '@novasamatech/spektr-sdk-shared';
+import type { InjectedAccountSchema } from '@novasamatech/spektr-sdk-transport';
+import { createTransport } from '@novasamatech/spektr-sdk-transport';
+
 import type { SignerResult } from '@polkadot/types/types';
-import { assert, describe, expect, it } from 'vitest';
 import { default as mitt } from 'mitt';
+import { assert, describe, expect, it } from 'vitest';
+
 import { createProviders } from './__mocks__/providers';
 
 async function setup() {
   const providers = createProviders();
   const container = createContainer(providers.host);
   const sdkTransport = createTransport(providers.sdk);
-
-  assert(sdkTransport, 'SDK transport is not available');
 
   const enable = await createExtensionEnableFactory(sdkTransport);
   assert(enable, 'Enable function should be available');

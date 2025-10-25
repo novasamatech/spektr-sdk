@@ -1,5 +1,6 @@
 import type { HexString } from '@novasamatech/spektr-sdk-shared';
 import { str } from 'scale-ts';
+
 import { createTransportEncoder } from './createTransportEncoder';
 
 function isHex(value: string): value is HexString {

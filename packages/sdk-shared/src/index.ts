@@ -17,7 +17,7 @@ type PromiseWithResolvers<T> = {
   reject: (reason: unknown) => void;
 };
 
-export const promiseWithResolvers = <T>(): PromiseWithResolvers<T> => {
+export const promiseWithResolvers = <const T>(): PromiseWithResolvers<T> => {
   let resolve: (value: T) => void;
   let reject: (reason?: unknown) => void;
   const promise = new Promise<T>((res, rej) => {

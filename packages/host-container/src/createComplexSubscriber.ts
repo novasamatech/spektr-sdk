@@ -1,4 +1,4 @@
-import type { PickMessagePayload, MessageType, Transport } from '@novasamatech/spektr-sdk-transport';
+import type { MessageType, PickMessagePayload, Transport } from '@novasamatech/spektr-sdk-transport';
 
 type Subscriber<Response extends MessageType> = (
   callback: (response: PickMessagePayload<Response>) => void,
@@ -28,11 +28,11 @@ export function createComplexSubscriber<SubscribeRequest extends MessageType, Re
     const subscriber = getSubscriber();
 
     unsubscribe = subscriber(value => {
-      transport?.postMessage(id ?? '_', value);
+      transport.postMessage(id ?? '_', value);
     });
   };
 
-  transport?.subscribe(subscribeRequest, async requestId => {
+  transport.subscribe(subscribeRequest, async requestId => {
     id = requestId;
 
     if (!unsubscribe) {
@@ -43,7 +43,7 @@ export function createComplexSubscriber<SubscribeRequest extends MessageType, Re
       });
     }
 
-    transport?.subscribe(unsubscribeRequest, async () => {
+    transport.subscribe(unsubscribeRequest, async () => {
       if (unsubscribe) {
         unsubscribe();
         unsubscribe = null;

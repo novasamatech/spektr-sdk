@@ -1,6 +1,8 @@
-import type { Injected } from '@polkadot/extension-inject/types';
+import type { Transport } from '@novasamatech/spektr-sdk-transport';
+import { unwrapResponseOrThrow } from '@novasamatech/spektr-sdk-transport';
 import { injectExtension } from '@polkadot/extension-inject';
-import { type Transport, unwrapResponseOrThrow } from '@novasamatech/spektr-sdk-transport';
+import type { Injected } from '@polkadot/extension-inject/types';
+
 import { SpektrExtensionName, Version } from './constants';
 import { defaultTransport } from './transport';
 
@@ -12,20 +14,17 @@ export async function createExtensionEnableFactory(transport: Transport) {
     return {
       accounts: {
         get() {
-          return transport.request({ tag: 'getAccountsRequestV1', value: undefined }).then(e => {
-            if (e.tag === 'getAccountsResponseV1') {
-              return unwrapResponseOrThrow(e.value);
-            }
-            throw new Error(`Invalid response, got ${e.tag} message`);
-          });
+          return transport
+            .request({ tag: 'getAccountsRequestV1', value: undefined }, 'getAccountsResponseV1')
+            .then(unwrapResponseOrThrow);
         },
         subscribe(callback) {
-          const unsubscribe = transport.subscribe('getAccountsResponseV1', (_, message) => {
+          const unsubscribe = transport.subscribe('getAccountsResponseV1', (_, payload) => {
             try {
-              const accounts = unwrapResponseOrThrow(message.value);
+              const accounts = unwrapResponseOrThrow(payload);
               callback(accounts);
             } catch {
-              console.error('Invalid account response, got', message.value.value);
+              console.error('Failed response on account subscription', payload.value);
             }
           });
 
@@ -40,20 +39,14 @@ export async function createExtensionEnableFactory(transport: Transport) {
 
       signer: {
         signRaw(raw) {
-          return transport.request({ tag: 'signRawRequestV1', value: raw }).then(response => {
-            if (response.tag === 'signResponseV1') {
-              return unwrapResponseOrThrow(response.value);
-            }
-            throw new Error(`Invalid response, got ${response.tag} message`);
-          });
+          return transport
+            .request({ tag: 'signRawRequestV1', value: raw }, 'signResponseV1')
+            .then(unwrapResponseOrThrow);
         },
         signPayload(payload) {
-          return transport.request({ tag: 'signPayloadRequestV1', value: payload }).then(response => {
-            if (response.tag === 'signResponseV1') {
-              return unwrapResponseOrThrow(response.value);
-            }
-            throw new Error(`Invalid response, got ${response.tag} message`);
-          });
+          return transport
+            .request({ tag: 'signPayloadRequestV1', value: payload }, 'signResponseV1')
+            .then(unwrapResponseOrThrow);
         },
       },
     };

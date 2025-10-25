@@ -1,12 +1,8 @@
 import { HANDSHAKE_INTERVAL, promiseWithResolvers } from '@novasamatech/spektr-sdk-shared';
 import { nanoid } from 'nanoid';
-import {
-  messageEncoder,
-  type MessagePayloadSchema,
-  type MessageType,
-  type PickMessagePayload,
-  type PickMessagePayloadValue,
-} from './messageEncoder';
+
+import type { MessagePayloadSchema, MessageType, PickMessagePayload, PickMessagePayloadValue } from './messageEncoder';
+import { messageEncoder } from './messageEncoder';
 
 export type TransportProvider = {
   isCorrectEnvironment(): boolean;
@@ -24,12 +20,16 @@ export type Transport = {
 
   subscribe<const Type extends MessageType>(
     type: Type,
-    callback: (id: string, payload: PickMessagePayload<Type>) => void,
+    callback: (id: string, payload: PickMessagePayloadValue<Type>) => void,
   ): VoidFunction;
 
   postMessage(id: string, payload: MessagePayloadSchema): string;
 
-  request(payload: MessagePayloadSchema, abortSignal?: AbortSignal): Promise<MessagePayloadSchema>;
+  request<Response extends MessageType>(
+    payload: MessagePayloadSchema,
+    response: Response,
+    abortSignal?: AbortSignal,
+  ): Promise<PickMessagePayloadValue<Response>>;
 
   handleMessage<Request extends MessageType, Response extends MessageType>(
     type: Request,
@@ -43,9 +43,7 @@ type TransportParams = Partial<{
   handshakeTimeout: number;
 }>;
 
-export function createTransport(provider: TransportProvider, params?: TransportParams): Transport | null {
-  if (!provider.isCorrectEnvironment()) return null;
-
+export function createTransport(provider: TransportProvider, params?: TransportParams): Transport {
   const handshakeTimeout = params?.handshakeTimeout ?? Number.POSITIVE_INFINITY;
 
   const handshakeAbortController = new AbortController();
@@ -59,26 +57,10 @@ export function createTransport(provider: TransportProvider, params?: TransportP
     }
   }
 
-  async function requestRaw(payload: MessagePayloadSchema, abortSignal?: AbortSignal): Promise<MessagePayloadSchema> {
-    throwIfDisposed();
-    abortSignal?.throwIfAborted();
-
-    const requestId = nanoid();
-    const { resolve, promise } = promiseWithResolvers<MessagePayloadSchema>();
-
-    const unsubscribe = transportInstance.subscribeAny((receivedId, message) => {
-      if (receivedId === requestId) {
-        abortSignal?.removeEventListener('abort', unsubscribe);
-        unsubscribe();
-        resolve(message);
-      }
-    });
-
-    abortSignal?.addEventListener('abort', unsubscribe, { once: true });
-
-    transportInstance.postMessage(requestId, payload);
-
-    return promise;
+  function throwIfIncorrectEnvironment() {
+    if (!provider.isCorrectEnvironment()) {
+      throw new Error('Environment is not correct');
+    }
   }
 
   const transportInstance: Transport = {
@@ -87,10 +69,15 @@ export function createTransport(provider: TransportProvider, params?: TransportP
     },
 
     isReady() {
+      throwIfIncorrectEnvironment();
       throwIfDisposed();
 
       if (connected !== null) {
         return Promise.resolve(connected);
+      }
+
+      if (handshakePromise) {
+        return handshakePromise;
       }
 
       let resolved = false;
@@ -120,33 +107,32 @@ export function createTransport(provider: TransportProvider, params?: TransportP
         handshakeAbortController.signal.addEventListener('abort', unsubscribe, { once: true });
       });
 
-      if (!handshakePromise) {
-        handshakePromise =
-          handshakeTimeout === Number.POSITIVE_INFINITY
-            ? request
-            : Promise.race([
-                request,
-                new Promise<boolean>(resolve => {
-                  setTimeout(() => {
-                    if (!resolved) {
-                      handshakeAbortController.abort('Timeout');
-                      resolve(false);
-                    }
-                  }, handshakeTimeout);
-                }),
-              ]);
+      handshakePromise =
+        handshakeTimeout === Number.POSITIVE_INFINITY
+          ? request
+          : Promise.race([
+              request,
+              new Promise<boolean>(resolve => {
+                setTimeout(() => {
+                  if (!resolved) {
+                    handshakeAbortController.abort('Timeout');
+                    resolve(false);
+                  }
+                }, handshakeTimeout);
+              }),
+            ]);
 
-        handshakePromise.then(result => {
-          handshakePromise = null;
-          connected = result;
-          return result;
-        });
-      }
+      handshakePromise.then(result => {
+        handshakePromise = null;
+        connected = result;
+        return result;
+      });
 
       return handshakePromise;
     },
 
     subscribeAny(callback) {
+      throwIfIncorrectEnvironment();
       throwIfDisposed();
 
       return provider.subscribe(message => {
@@ -163,18 +149,20 @@ export function createTransport(provider: TransportProvider, params?: TransportP
 
     subscribe<const Type extends MessageType>(
       type: Type,
-      callback: (id: string, payload: PickMessagePayload<Type>) => void,
+      callback: (id: string, payload: PickMessagePayloadValue<Type>) => void,
     ) {
+      throwIfIncorrectEnvironment();
       throwIfDisposed();
 
       return transportInstance.subscribeAny((id, message) => {
         if (message.tag == type) {
-          callback(id, message as PickMessagePayload<Type>);
+          callback(id, message.value as PickMessagePayloadValue<Type>);
         }
       });
     },
 
     postMessage(id, payload) {
+      throwIfIncorrectEnvironment();
       throwIfDisposed();
 
       const encoded = messageEncoder.enc({ id, payload });
@@ -182,7 +170,12 @@ export function createTransport(provider: TransportProvider, params?: TransportP
       return id;
     },
 
-    async request(payload, abortSignal) {
+    async request<Response extends MessageType>(
+      payload: MessagePayloadSchema,
+      response: Response,
+      abortSignal?: AbortSignal,
+    ) {
+      throwIfIncorrectEnvironment();
       throwIfDisposed();
 
       const ready = await transportInstance.isReady();
@@ -190,17 +183,40 @@ export function createTransport(provider: TransportProvider, params?: TransportP
         throw new Error('Spektr is not ready');
       }
 
-      return requestRaw(payload, abortSignal);
+      abortSignal?.throwIfAborted();
+
+      const requestId = nanoid();
+      const { resolve, reject, promise } = promiseWithResolvers<PickMessagePayloadValue<Response>>();
+
+      const unsubscribe = transportInstance.subscribe(response, (receivedId, payload) => {
+        if (receivedId === requestId) {
+          abortSignal?.removeEventListener('abort', stop);
+          unsubscribe();
+          resolve(payload as PickMessagePayloadValue<Response>);
+        }
+      });
+
+      const stop = () => {
+        unsubscribe();
+        reject(abortSignal?.reason ?? new Error('Request aborted'));
+      };
+
+      abortSignal?.addEventListener('abort', stop, { once: true });
+
+      transportInstance.postMessage(requestId, payload);
+
+      return promise;
     },
 
     handleMessage<Request extends MessageType, Response extends MessageType>(
       type: Request,
       handler: (message: PickMessagePayloadValue<Request>) => Promise<PickMessagePayload<Response> | void>,
     ) {
+      throwIfIncorrectEnvironment();
       throwIfDisposed();
 
-      return transportInstance.subscribe(type, (id, message) => {
-        handler(message.value as PickMessagePayloadValue<Request>).then(result => {
+      return transportInstance.subscribe(type, (id, payload) => {
+        handler(payload).then(result => {
           if (!result) return;
           transportInstance.postMessage(id, result);
         });
@@ -214,13 +230,15 @@ export function createTransport(provider: TransportProvider, params?: TransportP
     },
   };
 
-  transportInstance.handleMessage<'handshakeRequestV1', 'handshakeResponseV1'>('handshakeRequestV1', async () => ({
-    tag: 'handshakeResponseV1',
-    value: {
-      tag: 'success',
-      value: undefined,
-    },
-  }));
+  if (provider.isCorrectEnvironment()) {
+    transportInstance.handleMessage<'handshakeRequestV1', 'handshakeResponseV1'>('handshakeRequestV1', async () => ({
+      tag: 'handshakeResponseV1',
+      value: {
+        tag: 'success',
+        value: undefined,
+      },
+    }));
+  }
 
   return transportInstance;
 }

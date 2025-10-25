@@ -30,16 +30,22 @@
       }
     }
   ],
+  "namedInputs": {
+    "sharedGlobals": [{ "runtime": "node --version" }, "{workspaceRoot}/tsconfig.json", "{workspaceRoot}/package.json"],
+    "default": ["{projectRoot}/**/*", "sharedGlobals"]
+  },
   "targetDefaults": {
     "build": {
-      "dependsOn": ["^build"],
-      "inputs": ["default", "^default"]
+      "cache": true,
+      "dependsOn": ["^build", "default"],
+      "inputs": ["default"]
     },
     "typecheck": {
-      "dependsOn": ["^build", "^typecheck"],
+      "dependsOn": ["^build", "^typecheck", "default"],
       "inputs": ["default"]
     },
     "lint": {
+      "dependsOn": ["^build", "default", "{workspaceRoot}/eslint.config.js"],
       "inputs": ["default"]
     }
   }
