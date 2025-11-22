@@ -1,9 +1,9 @@
-import type { Transport } from '@novasamatech/spektr-sdk-transport';
+import type { ConnectionStatus, Transport } from '@novasamatech/spektr-sdk-transport';
 
 import { defaultTransport } from './transport';
 
 export function createSpektrMetaProvider(transport: Transport = defaultTransport) {
-  if (transport.isCorrectEnvironment()) {
+  if (transport.isCorrectEnvironment() && typeof window !== 'undefined') {
     const getUrl = () => {
       return window.location.pathname + window.location.hash + window.location.search;
     };
@@ -20,8 +20,8 @@ export function createSpektrMetaProvider(transport: Transport = defaultTransport
   }
 
   return {
-    getTheme(): Promise<'dark' | 'light'> {
-      return Promise.resolve('light');
+    subscribeConnectionStatus(callback: (connectionStatus: ConnectionStatus) => void) {
+      return transport.onConnectionStatusChange(callback);
     },
   };
 }

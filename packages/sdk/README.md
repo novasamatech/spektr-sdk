@@ -68,5 +68,15 @@ function createPapiClient(): PolkadotClient {
 
   return createClient(provider);
 }
-``` 
+```
+
+### Subscribing metadata and statuses
+
+```ts
+import { spektrMetaProvider } from '@novasamatech/spektr-sdk';
+
+const unsubscribe = spektrMetaProvider.subscribeConnectionStatus((status) => {
+  console.log('connection status changed', status);
+});
+```
 

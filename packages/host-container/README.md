@@ -100,10 +100,18 @@ container.connectToPapiProvider(polkadotGenesisHash, provider);
 
 ### Additional metadata sync
 
+#### Receiving connection status
+
+```ts
+const unsubscribe = container.subscribeConnectionStatus((status) => {
+  console.log('connection status changed', status);
+});
+```
+
 #### Receiving dapp location change
 
 ```ts
-container.subscribeLocationChange((location) => {
+const unsubscribe = container.subscribeLocationChange((location) => {
   console.log('dapp location changed:', location);
 });
 ```

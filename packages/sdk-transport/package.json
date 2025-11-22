@@ -21,9 +21,12 @@
   ],
   "dependencies": {
     "@novasamatech/spektr-sdk-shared": "0.0.16",
-    "@polkadot-api/pjs-signer": "0.6.16",
     "scale-ts": "1.6.1",
-    "nanoid": "5.1.6"
+    "nanoid": "5.1.6",
+    "mitt": "3.0.1"
+  },
+  "peerDependencies": {
+    "@polkadot-api/pjs-signer": "^0.6.17"
   },
   "publishConfig": {
     "access": "public"

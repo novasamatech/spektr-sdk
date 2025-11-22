@@ -1,5 +1,5 @@
 import type { HexString } from '@novasamatech/spektr-sdk-shared';
-import type { InjectedAccountSchema, TransportProvider } from '@novasamatech/spektr-sdk-transport';
+import type { ConnectionStatus, InjectedAccountSchema, TransportProvider } from '@novasamatech/spektr-sdk-transport';
 import { createTransport } from '@novasamatech/spektr-sdk-transport';
 import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types';
 import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
@@ -180,10 +180,18 @@ export function createContainer(provider: TransportProvider) {
       externalHandlers.chainSupport = handler;
     },
 
+    isReady() {
+      return transport.isReady();
+    },
+
     subscribeLocationChange(callback: (location: string) => void) {
       transport.handleMessage('locationChangedV1', async location => {
         callback(location);
       });
+    },
+
+    subscribeConnectionStatus(callback: (connectionStatus: ConnectionStatus) => void) {
+      return transport.onConnectionStatusChange(callback);
     },
 
     dispose() {

@@ -7,6 +7,6 @@ export {
 } from './messageEncoder';
 
 export { createTransport } from './createTransport';
-export type { Transport, TransportProvider } from './createTransport';
+export type { ConnectionStatus, Transport, TransportProvider } from './types';
 
 export { type InjectedAccountSchema } from './interactions/accounts';
