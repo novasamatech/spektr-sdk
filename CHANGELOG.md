@@ -2,11 +2,12 @@
 
 ### 🚀 Features
 
-- ⚠️  Support createTransaction interface ([3dc97ab](https://github.com/novasamatech/spektr-sdk/commit/3dc97ab))
+- ⚠️  Support `createTransaction` interface ([3dc97ab](https://github.com/novasamatech/spektr-sdk/commit/3dc97ab))
 
 ### ⚠️  Breaking Changes
 
-- container.handleSignRequest now have required createTransaction method.
+- `container.handleSignRequest` now have required createTransaction method.
+- `createIframeProvider` now accepts params object instead of separated arguments.
 
 ### ❤️ Thank You
 
