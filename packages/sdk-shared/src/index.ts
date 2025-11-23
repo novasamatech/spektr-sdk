@@ -1,30 +1,7 @@
-export type HexString = `0x${string}`;
+export { HANDSHAKE_INTERVAL } from './constants';
+export { isValidMessage } from './asserts';
+export { promiseWithResolvers } from './promiseWithResolvers';
+export { createDefaultLogger } from './logger';
 
-export const HANDSHAKE_INTERVAL = 50;
-
-export function isValidMessage(event: MessageEvent, source: Window, currentWindow: Window) {
-  return (
-    event.source !== currentWindow &&
-    event.source === source &&
-    event.data &&
-    event.data.constructor.name === 'Uint8Array'
-  );
-}
-
-type PromiseWithResolvers<T> = {
-  promise: Promise<T>;
-  resolve: (value: T) => void;
-  reject: (reason: unknown) => void;
-};
-
-export const promiseWithResolvers = <const T>(): PromiseWithResolvers<T> => {
-  let resolve: (value: T) => void;
-  let reject: (reason?: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-
-  // @ts-expect-error before assign
-  return { promise, resolve, reject };
-};
+export type { Logger } from './logger';
+export type { HexString } from './types';

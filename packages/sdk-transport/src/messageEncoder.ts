@@ -1,7 +1,7 @@
-import type { Codec, CodecType } from 'scale-ts';
+import type { CodecType } from 'scale-ts';
 import { Enum, Struct, str } from 'scale-ts';
 
-import { hexEncoder } from './commonEncoders';
+import { hexEncoder, responseEncoder } from './commonEncoders';
 import {
   accountSubscriptionV1Encoder,
   accountUnsubscriptionV1Encoder,
@@ -11,14 +11,13 @@ import {
 import { supportFeatureRequestV1Encoder, supportFeatureResponseV1 } from './interactions/features';
 import { handshakeRequestV1Encoder, handshakeResponseV1Encoder } from './interactions/handshake';
 import { papiProviderReceiveMessageV1Encoder, papiProviderSendMessageV1Encoder } from './interactions/papiProvider';
-import { signPayloadRequestV1Encoder, signRawRequestV1Encoder, signResponseV1Encoder } from './interactions/sign';
-
-function responseEncoder<T>(codec: Codec<T>) {
-  return Enum({
-    success: codec,
-    error: str,
-  });
-}
+import {
+  createTransactionRequestV1Encoder,
+  createTransactionResponseV1Encoder,
+  signPayloadRequestV1Encoder,
+  signRawRequestV1Encoder,
+  signResponseV1Encoder,
+} from './interactions/sign';
 
 export function unwrapResponseOrThrow<T>(response: CodecType<ReturnType<typeof responseEncoder<T>>>) {
   if (response.tag === 'success') {
@@ -51,6 +50,8 @@ export const messagePayloadEncoder = Enum({
   signRawRequestV1: signRawRequestV1Encoder,
   signPayloadRequestV1: signPayloadRequestV1Encoder,
   signResponseV1: responseEncoder(signResponseV1Encoder),
+  createTransactionRequestV1: createTransactionRequestV1Encoder,
+  createTransactionResponseV1: responseEncoder(createTransactionResponseV1Encoder),
 
   locationChangedV1: str,
 });

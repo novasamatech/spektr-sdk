@@ -1,5 +1,10 @@
 import type { HexString } from '@novasamatech/spektr-sdk-shared';
-import type { ConnectionStatus, InjectedAccountSchema, TransportProvider } from '@novasamatech/spektr-sdk-transport';
+import type {
+  ConnectionStatus,
+  InjectedAccountSchema,
+  TransportProvider,
+  TxPayloadV1,
+} from '@novasamatech/spektr-sdk-transport';
 import { createTransport } from '@novasamatech/spektr-sdk-transport';
 import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types';
 import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
@@ -20,8 +25,13 @@ type ContainerHandlers = {
   sign: {
     signRaw(raw: SignerPayloadRaw): Promise<SignerResult>;
     signPayload(payload: SignerPayloadJSON): Promise<SignerResult>;
+    createTransaction(payload: TxPayloadV1): Promise<HexString>;
   };
   chainSupport(chainId: HexString): Promise<boolean>;
+};
+
+type Params = {
+  handshakeTimeout: number;
 };
 
 export type Container = ReturnType<typeof createContainer>;
@@ -34,14 +44,15 @@ const defaultHandlers: ContainerHandlers = {
     },
   },
   sign: {
-    signRaw: () => Promise.reject(new Error('Sign is not implemented')),
-    signPayload: () => Promise.reject(new Error('Sign is not implemented')),
+    signRaw: () => Promise.reject(new Error('signRaw is not implemented')),
+    signPayload: () => Promise.reject(new Error('signPayload is not implemented')),
+    createTransaction: () => Promise.reject(new Error('createTransaction is not implemented')),
   },
   chainSupport: async () => false,
 };
 
-export function createContainer(provider: TransportProvider) {
-  const transport = createTransport(provider, { handshakeTimeout: Number.POSITIVE_INFINITY });
+export function createContainer(provider: TransportProvider, params?: Params) {
+  const transport = createTransport(provider, { handshakeTimeout: params?.handshakeTimeout });
   if (!transport.isCorrectEnvironment()) {
     throw new Error('Transport is not available: dapp provider has incorrect environment');
   }
@@ -121,6 +132,25 @@ export function createContainer(provider: TransportProvider) {
     }
   });
 
+  transport.handleMessage<'createTransactionRequestV1', 'createTransactionResponseV1'>(
+    'createTransactionRequestV1',
+    async message => {
+      try {
+        const createTransaction = externalHandlers.sign?.createTransaction ?? defaultHandlers.sign.createTransaction;
+        const result = await createTransaction(message);
+        return {
+          tag: 'createTransactionResponseV1',
+          value: { tag: 'success', value: result },
+        };
+      } catch (e) {
+        return {
+          tag: 'createTransactionResponseV1',
+          value: formatError(e),
+        };
+      }
+    },
+  );
+
   // chain support subscription
 
   transport.handleMessage<'supportFeatureRequestV1', 'supportFeatureResponseV1'>(
@@ -147,8 +177,15 @@ export function createContainer(provider: TransportProvider) {
     },
   );
 
+  function init() {
+    // init status subscription
+    transport.isReady();
+  }
+
   return {
     connectToPapiProvider(chainId: HexString, provider: JsonRpcProvider) {
+      init();
+
       let connection: JsonRpcConnection | null = null;
 
       return transport.handleMessage('papiProviderSendMessageV1', async message => {
@@ -168,15 +205,18 @@ export function createContainer(provider: TransportProvider) {
     },
 
     handleAccounts(handler: ContainerHandlers['accounts']) {
+      init();
       externalHandlers.accounts = handler;
       accountSubscriber?.replaceSubscriber();
     },
 
     handleSignRequest(handler: ContainerHandlers['sign']) {
+      init();
       externalHandlers.sign = handler;
     },
 
     handleChainSupportCheck(handler: ContainerHandlers['chainSupport']) {
+      init();
       externalHandlers.chainSupport = handler;
     },
 
@@ -185,13 +225,18 @@ export function createContainer(provider: TransportProvider) {
     },
 
     subscribeLocationChange(callback: (location: string) => void) {
-      transport.handleMessage('locationChangedV1', async location => {
+      init();
+      return transport.subscribe('locationChangedV1', async location => {
         callback(location);
       });
     },
 
     subscribeConnectionStatus(callback: (connectionStatus: ConnectionStatus) => void) {
-      return transport.onConnectionStatusChange(callback);
+      // this specific order exists because container should report all connection statuses including "disconnected",
+      // which immediately got changed to "connecting" after init() call.
+      const unsubscribe = transport.onConnectionStatusChange(callback);
+      init();
+      return unsubscribe;
     },
 
     dispose() {

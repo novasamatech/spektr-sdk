@@ -1,5 +1,5 @@
 export { SpektrExtensionName, WellKnownChain } from './constants';
-export { defaultProvider, defaultTransport } from './transport';
+export { defaultProvider, defaultTransport } from './defaultTransport';
 export { spektrMetaProvider } from './createSpektrMetaProvider';
 export { createSpektrMetaProvider } from './createSpektrMetaProvider';
 export { createExtensionEnableFactory, injectSpektrExtension } from './injectSpektrExtension';

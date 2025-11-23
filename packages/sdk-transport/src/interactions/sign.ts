@@ -1,8 +1,9 @@
+import type { HexString } from '@novasamatech/spektr-sdk-shared';
 import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types';
 import type { CodecType } from 'scale-ts';
-import { Bytes, Enum, Option, Struct, Vector, _void, bool, str, u32 } from 'scale-ts';
+import { Bytes, Enum, Option, Struct, Vector, _void, bool, str, u16, u32 } from 'scale-ts';
 
-import { hexEncoder } from '../commonEncoders';
+import { createNullableEncoder, hexEncoder } from '../commonEncoders';
 import { createTransportEncoder } from '../createTransportEncoder';
 
 const signRawRequestCodec = Struct({
@@ -149,3 +150,136 @@ export const signResponseV1Encoder = createTransportEncoder<SignerResult, typeof
     };
   },
 });
+
+/**
+ * createTransaction implementation
+ * @see https://github.com/polkadot-js/api/issues/6213
+ */
+
+export interface TxPayloadV1 {
+  /** Payload version. MUST be 1. */
+  version: 1;
+
+  /**
+   * Signer selection hint. Allows the implementer to identify which private-key / scheme to use.
+   * - Use a wallet-defined handle (e.g., address/SS58, account-name, etc). This identifier
+   * was previously made available to the consumer.
+   * - Set `null` to let the implementer pick the signer (or if the signer is implied).
+   */
+  signer: string | null;
+
+  /**
+   * SCALE-encoded Call (module indicator + function indicator + params).
+   */
+  callData: HexString;
+
+  /**
+   * Transaction extensions supplied by the caller (order irrelevant).
+   * The consumer SHOULD provide every extension that is relevant to them.
+   * The implementer MAY infer missing ones.
+   */
+  extensions: Array<{
+    /** Identifier as defined in metadata (e.g., "CheckSpecVersion", "ChargeAssetTxPayment"). */
+    id: string;
+
+    /**
+     * Explicit "extra" to sign (goes into the extrinsic body).
+     * SCALE-encoded per the extension's "extra" type as defined in the metadata.
+     */
+    extra: HexString;
+
+    /**
+     * "Implicit" data to sign (known by the chain, not included into the extrinsic body).
+     * SCALE-encoded per the extension's "additionalSigned" type as defined in the metadata.
+     */
+    additionalSigned: HexString;
+  }>;
+
+  /**
+   * Transaction Extension Version.
+   * - For Extrinsic V4 MUST be 0.
+   * - For Extrinsic V5, set to any version supported by the runtime.
+   * The implementer:
+   *  - MUST use this field to determine the required extensions for creating the extrinsic.
+   *  - MAY use this field to infer missing extensions that the implementer could know how to handle.
+   */
+  txExtVersion: number;
+
+  /**
+   * Context needed for decoding, display, and (optionally) inferring certain extensions.
+   */
+  context: {
+    /**
+     * RuntimeMetadataPrefixed blob (SCALE), starting with ASCII "meta" magic (`0x6d657461`),
+     * then a metadata version (V14+). For V5+ versioned extensions, MUST provide V16+.
+     */
+    metadata: HexString;
+
+    /**
+     * Native token display info (used by some implementers), also needed to compute
+     * the `CheckMetadataHash` value.
+     */
+    tokenSymbol: string;
+    tokenDecimals: number;
+
+    /**
+     * Highest known block number to aid mortality UX.
+     */
+    bestBlockHeight: number;
+  };
+}
+
+const createTransactionRequestCodec = Struct({
+  version: u16,
+  signer: createNullableEncoder(str),
+  callData: hexEncoder,
+  extensions: Vector(
+    Struct({
+      id: str,
+      extra: hexEncoder,
+      additionalSigned: hexEncoder,
+    }),
+  ),
+  txExtVersion: u16,
+  context: Struct({
+    metadata: hexEncoder,
+    tokenSymbol: str,
+    tokenDecimals: u32,
+    bestBlockHeight: u32,
+  }),
+});
+
+export const createTransactionRequestV1Encoder = createTransportEncoder<
+  TxPayloadV1,
+  typeof createTransactionRequestCodec
+>({
+  codec: createTransactionRequestCodec,
+  from({ version, signer, ...rest }) {
+    if (version !== 1) {
+      throw new Error(`TxPayload supported version are: 1. Got ${version}`);
+    }
+
+    return {
+      version,
+      signer: signer.value ?? null,
+      ...rest,
+    };
+  },
+  to({ signer, ...rest }) {
+    return {
+      signer:
+        typeof signer === 'string'
+          ? {
+              tag: 'value',
+              value: signer,
+            }
+          : {
+              tag: 'null',
+              value: undefined,
+            },
+      ...rest,
+    };
+  },
+});
+
+export const createTransactionResponseV1Encoder = hexEncoder;

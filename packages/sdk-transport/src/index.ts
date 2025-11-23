@@ -10,3 +10,4 @@ export { createTransport } from './createTransport';
 export type { ConnectionStatus, Transport, TransportProvider } from './types';
 
 export { type InjectedAccountSchema } from './interactions/accounts';
+export { type TxPayloadV1 } from './interactions/sign';

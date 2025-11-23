@@ -1,5 +1,6 @@
 import type { HexString } from '@novasamatech/spektr-sdk-shared';
-import { str } from 'scale-ts';
+import type { Codec } from 'scale-ts';
+import { Enum, _void, str } from 'scale-ts';
 
 import { createTransportEncoder } from './createTransportEncoder';
 
@@ -17,3 +18,17 @@ export const hexEncoder = createTransportEncoder<HexString, typeof str>({
   },
   to: hex => hex,
 });
+
+export function responseEncoder<T>(codec: Codec<T>) {
+  return Enum({
+    success: codec,
+    error: str,
+  });
+}
+
+export function createNullableEncoder<T>(codec: Codec<T>) {
+  return Enum({
+    value: codec,
+    null: _void,
+  });
+}

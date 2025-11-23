@@ -1,6 +1,9 @@
+import type { Logger } from '@novasamatech/spektr-sdk-shared';
+
 import type { MessagePayloadSchema, MessageType, PickMessagePayload, PickMessagePayloadValue } from './messageEncoder';
 
 export type TransportProvider = {
+  logger: Logger;
   isCorrectEnvironment(): boolean;
   postMessage(message: Uint8Array): void;
   subscribe(callback: (message: Uint8Array) => void): () => void;
@@ -10,6 +13,8 @@ export type TransportProvider = {
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 
 export type Transport = {
+  readonly provider: TransportProvider;
+
   isCorrectEnvironment(): boolean;
 
   isReady(): Promise<boolean>;

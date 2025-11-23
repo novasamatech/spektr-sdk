@@ -1,4 +1,5 @@
-import { isValidMessage } from '@novasamatech/spektr-sdk-shared';
+import type { Logger } from '@novasamatech/spektr-sdk-shared';
+import { createDefaultLogger, isValidMessage } from '@novasamatech/spektr-sdk-shared';
 import type { TransportProvider } from '@novasamatech/spektr-sdk-transport';
 
 function hasWindow() {
@@ -9,7 +10,13 @@ function hasWindow() {
   }
 }
 
-export function createIframeProvider(iframe: HTMLIFrameElement, url: string): TransportProvider {
+type Params = {
+  iframe: HTMLIFrameElement;
+  url: string;
+  logger?: Logger;
+};
+
+export function createIframeProvider({ iframe, url, logger }: Params): TransportProvider {
   iframe.src = url;
 
   let disposed = false;
@@ -57,6 +64,8 @@ export function createIframeProvider(iframe: HTMLIFrameElement, url: string): Tr
   }
 
   return {
+    logger: logger ?? createDefaultLogger(),
+
     isCorrectEnvironment() {
       return hasWindow();
     },

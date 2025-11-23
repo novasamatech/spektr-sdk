@@ -27,7 +27,7 @@ describe('meta provider', () => {
 
     await container.isReady();
 
-    expect(statuses).toEqual(['connecting', 'connected']);
+    expect(statuses).toEqual(['disconnected', 'connecting', 'connected']);
   });
 
   it('should update connection status in meta provider', async () => {
@@ -40,6 +40,6 @@ describe('meta provider', () => {
 
     await sdkTransport.isReady();
 
-    expect(statuses).toEqual(['connecting', 'connected']);
+    expect(statuses).toEqual(['disconnected', 'connecting', 'connected']);
   });
 });

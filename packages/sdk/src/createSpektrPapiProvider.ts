@@ -4,7 +4,7 @@ import { unwrapResponseOrThrow } from '@novasamatech/spektr-sdk-transport';
 import type { JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
 import { getSyncProvider } from '@polkadot-api/json-rpc-provider-proxy';
 
-import { defaultTransport } from './transport';
+import { defaultTransport } from './defaultTransport';
 
 type Params = {
   chainId: HexString;
@@ -54,7 +54,7 @@ export function createSpektrPapiProvider({ chainId, fallback }: Params, internal
           }
         })
         .catch(e => {
-          console.error('Error checking chain support', e);
+          transport.provider.logger.error('Error checking chain support', e);
           return false;
         });
     });

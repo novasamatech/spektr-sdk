@@ -1,4 +1,4 @@
-import { isValidMessage } from '@novasamatech/spektr-sdk-shared';
+import { createDefaultLogger, isValidMessage } from '@novasamatech/spektr-sdk-shared';
 import type { TransportProvider } from '@novasamatech/spektr-sdk-transport';
 import { createTransport } from '@novasamatech/spektr-sdk-transport';
 
@@ -33,6 +33,7 @@ function createDefaultSdkProvider(): TransportProvider {
   }
 
   return {
+    logger: createDefaultLogger(),
     isCorrectEnvironment() {
       return isIframe();
     },

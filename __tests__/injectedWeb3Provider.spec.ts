@@ -1,12 +1,12 @@
 import { createContainer } from '@novasamatech/spektr-dapp-host-container';
 import { createExtensionEnableFactory } from '@novasamatech/spektr-sdk';
 import type { HexString } from '@novasamatech/spektr-sdk-shared';
-import type { InjectedAccountSchema } from '@novasamatech/spektr-sdk-transport';
+import type { InjectedAccountSchema, TxPayloadV1 } from '@novasamatech/spektr-sdk-transport';
 import { createTransport } from '@novasamatech/spektr-sdk-transport';
 
 import type { SignerResult } from '@polkadot/types/types';
 import { default as mitt } from 'mitt';
-import { assert, describe, expect, it } from 'vitest';
+import { assert, describe, expect, it, vitest } from 'vitest';
 
 import { createProviders } from './__mocks__/providers';
 
@@ -93,6 +93,9 @@ describe('injected web3 provider', () => {
       async signRaw() {
         throw new Error('Not implemented');
       },
+      async createTransaction() {
+        throw new Error('Not implemented');
+      },
     });
 
     const result = await injected.signer.signPayload?.({
@@ -129,6 +132,9 @@ describe('injected web3 provider', () => {
       async signRaw(raw) {
         return { ...signerResult, signedTransaction: raw.data as HexString };
       },
+      async createTransaction() {
+        throw new Error('Not implemented');
+      },
     });
 
     const result = await injected.signer.signRaw?.({
@@ -138,5 +144,47 @@ describe('injected web3 provider', () => {
     });
 
     expect(result).toEqual({ ...signerResult, signedTransaction: payload });
+  });
+
+  it('should handle createTransaction request', async () => {
+    const { container, injected } = await setup();
+
+    const response: HexString = '0x0001';
+    const payload: TxPayloadV1 = {
+      version: 1,
+      signer: 'test',
+      callData: '0x0002',
+      extensions: [
+        {
+          id: 'test',
+          additionalSigned: '0x0000',
+          extra: '0x0000',
+        },
+      ],
+      txExtVersion: 15,
+      context: {
+        metadata: '0x0000',
+        bestBlockHeight: 1,
+        tokenSymbol: 'DOT',
+        tokenDecimals: 10,
+      },
+    };
+
+    const createTransaction = vitest.fn(async () => response);
+
+    container.handleSignRequest({
+      async signPayload() {
+        throw new Error('Not implemented');
+      },
+      async signRaw() {
+        throw new Error('Not implemented');
+      },
+      createTransaction,
+    });
+
+    const result = await injected.signer.createTransaction?.(payload);
+
+    expect(createTransaction).toBeCalledWith(payload);
+    expect(result).toEqual(response);
   });
 });

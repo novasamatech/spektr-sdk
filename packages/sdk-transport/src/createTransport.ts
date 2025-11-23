@@ -2,6 +2,7 @@ import { HANDSHAKE_INTERVAL, promiseWithResolvers } from '@novasamatech/spektr-s
 import mitt from 'mitt';
 import { nanoid } from 'nanoid';
 
+import { delay } from './helpers';
 import type { MessagePayloadSchema, MessageType, PickMessagePayload, PickMessagePayloadValue } from './messageEncoder';
 import { messageEncoder } from './messageEncoder';
 import type { ConnectionStatus, Transport, TransportProvider } from './types';
@@ -16,7 +17,7 @@ export function createTransport(provider: TransportProvider, params?: TransportP
   const handshakeAbortController = new AbortController();
   let handshakePromise: Promise<boolean> | null = null;
   let connectionStatusResolved = false;
-  let connectionStatus: ConnectionStatus = 'connecting';
+  let connectionStatus: ConnectionStatus = 'disconnected';
   let disposed = false;
 
   const events = mitt<{
@@ -26,6 +27,10 @@ export function createTransport(provider: TransportProvider, params?: TransportP
   events.on('connectionStatus', value => {
     connectionStatus = value;
   });
+
+  function changeConnectionStatus(status: ConnectionStatus) {
+    events.emit('connectionStatus', status);
+  }
 
   function throwIfDisposed() {
     if (disposed) {
@@ -50,6 +55,8 @@ export function createTransport(provider: TransportProvider, params?: TransportP
   }
 
   const transportInstance: Transport = {
+    provider,
+
     isCorrectEnvironment() {
       return provider.isCorrectEnvironment();
     },
@@ -65,6 +72,8 @@ export function createTransport(provider: TransportProvider, params?: TransportP
       if (handshakePromise) {
         return handshakePromise;
       }
+
+      changeConnectionStatus('connecting');
 
       let resolved = false;
 
@@ -98,20 +107,18 @@ export function createTransport(provider: TransportProvider, params?: TransportP
           ? request
           : Promise.race([
               request,
-              new Promise<boolean>(resolve => {
-                setTimeout(() => {
-                  if (!resolved) {
-                    handshakeAbortController.abort('Timeout');
-                    resolve(false);
-                  }
-                }, handshakeTimeout);
+              delay(handshakeTimeout).then(() => {
+                if (!resolved) {
+                  handshakeAbortController.abort('Timeout');
+                }
+                return false;
               }),
             ]);
 
       handshakePromise = promise.then(result => {
         handshakePromise = null;
         connectionStatusResolved = true;
-        events.emit('connectionStatus', result ? 'connected' : 'disconnected');
+        changeConnectionStatus(result ? 'connected' : 'disconnected');
         return result;
       });
 
@@ -213,7 +220,7 @@ export function createTransport(provider: TransportProvider, params?: TransportP
     onConnectionStatusChange(callback: (status: ConnectionStatus) => void) {
       events.on('connectionStatus', callback);
 
-      callback(connectionStatus ?? false);
+      callback(connectionStatus);
 
       return () => {
         events.off('connectionStatus', callback);
@@ -223,7 +230,7 @@ export function createTransport(provider: TransportProvider, params?: TransportP
     dispose() {
       disposed = true;
       provider.dispose();
-      events.emit('connectionStatus', 'disconnected');
+      changeConnectionStatus('disconnected');
       events.all.clear();
       handshakeAbortController.abort('Transport disposed');
     },

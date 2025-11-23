@@ -1,6 +1,6 @@
 import type { ConnectionStatus, Transport } from '@novasamatech/spektr-sdk-transport';
 
-import { defaultTransport } from './transport';
+import { defaultTransport } from './defaultTransport';
 
 export function createSpektrMetaProvider(transport: Transport = defaultTransport) {
   if (transport.isCorrectEnvironment() && typeof window !== 'undefined') {
