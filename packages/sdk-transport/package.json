@@ -1,7 +1,7 @@
 {
   "name": "@novasamatech/spektr-sdk-transport",
   "type": "module",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -20,7 +20,7 @@
     "README.md"
   ],
   "dependencies": {
-    "@novasamatech/spektr-sdk-shared": "0.2.0",
+    "@novasamatech/spektr-sdk-shared": "0.3.0",
     "@polkadot-api/utils": "0.2.0",
     "mitt": "3.0.1",
     "nanoid": "5.1.6",
