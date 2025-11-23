@@ -1,3 +1,17 @@
+## 0.2.0 (2025-11-23)
+
+### 🚀 Features
+
+- ⚠️  Support createTransaction interface ([3dc97ab](https://github.com/novasamatech/spektr-sdk/commit/3dc97ab))
+
+### ⚠️  Breaking Changes
+
+- container.handleSignRequest now have required createTransaction method.
+
+### ❤️ Thank You
+
+- Sergey Zhuravlev @johnthecat
+
 ## 0.1.0 (2025-11-22)
 
 ### 🚀 Features
