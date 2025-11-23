@@ -1,6 +1,16 @@
 ## 0.3.0 (2025-11-23)
 
-This was a version bump only, there were no code changes.
+### 🩹 Fixes
+
+- Optimized hex encoding/decoding. ([017068e](https://github.com/novasamatech/spektr-sdk/commit/017068e))
+
+### ⚠️  Breaking Changes
+
+- Optimized hex encoding/decoding. Breaking change on transport layer.
+
+### ❤️ Thank You
+
+- Sergey Zhuravlev @johnthecat
 
 ## 0.2.0 (2025-11-23)
 
