@@ -1,22 +1,14 @@
 import type { HexString } from '@novasamatech/spektr-sdk-shared';
+import { fromHex, toHex } from '@polkadot-api/utils';
 import type { Codec } from 'scale-ts';
-import { Enum, _void, str } from 'scale-ts';
+import { Bytes, Enum, _void, str } from 'scale-ts';
 
 import { createTransportEncoder } from './createTransportEncoder';
 
-function isHex(value: string): value is HexString {
-  return value.startsWith('0x');
-}
-
-export const hexEncoder = createTransportEncoder<HexString, typeof str>({
-  codec: str,
-  from: v => {
-    if (isHex(v)) {
-      return v;
-    }
-    throw new Error('Value is not a hex');
-  },
-  to: hex => hex,
+export const hexEncoder = createTransportEncoder<HexString, Codec<Uint8Array>>({
+  codec: Bytes(),
+  from: v => toHex(v) as HexString,
+  to: fromHex,
 });
 
 export function responseEncoder<T>(codec: Codec<T>) {
