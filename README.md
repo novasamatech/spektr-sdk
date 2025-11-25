@@ -9,8 +9,10 @@ A robust solution for hosting and managing decentralized applications (dapps) wi
 
 ## Docs
 
-* [SDK README](./packages/sdk/README.md) (for dapp developers)
-* [Host container README](./packages/host-container/README.md) (for host application developers)
+* [Product SDK README](packages/product-sdk/README.md) (for dapp developers)
+* [Host Container README](./packages/host-container/README.md) (for host application developers)
+* [Host API README](./packages/host-api/README.md) (for host application developers)
+
 
 ## Architecture
 
@@ -18,8 +20,8 @@ A robust solution for hosting and managing decentralized applications (dapps) wi
 flowchart TB
   host["Host Application (Trusted)"]
 
-  subgraph dapp
-    subgraph sdk["SDK"]
+  subgraph Product
+    subgraph sdk["Product SDK"]
       injectedWeb3["injectedWeb3 accounts and signer"]
       papi["PAPI provider"]
       meta["metadata provider"]

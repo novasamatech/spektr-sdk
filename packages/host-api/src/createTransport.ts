@@ -1,8 +1,8 @@
-import { HANDSHAKE_INTERVAL, promiseWithResolvers } from '@novasamatech/spektr-sdk-shared';
 import mitt from 'mitt';
 import { nanoid } from 'nanoid';
 
-import { delay } from './helpers';
+import { HANDSHAKE_INTERVAL } from './constants';
+import { delay, promiseWithResolvers } from './helpers';
 import type { MessagePayloadSchema, MessageType, PickMessagePayload, PickMessagePayloadValue } from './messageEncoder';
 import { messageEncoder } from './messageEncoder';
 import type { ConnectionStatus, Transport, TransportProvider } from './types';
@@ -15,6 +15,7 @@ export function createTransport(provider: TransportProvider, params?: TransportP
   const handshakeTimeout = params?.handshakeTimeout ?? Number.POSITIVE_INFINITY;
 
   const handshakeAbortController = new AbortController();
+
   let handshakePromise: Promise<boolean> | null = null;
   let connectionStatusResolved = false;
   let connectionStatus: ConnectionStatus = 'disconnected';
@@ -80,16 +81,6 @@ export function createTransport(provider: TransportProvider, params?: TransportP
       const request = new Promise<boolean>(resolve => {
         const id = nanoid();
 
-        const interval = setInterval(() => {
-          if (handshakeAbortController.signal.aborted) {
-            clearInterval(interval);
-            resolve(false);
-            return;
-          }
-
-          transportInstance.postMessage(id, { tag: 'handshakeRequestV1', value: undefined });
-        }, HANDSHAKE_INTERVAL);
-
         const unsubscribe = transportInstance.subscribe('handshakeResponseV1', responseId => {
           if (responseId !== id) return;
           clearInterval(interval);
@@ -100,6 +91,16 @@ export function createTransport(provider: TransportProvider, params?: TransportP
         });
 
         handshakeAbortController.signal.addEventListener('abort', unsubscribe, { once: true });
+
+        const interval = setInterval(() => {
+          if (handshakeAbortController.signal.aborted) {
+            clearInterval(interval);
+            resolve(false);
+            return;
+          }
+
+          transportInstance.postMessage(id, { tag: 'handshakeRequestV1', value: undefined });
+        }, HANDSHAKE_INTERVAL);
       });
 
       const promise =
@@ -174,7 +175,7 @@ export function createTransport(provider: TransportProvider, params?: TransportP
 
       const ready = await transportInstance.isReady();
       if (!ready) {
-        throw new Error('Spektr is not ready');
+        throw new Error('Polkadot host is not ready');
       }
 
       abortSignal?.throwIfAborted();

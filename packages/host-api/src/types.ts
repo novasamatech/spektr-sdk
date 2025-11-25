@@ -1,6 +1,8 @@
-import type { Logger } from '@novasamatech/spektr-sdk-shared';
-
 import type { MessagePayloadSchema, MessageType, PickMessagePayload, PickMessagePayloadValue } from './messageEncoder';
+
+export type HexString = `0x${string}`;
+
+export type Logger = Record<'info' | 'warn' | 'error' | 'log', (...args: unknown[]) => void>;
 
 export type TransportProvider = {
   logger: Logger;

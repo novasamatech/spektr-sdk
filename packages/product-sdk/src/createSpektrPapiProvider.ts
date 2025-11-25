@@ -1,6 +1,5 @@
-import type { HexString } from '@novasamatech/spektr-sdk-shared';
-import type { Transport } from '@novasamatech/spektr-sdk-transport';
-import { unwrapResponseOrThrow } from '@novasamatech/spektr-sdk-transport';
+import type { HexString, Transport } from '@novasamatech/host-api';
+import { unwrapResponseOrThrow } from '@novasamatech/host-api';
 import type { JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
 import { getSyncProvider } from '@polkadot-api/json-rpc-provider-proxy';
 

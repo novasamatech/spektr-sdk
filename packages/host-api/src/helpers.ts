@@ -1,3 +1,7 @@
+export function delay(ttl: number) {
+  return new Promise<void>(resolve => setTimeout(resolve, ttl));
+}
+
 type PromiseWithResolvers<T> = {
   promise: Promise<T>;
   resolve: (value: T) => void;

@@ -1,6 +1,5 @@
-import { createDefaultLogger, isValidMessage } from '@novasamatech/spektr-sdk-shared';
-import type { TransportProvider } from '@novasamatech/spektr-sdk-transport';
-import { createTransport } from '@novasamatech/spektr-sdk-transport';
+import type { TransportProvider } from '@novasamatech/host-api';
+import { createDefaultLogger, createTransport } from '@novasamatech/host-api';
 
 function getParentWindow() {
   if (window.top) {
@@ -15,6 +14,15 @@ function isIframe() {
   } catch {
     return false;
   }
+}
+
+function isValidMessage(event: MessageEvent, sourceEnv: MessageEventSource, currentEnv: MessageEventSource) {
+  return (
+    event.source !== currentEnv &&
+    event.source === sourceEnv &&
+    event.data &&
+    event.data.constructor.name === 'Uint8Array'
+  );
 }
 
 function createDefaultSdkProvider(): TransportProvider {

@@ -1,7 +1,7 @@
-import { createContainer } from '@novasamatech/spektr-dapp-host-container';
-import { createSpektrMetaProvider } from '@novasamatech/spektr-sdk';
-import type { ConnectionStatus } from '@novasamatech/spektr-sdk-transport';
-import { createTransport } from '@novasamatech/spektr-sdk-transport';
+import type { ConnectionStatus } from '@novasamatech/host-api';
+import { createTransport } from '@novasamatech/host-api';
+import { createContainer } from '@novasamatech/host-container';
+import { createSpektrMetaProvider } from '@novasamatech/product-sdk';
 
 import { describe, expect, it } from 'vitest';
 

@@ -1,4 +1,4 @@
-import type { TransportProvider } from '@novasamatech/spektr-sdk-transport';
+import type { TransportProvider } from '@novasamatech/host-api';
 
 import { default as mitt } from 'mitt';
 

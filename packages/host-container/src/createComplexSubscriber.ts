@@ -1,4 +1,4 @@
-import type { MessageType, PickMessagePayload, Transport } from '@novasamatech/spektr-sdk-transport';
+import type { MessageType, PickMessagePayload, Transport } from '@novasamatech/host-api';
 
 type Subscriber<Response extends MessageType> = (
   callback: (response: PickMessagePayload<Response>) => void,

@@ -1,9 +1,9 @@
-import type { HexString } from '@novasamatech/spektr-sdk-shared';
 import { fromHex, toHex } from '@polkadot-api/utils';
 import type { Codec } from 'scale-ts';
 import { Bytes, Enum, _void, str } from 'scale-ts';
 
 import { createTransportEncoder } from './createTransportEncoder';
+import type { HexString } from './types';
 
 export const hexEncoder = createTransportEncoder<HexString, Codec<Uint8Array>>({
   codec: Bytes(),

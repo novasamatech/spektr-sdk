@@ -1,7 +1,7 @@
 import type { CodecType } from 'scale-ts';
 import { Enum, Struct, str } from 'scale-ts';
 
-import { hexEncoder, responseEncoder } from './commonEncoders';
+import { responseEncoder } from './commonEncoders';
 import {
   accountSubscriptionV1Encoder,
   accountUnsubscriptionV1Encoder,
@@ -39,10 +39,6 @@ export const messagePayloadEncoder = Enum({
 
   supportFeatureRequestV1: supportFeatureRequestV1Encoder,
   supportFeatureResponseV1: responseEncoder(supportFeatureResponseV1),
-
-  supportChainRequestV1: Struct({
-    chainId: hexEncoder,
-  }),
 
   papiProviderSendMessageV1: papiProviderSendMessageV1Encoder,
   papiProviderReceiveMessageV1: responseEncoder(papiProviderReceiveMessageV1Encoder),

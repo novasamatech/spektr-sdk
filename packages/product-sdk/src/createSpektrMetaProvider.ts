@@ -1,4 +1,4 @@
-import type { ConnectionStatus, Transport } from '@novasamatech/spektr-sdk-transport';
+import type { ConnectionStatus, Transport } from '@novasamatech/host-api';
 
 import { defaultTransport } from './defaultTransport';
 

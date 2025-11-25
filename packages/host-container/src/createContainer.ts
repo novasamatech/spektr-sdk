@@ -1,11 +1,11 @@
-import type { HexString } from '@novasamatech/spektr-sdk-shared';
 import type {
   ConnectionStatus,
+  HexString,
   InjectedAccountSchema,
   TransportProvider,
   TxPayloadV1,
-} from '@novasamatech/spektr-sdk-transport';
-import { createTransport } from '@novasamatech/spektr-sdk-transport';
+} from '@novasamatech/host-api';
+import { createTransport } from '@novasamatech/host-api';
 import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types';
 import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
 

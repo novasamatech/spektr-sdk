@@ -1,7 +1,7 @@
-import { createContainer } from '@novasamatech/spektr-dapp-host-container';
-import { WellKnownChain, createSpektrPapiProvider } from '@novasamatech/spektr-sdk';
-import type { HexString } from '@novasamatech/spektr-sdk-shared';
-import { createTransport } from '@novasamatech/spektr-sdk-transport';
+import type { HexString } from '@novasamatech/host-api';
+import { createTransport } from '@novasamatech/host-api';
+import { createContainer } from '@novasamatech/host-container';
+import { WellKnownChain, createSpektrPapiProvider } from '@novasamatech/product-sdk';
 
 import { describe, expect, it } from 'vitest';
 

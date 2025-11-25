@@ -1,6 +1,5 @@
-import type { HexString } from '@novasamatech/spektr-sdk-shared';
-import type { Transport, TxPayloadV1 } from '@novasamatech/spektr-sdk-transport';
-import { unwrapResponseOrThrow } from '@novasamatech/spektr-sdk-transport';
+import type { HexString, Transport, TxPayloadV1 } from '@novasamatech/host-api';
+import { unwrapResponseOrThrow } from '@novasamatech/host-api';
 import { injectExtension } from '@polkadot/extension-inject';
 import type { InjectedAccounts } from '@polkadot/extension-inject/types';
 import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types/extrinsic';
@@ -17,7 +16,9 @@ interface Signer {
    * @description signs a raw payload, only the bytes data as supplied
    */
   signRaw?: (raw: SignerPayloadRaw) => Promise<SignerResult>;
-
+  /**
+   * @description signs a transaction according to https://github.com/polkadot-js/api/issues/6213
+   */
   createTransaction?: (payload: TxPayloadV1) => Promise<HexString>;
 }
 

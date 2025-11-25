@@ -40,7 +40,7 @@ If you have been assigned to fix an issue or develop a new feature, please follo
   npm run build:watch
   ```
 
-- Implement your changes and tests to files in the `src/` directory and corresponding test files.
+- Implement your changes and tests to files in the `packages/` and `__tests__` directories.
 - Document your changes in the appropriate doc page.
 - Git stage your required changes and commit (see below commit guidelines).
 - Submit PR for review.

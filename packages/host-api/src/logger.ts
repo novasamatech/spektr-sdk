@@ -1,6 +1,4 @@
-type LoggerFn = (...args: unknown[]) => void;
-
-export type Logger = Record<'info' | 'warn' | 'error' | 'log', LoggerFn>;
+import type { Logger } from './types';
 
 export function createDefaultLogger(): Logger {
   return {

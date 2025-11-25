@@ -1,6 +1,5 @@
-import type { Logger } from '@novasamatech/spektr-sdk-shared';
-import { createDefaultLogger, isValidMessage } from '@novasamatech/spektr-sdk-shared';
-import type { TransportProvider } from '@novasamatech/spektr-sdk-transport';
+import type { Logger, TransportProvider } from '@novasamatech/host-api';
+import { createDefaultLogger } from '@novasamatech/host-api';
 
 function hasWindow() {
   try {
@@ -8,6 +7,15 @@ function hasWindow() {
   } catch {
     return false;
   }
+}
+
+function isValidMessage(event: MessageEvent, sourceEnv: MessageEventSource, currentEnv: MessageEventSource) {
+  return (
+    event.source !== currentEnv &&
+    event.source === sourceEnv &&
+    event.data &&
+    event.data.constructor.name === 'Uint8Array'
+  );
 }
 
 type Params = {

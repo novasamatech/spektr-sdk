@@ -1,4 +1,4 @@
-# @novasamatech/spektr-dapp-host-container
+# @novasamatech/host-container
 
 A robust solution for hosting and managing decentralized applications (dapps) within the Polkadot ecosystem.
 
@@ -10,17 +10,20 @@ It handles the isolation boundary, message routing, lifecycle management, and se
 ## Installation
 
 ```shell
-npm install @novasamatech/spektr-dapp-host-container --save -E
+npm install @novasamatech/host-container --save -E
 ```
 
 ### Basic Container Setup
 
 ```ts
-import { createContainer, createIframeProvider } from '@novasamatech/spektr-dapp-host-container';
+import { createContainer, createIframeProvider } from '@novasamatech/host-container';
 
 const iframe = document.createElement('iframe');
 
-const provider = createIframeProvider(iframe, 'https://dapp.example.com');
+const provider = createIframeProvider({
+  iframe,
+  url: 'https://dapp.example.com'
+});
 const container = createContainer(provider);
 
 document.body.appendChild(iframe);
@@ -67,12 +70,16 @@ container.handleSignRequest({
       signedTransaction: '0x...',
     }
   },
+  createTransaction(payload) {
+    // return full signed transaction
+    return '0x0000'
+  }
 });
 ```
 
 ### PAPI provider support
 
-Dapp container supports [PAPI](https://papi.how/) requests redirecting from dapp to host container.
+Host container supports [PAPI](https://papi.how/) requests redirecting from product to host container.
 It can be useful to deduplicate socket connections or light client instances between multiple dapps.
 
 To support this feature you should add two additional handlers to container:

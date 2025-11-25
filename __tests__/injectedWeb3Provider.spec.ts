@@ -1,8 +1,7 @@
-import { createContainer } from '@novasamatech/spektr-dapp-host-container';
-import { createExtensionEnableFactory } from '@novasamatech/spektr-sdk';
-import type { HexString } from '@novasamatech/spektr-sdk-shared';
-import type { InjectedAccountSchema, TxPayloadV1 } from '@novasamatech/spektr-sdk-transport';
-import { createTransport } from '@novasamatech/spektr-sdk-transport';
+import type { HexString, InjectedAccountSchema, TxPayloadV1 } from '@novasamatech/host-api';
+import { createTransport } from '@novasamatech/host-api';
+import { createContainer } from '@novasamatech/host-container';
+import { createExtensionEnableFactory } from '@novasamatech/product-sdk';
 
 import type { SignerResult } from '@polkadot/types/types';
 import { default as mitt } from 'mitt';
@@ -21,6 +20,11 @@ async function setup() {
   const injected = await enable();
 
   return { container, injected };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function notImplemented(_: unknown): Promise<never> {
+  throw new Error('Not implemented');
 }
 
 describe('injected web3 provider', () => {
@@ -90,12 +94,8 @@ describe('injected web3 provider', () => {
       async signPayload(payload) {
         return { ...signerResult, signedTransaction: payload.method as HexString };
       },
-      async signRaw() {
-        throw new Error('Not implemented');
-      },
-      async createTransaction() {
-        throw new Error('Not implemented');
-      },
+      signRaw: notImplemented,
+      createTransaction: notImplemented,
     });
 
     const result = await injected.signer.signPayload?.({
@@ -126,15 +126,11 @@ describe('injected web3 provider', () => {
     };
 
     container.handleSignRequest({
-      async signPayload() {
-        throw new Error('Not implemented');
-      },
       async signRaw(raw) {
         return { ...signerResult, signedTransaction: raw.data as HexString };
       },
-      async createTransaction() {
-        throw new Error('Not implemented');
-      },
+      signPayload: notImplemented,
+      createTransaction: notImplemented,
     });
 
     const result = await injected.signer.signRaw?.({
@@ -173,13 +169,9 @@ describe('injected web3 provider', () => {
     const createTransaction = vitest.fn(async () => response);
 
     container.handleSignRequest({
-      async signPayload() {
-        throw new Error('Not implemented');
-      },
-      async signRaw() {
-        throw new Error('Not implemented');
-      },
       createTransaction,
+      signPayload: notImplemented,
+      signRaw: notImplemented,
     });
 
     const result = await injected.signer.createTransaction?.(payload);

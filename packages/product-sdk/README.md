@@ -1,6 +1,6 @@
-# @novasamatech/spektr-sdk
+# @novasamatech/product-sdk
 
-Easy way to embed Spektr functionality into your dapp.
+Easy way to embed Polkadot host functionality into your dapp.
 
 ## Overview
 
@@ -13,7 +13,7 @@ Core features:
 ## Installation
 
 ```shell
-npm install @novasamatech/spektr-sdk --save -E
+npm install @novasamatech/product-sdk --save -E
 ```
 
 ## Usage
@@ -23,7 +23,7 @@ npm install @novasamatech/spektr-sdk --save -E
 Spektr SDK can provide account information and signers with same interface as any other polkadot compatible wallet.
 
 ```ts
-import { injectSpektrExtension, SpektrExtensionName } from '@novasamatech/spektr-sdk';
+import { injectSpektrExtension, SpektrExtensionName } from '@novasamatech/product-sdk';
 import { connectInjectedExtension, type InjectedPolkadotAccount } from '@polkadot-api/pjs-signer';
 
 async function getSpektrExtension() {
@@ -55,7 +55,7 @@ You can wrap your PAPI provider with spektr provider to support redirecting requ
 ```diff
 import { createClient, type PolkadotClient } from 'polkadot-api';
 import { getWsProvider } from 'polkadot-api/ws-provider';
-import { createSpektrPapiProvider, WellKnownChain } from '@novasamatech/spektr-sdk';
+import { createSpektrPapiProvider, WellKnownChain } from '@novasamatech/product-sdk';
 
 function createPapiClient(): PolkadotClient {
   const polkadotEndpoint = 'wss://...';
@@ -73,7 +73,7 @@ function createPapiClient(): PolkadotClient {
 ### Subscribing metadata and statuses
 
 ```ts
-import { spektrMetaProvider } from '@novasamatech/spektr-sdk';
+import { spektrMetaProvider } from '@novasamatech/product-sdk';
 
 const unsubscribe = spektrMetaProvider.subscribeConnectionStatus((status) => {
   console.log('connection status changed', status);

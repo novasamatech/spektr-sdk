@@ -1,7 +1,8 @@
 {
-  "name": "@novasamatech/spektr-sdk-transport",
+  "name": "@novasamatech/host-api",
   "type": "module",
   "version": "0.3.0",
+  "description": "Host API: transport implementation for host - product integration.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -20,7 +21,6 @@
     "README.md"
   ],
   "dependencies": {
-    "@novasamatech/spektr-sdk-shared": "0.3.0",
     "@polkadot-api/utils": "0.2.0",
     "mitt": "3.0.1",
     "nanoid": "5.1.6",

@@ -1,10 +1,10 @@
-import type { HexString } from '@novasamatech/spektr-sdk-shared';
 import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types';
 import type { CodecType } from 'scale-ts';
 import { Bytes, Enum, Option, Struct, Vector, _void, bool, str, u16, u32 } from 'scale-ts';
 
 import { createNullableEncoder, hexEncoder } from '../commonEncoders';
 import { createTransportEncoder } from '../createTransportEncoder';
+import type { HexString } from '../types';
 
 const signRawRequestCodec = Struct({
   address: str,
