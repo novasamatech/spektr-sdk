@@ -2,7 +2,7 @@ import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkado
 import type { CodecType } from 'scale-ts';
 import { Bytes, Enum, Option, Struct, Vector, _void, bool, str, u16, u32 } from 'scale-ts';
 
-import { createNullableEncoder, hexEncoder } from '../commonEncoders';
+import { hexEncoder } from '../commonEncoders';
 import { createTransportEncoder } from '../createTransportEncoder';
 import type { HexString } from '../types';
 
@@ -231,7 +231,7 @@ export interface TxPayloadV1 {
 
 const createTransactionRequestCodec = Struct({
   version: u16,
-  signer: createNullableEncoder(str),
+  signer: Option(str),
   callData: hexEncoder,
   extensions: Vector(
     Struct({
@@ -261,22 +261,13 @@ export const createTransactionRequestV1Encoder = createTransportEncoder<
 
     return {
       version,
-      signer: signer.value ?? null,
+      signer: signer ?? null,
       ...rest,
     };
   },
   to({ signer, ...rest }) {
     return {
-      signer:
-        typeof signer === 'string'
-          ? {
-              tag: 'value',
-              value: signer,
-            }
-          : {
-              tag: 'null',
-              value: undefined,
-            },
+      signer: signer ?? undefined,
       ...rest,
     };
   },

@@ -1,6 +1,6 @@
 import { fromHex, toHex } from '@polkadot-api/utils';
 import type { Codec } from 'scale-ts';
-import { Bytes, Enum, _void, str } from 'scale-ts';
+import { Bytes, Enum, str } from 'scale-ts';
 
 import { createTransportEncoder } from './createTransportEncoder';
 import type { HexString } from './types';
@@ -15,12 +15,5 @@ export function responseEncoder<T>(codec: Codec<T>) {
   return Enum({
     success: codec,
     error: str,
-  });
-}
-
-export function createNullableEncoder<T>(codec: Codec<T>) {
-  return Enum({
-    value: codec,
-    null: _void,
   });
 }
