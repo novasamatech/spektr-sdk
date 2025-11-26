@@ -1,3 +1,13 @@
+## 0.4.1 (2025-11-26)
+
+### 🩹 Fixes
+
+- simplified createTransaction codec ([6916a58](https://github.com/novasamatech/spektr-sdk/commit/6916a58))
+
+### ❤️ Thank You
+
+- Sergey Zhuravlev @johnthecat
+
 ## 0.4.0 (2025-11-26)
 
 ### 🚀 Features
