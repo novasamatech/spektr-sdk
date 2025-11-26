@@ -7,10 +7,10 @@ import type { SignerResult } from '@polkadot/types/types';
 import { default as mitt } from 'mitt';
 import { assert, describe, expect, it, vitest } from 'vitest';
 
-import { createProviders } from './__mocks__/providers';
+import { createHostApiProviders } from './__mocks__/hostApiProviders';
 
 async function setup() {
-  const providers = createProviders();
+  const providers = createHostApiProviders();
   const container = createContainer(providers.host);
   const sdkTransport = createTransport(providers.sdk);
 

@@ -5,14 +5,14 @@ import { WellKnownChain, createSpektrPapiProvider } from '@novasamatech/product-
 
 import { describe, expect, it } from 'vitest';
 
-import { createProviders } from './__mocks__/providers';
+import { createHostApiProviders } from './__mocks__/hostApiProviders';
 
 function delay(ttl: number) {
   return new Promise(resolve => setTimeout(resolve, ttl));
 }
 
 function setup(chainId: HexString) {
-  const providers = createProviders();
+  const providers = createHostApiProviders();
   const container = createContainer(providers.host);
   const sdkTransport = createTransport(providers.sdk);
 

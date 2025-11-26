@@ -5,10 +5,10 @@ import { createSpektrMetaProvider } from '@novasamatech/product-sdk';
 
 import { describe, expect, it } from 'vitest';
 
-import { createProviders } from './__mocks__/providers';
+import { createHostApiProviders } from './__mocks__/hostApiProviders';
 
 function setup() {
-  const providers = createProviders();
+  const providers = createHostApiProviders();
   const container = createContainer(providers.host);
   const sdkTransport = createTransport(providers.sdk);
   const metaProvider = createSpektrMetaProvider(sdkTransport);
