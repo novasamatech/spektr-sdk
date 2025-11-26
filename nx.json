@@ -31,7 +31,13 @@
     }
   ],
   "namedInputs": {
-    "sharedGlobals": [{ "runtime": "node --version" }, "{workspaceRoot}/tsconfig.json", "{workspaceRoot}/package.json"],
+    "sharedGlobals": [
+      {
+        "runtime": "node --version"
+      },
+      "{workspaceRoot}/tsconfig.json",
+      "{workspaceRoot}/package.json"
+    ],
     "default": ["{projectRoot}/**/*", "sharedGlobals"]
   },
   "targetDefaults": {
