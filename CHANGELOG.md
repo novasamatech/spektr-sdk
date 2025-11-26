@@ -1,3 +1,13 @@
+## 0.4.0 (2025-11-26)
+
+### 🚀 Features
+
+- new package names, removed shared package ([283640d](https://github.com/novasamatech/spektr-sdk/commit/283640d))
+
+### ❤️ Thank You
+
+- Sergey Zhuravlev @johnthecat
+
 ## 0.3.0 (2025-11-23)
 
 ### 🩹 Fixes
