@@ -4,6 +4,15 @@
 
 - new package names, removed shared package ([283640d](https://github.com/novasamatech/spektr-sdk/commit/283640d))
 
+### ⚠️  Breaking Changes
+
+- Package renaming
+  - `@novasamatech/spektr-sdk` -> `@novasamatech/product-sdk`
+  - `@novasamatech/spektr-dapp-host-container` -> `@novasamatech/host-container`
+  - `@novasamatech/spektr-sdk-transport` -> `@novasamatech/host-api`
+  - `@novasamatech/spektr-sdk-shared` -> Removed
+
+
 ### ❤️ Thank You
 
 - Sergey Zhuravlev @johnthecat
