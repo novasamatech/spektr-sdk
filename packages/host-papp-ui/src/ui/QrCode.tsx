@@ -23,7 +23,7 @@ export const QrCode = memo(({ value, size }: Props) => {
       image: `data:image/png;base64,${IMAGE}`,
       imageOptions: {
         hideBackgroundDots: true,
-        imageSize: 1,
+        imageSize: 0.4,
         margin: 4,
       },
       dotsOptions: {
