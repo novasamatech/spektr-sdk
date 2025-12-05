@@ -8,6 +8,7 @@ type State = {
   identity: Identity | null;
   signInStatus: SignInStatus;
   pending: boolean;
+  initiatedByUser: boolean;
   signIn(): Promise<Identity | null>;
   abort(): void;
 };
@@ -16,6 +17,7 @@ const Context = createContext<State>({
   identity: null,
   signInStatus: { step: 'none' },
   pending: false,
+  initiatedByUser: false,
   signIn: () => Promise.resolve(null),
   abort() {
     /* empty */
@@ -28,6 +30,7 @@ export const useSignInFlow = () => {
 
 export const SignInStateProvider = ({ children }: PropsWithChildren) => {
   const [pending, setPending] = useState(false);
+  const [initiatedByUser, setInitiatedByUser] = useState(false);
   const [identity, setIdentity] = useState<Identity | null>(null);
   const provider = usePapp();
 
@@ -51,6 +54,7 @@ export const SignInStateProvider = ({ children }: PropsWithChildren) => {
 
   const signIn = useCallback(() => {
     setPending(true);
+    setInitiatedByUser(true);
     return provider.auth
       .signIn()
       .then(identity => {
@@ -63,6 +67,7 @@ export const SignInStateProvider = ({ children }: PropsWithChildren) => {
   const state: State = {
     pending,
     signInStatus,
+    initiatedByUser,
     identity,
     signIn,
     abort: provider.auth.abortSignIn,

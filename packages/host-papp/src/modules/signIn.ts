@@ -165,6 +165,7 @@ export function createSignInFlow({ appId, metadata, statements, storage }: Param
     },
     abortSignIn() {
       if (abort) {
+        signInPromise = null;
         events.emit('status', { step: 'none' });
         abort.abort();
       }

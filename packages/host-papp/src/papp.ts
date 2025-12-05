@@ -5,7 +5,7 @@ import type { Identity, IdentityAdapter } from './adapters/identity/types.js';
 import { createPapiLazyClient } from './adapters/lazyClient/papi.js';
 import { createPapiStatementAdapter } from './adapters/statement/rpc.js';
 import type { StatementAdapter } from './adapters/statement/types.js';
-import { createMemoryAdapter } from './adapters/storage/memory.js';
+import { createLocalStorageAdapter } from './adapters/storage/localStorage.js';
 import type { StorageAdapter } from './adapters/storage/types.js';
 import { SS_ENDPOINTS } from './constants.js';
 import type { SignInStatus } from './modules/signIn.js';
@@ -45,7 +45,7 @@ export function createPappAdapter({ appId, metadata, adapters }: Params): PappAd
   } else {
     const lazyPapiAdapter = createPapiLazyClient(getWsProvider(SS_ENDPOINTS));
 
-    storage = createMemoryAdapter();
+    storage = createLocalStorageAdapter(appId);
     identities = createIdentityRpcAdapter(lazyPapiAdapter, storage);
     statements = createPapiStatementAdapter(lazyPapiAdapter);
   }
