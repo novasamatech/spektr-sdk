@@ -2,7 +2,7 @@ import type { InjectedAccount, KeypairType } from '@polkadot-api/pjs-signer';
 import type { Codec, CodecType } from 'scale-ts';
 import { Enum, Option, Struct, Vector, _void, str } from 'scale-ts';
 
-import { createTransportEncoder } from '../createTransportEncoder';
+import { createTransportEncoder } from '../createTransportEncoder.js';
 
 const keypairCodec = Enum<Record<KeypairType, Codec<undefined>>>({
   ed25519: _void,

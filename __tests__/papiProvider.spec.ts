@@ -5,7 +5,7 @@ import { WellKnownChain, createSpektrPapiProvider } from '@novasamatech/product-
 
 import { describe, expect, it } from 'vitest';
 
-import { createHostApiProviders } from './__mocks__/hostApiProviders';
+import { createHostApiProviders } from './__mocks__/hostApiProviders.js';
 
 function delay(ttl: number) {
   return new Promise(resolve => setTimeout(resolve, ttl));

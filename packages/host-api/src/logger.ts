@@ -1,4 +1,4 @@
-import type { Logger } from './types';
+import type { Logger } from './types.js';
 
 export function createDefaultLogger(): Logger {
   return {

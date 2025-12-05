@@ -1,3 +1,3 @@
-export { createIframeProvider } from './createIframeProvider';
-export { createContainer } from './createContainer';
-export type { Container } from './createContainer';
+export { createIframeProvider } from './createIframeProvider.js';
+export { createContainer } from './createContainer.js';
+export type { Container } from './createContainer.js';

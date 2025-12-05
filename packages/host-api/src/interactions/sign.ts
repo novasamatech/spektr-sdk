@@ -2,9 +2,9 @@ import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkado
 import type { CodecType } from 'scale-ts';
 import { Bytes, Enum, Option, Struct, Vector, _void, bool, str, u16, u32 } from 'scale-ts';
 
-import { hexEncoder } from '../commonEncoders';
-import { createTransportEncoder } from '../createTransportEncoder';
-import type { HexString } from '../types';
+import { hexEncoder } from '../commonEncoders.js';
+import { createTransportEncoder } from '../createTransportEncoder.js';
+import type { HexString } from '../types.js';
 
 const signRawRequestCodec = Struct({
   address: str,

@@ -1,0 +1,41 @@
+{
+  "name": "@novasamatech/host-papp-ui",
+  "type": "module",
+  "version": "0.3.0",
+  "description": "Polkadot app UI Flow",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/novasamatech/spektr-sdk.git"
+  },
+  "keywords": [
+    "polkadot"
+  ],
+  "main": "dist/index.js",
+  "exports": {
+    "./package.json": "./package.json",
+    "./styles.css": "./dist/index.css",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "qr-code-styling": "1.9.2"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

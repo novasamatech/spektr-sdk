@@ -25,3 +25,5 @@ vite.config.*.timestamp*
 vitest.config.*.timestamp*
 
 packages/*/dist
+
+storybook-static

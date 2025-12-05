@@ -2,8 +2,8 @@ import { fromHex, toHex } from '@polkadot-api/utils';
 import type { Codec } from 'scale-ts';
 import { Bytes, Enum, str } from 'scale-ts';
 
-import { createTransportEncoder } from './createTransportEncoder';
-import type { HexString } from './types';
+import { createTransportEncoder } from './createTransportEncoder.js';
+import type { HexString } from './types.js';
 
 export const hexEncoder = createTransportEncoder<HexString, Codec<Uint8Array>>({
   codec: Bytes(),

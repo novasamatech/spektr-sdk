@@ -3,7 +3,7 @@ import { unwrapResponseOrThrow } from '@novasamatech/host-api';
 import type { JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
 import { getSyncProvider } from '@polkadot-api/json-rpc-provider-proxy';
 
-import { defaultTransport } from './defaultTransport';
+import { defaultTransport } from './defaultTransport.js';
 
 type Params = {
   chainId: HexString;

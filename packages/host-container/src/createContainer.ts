@@ -9,7 +9,7 @@ import { createTransport } from '@novasamatech/host-api';
 import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types';
 import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
 
-import { createComplexSubscriber } from './createComplexSubscriber';
+import { createComplexSubscriber } from './createComplexSubscriber.js';
 
 function formatError(e: unknown) {
   const message = e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';

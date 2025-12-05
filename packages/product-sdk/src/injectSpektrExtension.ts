@@ -4,8 +4,8 @@ import { injectExtension } from '@polkadot/extension-inject';
 import type { InjectedAccounts } from '@polkadot/extension-inject/types';
 import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types/extrinsic';
 
-import { SpektrExtensionName, Version } from './constants';
-import { defaultTransport } from './defaultTransport';
+import { SpektrExtensionName, Version } from './constants.js';
+import { defaultTransport } from './defaultTransport.js';
 
 interface Signer {
   /**

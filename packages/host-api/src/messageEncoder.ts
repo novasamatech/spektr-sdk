@@ -1,23 +1,23 @@
 import type { CodecType } from 'scale-ts';
 import { Enum, Struct, str } from 'scale-ts';
 
-import { responseEncoder } from './commonEncoders';
+import { responseEncoder } from './commonEncoders.js';
 import {
   accountSubscriptionV1Encoder,
   accountUnsubscriptionV1Encoder,
   getAccountsRequestV1Encoder,
   getAccountsResponseV1Encoder,
-} from './interactions/accounts';
-import { supportFeatureRequestV1Encoder, supportFeatureResponseV1 } from './interactions/features';
-import { handshakeRequestV1Encoder, handshakeResponseV1Encoder } from './interactions/handshake';
-import { papiProviderReceiveMessageV1Encoder, papiProviderSendMessageV1Encoder } from './interactions/papiProvider';
+} from './interactions/accounts.js';
+import { supportFeatureRequestV1Encoder, supportFeatureResponseV1 } from './interactions/features.js';
+import { handshakeRequestV1Encoder, handshakeResponseV1Encoder } from './interactions/handshake.js';
+import { papiProviderReceiveMessageV1Encoder, papiProviderSendMessageV1Encoder } from './interactions/papiProvider.js';
 import {
   createTransactionRequestV1Encoder,
   createTransactionResponseV1Encoder,
   signPayloadRequestV1Encoder,
   signRawRequestV1Encoder,
   signResponseV1Encoder,
-} from './interactions/sign';
+} from './interactions/sign.js';
 
 export function unwrapResponseOrThrow<T>(response: CodecType<ReturnType<typeof responseEncoder<T>>>) {
   if (response.tag === 'success') {

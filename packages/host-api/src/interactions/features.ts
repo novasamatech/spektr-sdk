@@ -1,6 +1,6 @@
 import { Enum, Struct, bool } from 'scale-ts';
 
-import { hexEncoder } from '../commonEncoders';
+import { hexEncoder } from '../commonEncoders.js';
 
 export const supportFeatureRequestV1Encoder = Enum({
   chain: Struct({
