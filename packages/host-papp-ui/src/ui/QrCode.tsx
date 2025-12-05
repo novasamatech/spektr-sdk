@@ -19,7 +19,7 @@ export const QrCode = memo(({ value, size }: Props) => {
       shape: 'square',
       width: size,
       height: size,
-      margin: 8,
+      margin: 0,
       image: `data:image/png;base64,${IMAGE}`,
       imageOptions: {
         hideBackgroundDots: true,
@@ -27,7 +27,7 @@ export const QrCode = memo(({ value, size }: Props) => {
         margin: 4,
       },
       dotsOptions: {
-        type: 'extra-rounded',
+        type: 'square',
         color: '#ffffff',
       },
       backgroundOptions: {
@@ -42,7 +42,7 @@ export const QrCode = memo(({ value, size }: Props) => {
         color: '#ffffff',
       },
       qrOptions: {
-        errorCorrectionLevel: 'L',
+        errorCorrectionLevel: 'H',
       },
     });
   }, [size]);
