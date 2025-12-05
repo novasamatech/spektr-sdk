@@ -1,7 +1,7 @@
 {
   "name": "@novasamatech/host-papp",
   "type": "module",
-  "version": "0.3.0",
+  "version": "0.4.0-0",
   "description": "Polkadot app integration",
   "license": "Apache-2.0",
   "repository": {

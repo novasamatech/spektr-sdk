@@ -1,3 +1,14 @@
+## 0.4.0-0 (2025-12-05)
+
+### 🚀 Features
+
+- new package names, removed shared package ([283640d](https://github.com/novasamatech/spektr-sdk/commit/283640d))
+- papp integration WIP ([347b55e](https://github.com/novasamatech/spektr-sdk/commit/347b55e))
+
+### ❤️ Thank You
+
+- Sergey Zhuravlev @johnthecat
+
 ## 0.4.1 (2025-11-26)
 
 ### 🩹 Fixes
