@@ -15,9 +15,9 @@ import {
   SS_SECRET_SEED_SIZE,
   SsPubKey,
   createEncrSecret,
+  createRandomSeed,
   createSharedSecret,
   createSsSecret,
-  createStableSeed,
   createSymmetricKey,
   decrypt,
   getEncrPub,
@@ -259,18 +259,14 @@ function retrieveSessionTopic({
 async function getSecretKeys(appId: string, secretStorage: SecretStorage) {
   let ssSecret = await secretStorage.readSsSecret();
   if (!ssSecret) {
-    // TODO randomize seed
-    // For testing purpose only
-    const seed = createStableSeed(appId, SS_SECRET_SEED_SIZE);
+    const seed = createRandomSeed(appId, SS_SECRET_SEED_SIZE);
     ssSecret = createSsSecret(seed);
     await secretStorage.writeSsSecret(ssSecret);
   }
 
   let encrSecret = await secretStorage.readEncrSecret();
   if (!encrSecret) {
-    // TODO randomize seed
-    // For testing purpose only
-    const seed = createStableSeed(appId, ENCR_SECRET_SEED_SIZE);
+    const seed = createRandomSeed(appId, ENCR_SECRET_SEED_SIZE);
     encrSecret = createEncrSecret(seed);
     await secretStorage.writeEncrSecret(encrSecret);
   }

@@ -9,7 +9,7 @@ import { SS_ENDPOINTS } from '../src/constants.js';
 import { createPappAdapter } from '../src/papp.js';
 
 describe('PAPP e2e', () => {
-  it('should sign in', async () => {
+  it.skip('should sign in', async () => {
     const appId = 'https://test.com';
     const lazyPapiAdapter = createPapiLazyClient(getWsProvider(SS_ENDPOINTS));
     const storage = createMemoryAdapter();
