@@ -1,1 +1,1 @@
-export const SS_ENDPOINTS = ['wss://pop-testnet.parity-lab.parity.io:443/9910'];
+export const SS_ENDPOINTS = ['wss://pop3-testnet.parity-lab.parity.io/7910'];
