@@ -19,7 +19,7 @@ const meta: Meta<typeof PappProvider> = {
   component: PappProvider,
   title: 'flow/PappProvider',
   args: {
-    adapter: createPappHostAdapter('https://test.com', 'https://example.com'),
+    adapter: createPappHostAdapter('https://test.com', 'https://shorturl.at/zGkir'),
   },
   render({ adapter }) {
     return (

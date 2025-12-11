@@ -1,3 +1,5 @@
+import { ok } from '../../helpers/result.js';
+
 import type { StorageAdapter } from './types.js';
 
 export function createMemoryAdapter(external?: Record<string, string>): StorageAdapter {
@@ -6,10 +8,14 @@ export function createMemoryAdapter(external?: Record<string, string>): StorageA
   return {
     async write(key, value) {
       storage[key] = value;
-      return true;
+      return ok(undefined);
     },
     async read(key) {
-      return storage[key] ?? null;
+      return ok(storage[key] ?? null);
+    },
+    async clear(key) {
+      delete storage[key];
+      return ok(undefined);
     },
   };
 }

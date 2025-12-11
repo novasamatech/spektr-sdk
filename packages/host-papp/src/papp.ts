@@ -7,17 +7,24 @@ import { createPapiStatementAdapter } from './adapters/statement/rpc.js';
 import type { StatementAdapter } from './adapters/statement/types.js';
 import { createLocalStorageAdapter } from './adapters/storage/localStorage.js';
 import type { StorageAdapter } from './adapters/storage/types.js';
-import { SS_ENDPOINTS } from './constants.js';
+import { SS_PROD_ENDPOINTS } from './constants.js';
+import type { Result } from './helpers/result.js';
+import { ok } from './helpers/result.js';
+import { nonNullable } from './helpers/utils.js';
 import type { SignInStatus } from './modules/signIn.js';
 import { createSignInFlow } from './modules/signIn.js';
 
 export type PappAdapter = {
-  auth: {
+  users: {
+    // sign in
     signIn(): Promise<Identity | null>;
     abortSignIn(): void;
-    getCurrentUser(): Promise<Identity | null>;
     getSignInStatus(): SignInStatus;
     onSignInStatusChange(callback: (status: SignInStatus) => void): VoidFunction;
+
+    // local users management
+    getSelectedUser(): Promise<Identity | null>;
+    getAvailableUsers(): Promise<Identity[]>;
   };
 };
 
@@ -34,16 +41,16 @@ type Params = {
 };
 
 export function createPappAdapter({ appId, metadata, adapters }: Params): PappAdapter {
-  let statements;
-  let identities;
-  let storage;
+  let statements: StatementAdapter;
+  let identities: IdentityAdapter;
+  let storage: StorageAdapter;
 
   if (adapters) {
     statements = adapters.statements;
     identities = adapters.identities;
     storage = adapters.storage;
   } else {
-    const lazyPapiAdapter = createPapiLazyClient(getWsProvider(SS_ENDPOINTS));
+    const lazyPapiAdapter = createPapiLazyClient(getWsProvider(SS_PROD_ENDPOINTS));
 
     storage = createLocalStorageAdapter(appId);
     identities = createIdentityRpcAdapter(lazyPapiAdapter, storage);
@@ -52,37 +59,47 @@ export function createPappAdapter({ appId, metadata, adapters }: Params): PappAd
 
   const signInFlow = createSignInFlow({ appId, metadata, statements, storage });
 
-  const papp: PappAdapter = {
-    auth: {
-      signIn() {
-        return signInFlow.signIn().then(result => {
-          if (result) {
-            return identities.getIdentity(result.pappAccountId);
-          }
-          return null;
-        });
-      },
-      getCurrentUser() {
-        return signInFlow.getSignedUser().then(result => {
-          if (result) {
-            return identities.getIdentity(result.pappAccountId);
-          }
-          return null;
-        });
-      },
+  async function readIdentity(accountId: string): Promise<Result<Identity | null>> {
+    return (await identities.readIdentities([accountId])).map(map => map[accountId] ?? null);
+  }
 
-      getSignInStatus() {
-        return signInFlow.getSignInStatus();
-      },
+  const users: PappAdapter['users'] = {
+    async signIn() {
+      const result = await signInFlow.signIn();
 
-      onSignInStatusChange(callback) {
-        return signInFlow.onStatusChange(callback);
-      },
-
-      abortSignIn() {
-        return signInFlow.abortSignIn();
-      },
+      return result
+        .andThenPromise(async user => (user ? readIdentity(user.accountId) : ok(null)))
+        .then(x => x.unwrapOrThrow());
     },
+    async getSelectedUser() {
+      const result = await signInFlow.users.readSelectedUser();
+
+      return result
+        .andThenPromise(async user => (user ? readIdentity(user.accountId) : ok(null)))
+        .then(x => x.unwrapOrThrow());
+    },
+
+    getSignInStatus() {
+      return signInFlow.signInStatus.read();
+    },
+
+    onSignInStatusChange(callback) {
+      return signInFlow.signInStatus.subscribe(callback);
+    },
+
+    abortSignIn() {
+      return signInFlow.abortSignIn();
+    },
+
+    async getAvailableUsers(): Promise<Identity[]> {
+      const accounts = await signInFlow.users.readAccounts();
+      const accountIdentities = await accounts.andThenPromise(identities.readIdentities);
+      return accountIdentities.map(map => Object.values(map).filter(nonNullable)).unwrapOrThrow();
+    },
+  };
+
+  const papp: PappAdapter = {
+    users,
   };
 
   return papp;
