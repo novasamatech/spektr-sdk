@@ -1,6 +1,8 @@
 import { createStatementSdk } from '@polkadot-api/sdk-statement';
 import { FixedSizeBinary } from '@polkadot-api/substrate-bindings';
 
+import { fromPromise } from '../../helpers/result.js';
+import { toError } from '../../helpers/utils.js';
 import type { LazyClientAdapter } from '../lazyClient/types.js';
 
 import type { StatementAdapter } from './types.js';
@@ -15,13 +17,17 @@ export function createPapiStatementAdapter(lazyClient: LazyClientAdapter): State
   const transportProvider: StatementAdapter = {
     getStatements(topics) {
       // @ts-expect-error lib versions mismatch
-      return sdk.getStatements({ topics: topics.map(topic => new FixedSizeBinary<32>(topic)) });
+      return fromPromise(sdk.getStatements({ topics: topics.map(topic => new FixedSizeBinary<32>(topic)) }), toError);
     },
     subscribeStatements(topics, callback) {
-      return polling(POLLING_INTERVAL, () => transportProvider.getStatements(topics), callback);
+      return polling(
+        POLLING_INTERVAL,
+        () => transportProvider.getStatements(topics).then(v => v.unwrapOrThrow()),
+        callback,
+      );
     },
     submitStatement(statement) {
-      return sdk.submit(statement);
+      return fromPromise(sdk.submit(statement), toError);
     },
   };
 

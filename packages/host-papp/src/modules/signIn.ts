@@ -1,11 +1,12 @@
 import type { Statement } from '@polkadot-api/sdk-statement';
 import { toHex } from '@polkadot-api/utils';
-import { createNanoEvents } from 'nanoevents';
 import { Bytes, Enum, Tuple, str } from 'scale-ts';
 
 import type { StatementAdapter } from '../adapters/statement/types.js';
 import type { StorageAdapter } from '../adapters/storage/types.js';
-import { isAbortError } from '../helpers/utils.js';
+import type { Result } from '../helpers/result.js';
+import { err, fromPromise, ok, seq } from '../helpers/result.js';
+import { isAbortError, toError } from '../helpers/utils.js';
 import type { SessionTopic } from '../types.js';
 
 import type { EncrPublicKey, EncrSecret, SsPublicKey } from './crypto.js';
@@ -29,6 +30,9 @@ import {
 import type { SecretStorage } from './secretStorage.js';
 import { createSecretStorage } from './secretStorage.js';
 import { createSession } from './statementStore.js';
+import { createSyncStorage } from './syncStorage.js';
+import type { User } from './userManager.js';
+import { createUserManager } from './userManager.js';
 
 // codecs
 
@@ -48,135 +52,111 @@ export type SignInStatus =
   | { step: 'initial' }
   | { step: 'pairing'; payload: string }
   | { step: 'error'; message: string }
-  | { step: 'finished'; sessionTopic: SessionTopic; pappAccountId: string };
-
-export type SignInResult = { sessionTopic: SessionTopic; pappAccountId: string };
+  | { step: 'finished'; user: User };
 
 type Params = {
+  /**
+   * Host app Id.
+   * CAUTION! This value should be stable.
+   */
   appId: string;
-  // url for additional metadata that will be displayed during pairing process
+  /**
+   * URL for additional metadata that will be displayed during pairing process.
+   * Content of provided json shound be
+   * ```ts
+   * interface Metadata {
+   *   name: string;
+   *   icon: string; // url for icon. Icon should be a rasterized image with min size 256x256 px.
+   * }
+   * ```
+   */
   metadata: string;
   statements: StatementAdapter;
   storage: StorageAdapter;
 };
 
 export function createSignInFlow({ appId, metadata, statements, storage }: Params) {
+  const userManager = createUserManager(appId, storage);
   const secretStorage = createSecretStorage(appId, storage);
-  const events = createNanoEvents<{ status: (status: SignInStatus) => void }>();
 
-  let signInStatus: SignInStatus = { step: 'none' };
+  const signInStatus = createSyncStorage<SignInStatus>({ step: 'none' });
 
-  events.on('status', status => {
-    signInStatus = status;
-  });
-
-  let signInPromise: Promise<SignInResult | null> | null = null;
+  let signInPromise: Promise<Result<User | null>> | null = null;
   let abort: AbortController | null = null;
 
-  const signInFlow = {
-    getSignedUser(): Promise<SignInResult | null> {
-      return Promise.all([secretStorage.readSessionTopic(), secretStorage.readPappAccountId()]).then(
-        ([existingSessionTopic, existingPappAccountId]) => {
-          if (existingSessionTopic && existingPappAccountId) {
-            events.emit('status', {
-              step: 'finished',
-              sessionTopic: existingSessionTopic,
-              pappAccountId: existingPappAccountId,
+  async function handshake(signal: AbortSignal) {
+    signInStatus.write({ step: 'initial' });
+
+    const secrets = await getSecretKeys(appId, secretStorage);
+
+    return secrets.andThenPromise(async ({ ssPublicKey, encrPublicKey, encrSecret }) => {
+      const handshakeTopic = createHandshakeTopic({ encrPublicKey, ssPublicKey });
+      const handshakePayload = createHandshakePayloadV1({ ssPublicKey, encrPublicKey, metadata });
+
+      signInStatus.write({ step: 'pairing', payload: createDeeplink(handshakePayload) });
+
+      const statementStoreResponse = fromPromise(
+        waitForStatements<User>(statements, handshakeTopic, signal, (statements, resolve) => {
+          for (const statement of [...statements].reverse()) {
+            if (!statement.data) continue;
+
+            const { sessionTopic, accountId } = retrieveSessionTopic({
+              payload: statement.data.asBytes(),
+              encrSecret,
+              ssPublicKey,
             });
 
-            return {
-              sessionTopic: existingSessionTopic,
-              pappAccountId: existingPappAccountId,
-            };
+            resolve({ sessionTopic, accountId: toHex(accountId) });
+            break;
           }
-
-          return null;
-        },
+        }),
+        toError,
       );
-    },
 
-    async signIn(): Promise<SignInResult | null> {
+      return statementStoreResponse
+        .then(x => x.andThenPromise(userManager.createUser))
+        .then(async result =>
+          result
+            .map(user => {
+              signInStatus.write({ step: 'finished', user });
+              return user;
+            })
+            .orElse(e => {
+              const error = toError(e);
+              if (isAbortError(error)) {
+                signInStatus.write({ step: 'none' });
+                return ok(null);
+              } else {
+                signInStatus.write({ step: 'error', message: error.message });
+                return err(error);
+              }
+            }),
+        );
+    });
+  }
+
+  const signInFlow = {
+    signInStatus,
+
+    users: userManager,
+
+    async signIn(): Promise<Result<User | null>> {
       if (signInPromise) {
         return signInPromise;
       }
 
       abort = new AbortController();
 
-      events.emit('status', { step: 'initial' });
-
-      signInPromise = signInFlow
-        .getSignedUser()
-        .then(async signedIn => {
-          if (signedIn) {
-            events.emit('status', {
-              step: 'finished',
-              sessionTopic: signedIn.sessionTopic,
-              pappAccountId: signedIn.pappAccountId,
-            });
-
-            return signedIn;
-          }
-
-          const { ssPublicKey, encrPublicKey, encrSecret } = await getSecretKeys(appId, secretStorage);
-
-          const handshakeTopic = createHandshakeTopic({ encrPublicKey, ssPublicKey });
-          const handshakePayload = createHandshakePayload({ ssPublicKey, encrPublicKey, metadata });
-
-          events.emit('status', { step: 'pairing', payload: createDeeplink(handshakePayload) });
-
-          return waitForStatements<SignInResult>(
-            statements,
-            handshakeTopic,
-            abort?.signal ?? null,
-            (statements, resolve) => {
-              for (const statement of [...statements].reverse()) {
-                if (!statement.data) continue;
-
-                const { sessionTopic, pappAccountId } = retrieveSessionTopic({
-                  payload: statement.data.asBytes(),
-                  encrSecret,
-                  ssPublicKey,
-                });
-
-                resolve({ sessionTopic, pappAccountId: toHex(pappAccountId) });
-                break;
-              }
-            },
-          );
-        })
-        .then(async ({ sessionTopic, pappAccountId }) => {
-          await secretStorage.writeSessionTopic(sessionTopic);
-          await secretStorage.writePappAccountId(pappAccountId);
-
-          events.emit('status', { step: 'finished', sessionTopic, pappAccountId });
-
-          return { sessionTopic, pappAccountId };
-        })
-        .catch(e => {
-          if (isAbortError(e)) {
-            events.emit('status', { step: 'none' });
-            return null;
-          }
-          events.emit('status', { step: 'error', message: e.message });
-          throw e;
-        });
+      signInPromise = handshake(abort.signal);
 
       return signInPromise;
     },
     abortSignIn() {
       if (abort) {
         signInPromise = null;
-        events.emit('status', { step: 'none' });
+        signInStatus.reset();
         abort.abort();
       }
-    },
-
-    getSignInStatus() {
-      return signInStatus;
-    },
-
-    onStatusChange(callback: (status: SignInStatus) => void) {
-      return events.on('status', callback);
     },
   };
 
@@ -193,7 +173,7 @@ function createHandshakeTopic({
   return khash(ssPublicKey, mergeBytes(encrPublicKey, stringToBytes('topic')));
 }
 
-function createHandshakePayload({
+function createHandshakePayloadV1({
   encrPublicKey,
   ssPublicKey,
   metadata,
@@ -236,8 +216,6 @@ function retrieveSessionTopic({
   const symmetricKey = createSymmetricKey(createSharedSecret(encrSecret, tmpKey));
   const decrypted = decrypt(symmetricKey, encrypted);
 
-  console.log('decrypted', decrypted.length, 65 + 32); // true
-
   const [pappEncrPublicKey, userPublicKey] = HandshakeResponseSensitiveData.dec(decrypted);
   const sharedSecret = createSharedSecret(encrSecret, pappEncrPublicKey);
 
@@ -247,34 +225,59 @@ function retrieveSessionTopic({
     accountB: pappEncrPublicKey,
   });
 
-  console.log('userPublicKey', userPublicKey.length, toHex(userPublicKey));
-  console.log('sessionTopic', session.a.length, toHex(session.a));
-
   return {
-    pappAccountId: userPublicKey,
+    accountId: userPublicKey,
     sessionTopic: session.a as SessionTopic,
   };
 }
 
+async function getSsKeys(appId: string, secretStorage: SecretStorage) {
+  return (await secretStorage.readSsSecret())
+    .andThenPromise(async ssSecret => {
+      if (ssSecret) {
+        return ok(ssSecret);
+      }
+
+      const seed = createRandomSeed(appId, SS_SECRET_SEED_SIZE);
+      const newSsSecret = createSsSecret(seed);
+
+      const write = await secretStorage.writeSsSecret(newSsSecret);
+      return write.map(() => newSsSecret);
+    })
+    .then(x =>
+      x.map(ssSecret => ({
+        ssSecret: ssSecret,
+        ssPublicKey: getSsPub(ssSecret),
+      })),
+    );
+}
+
+async function getEncrKeys(appId: string, secretStorage: SecretStorage) {
+  return (await secretStorage.readEncrSecret())
+    .andThenPromise(async encrSecret => {
+      if (encrSecret) {
+        return ok(encrSecret);
+      }
+
+      const seed = createRandomSeed(appId, ENCR_SECRET_SEED_SIZE);
+      const newEncrSecret = createEncrSecret(seed);
+
+      const write = await secretStorage.writeEncrSecret(newEncrSecret);
+      return write.map(() => newEncrSecret);
+    })
+    .then(x =>
+      x.map(encrSecret => ({
+        encrSecret,
+        encrPublicKey: getEncrPub(encrSecret),
+      })),
+    );
+}
+
 async function getSecretKeys(appId: string, secretStorage: SecretStorage) {
-  let ssSecret = await secretStorage.readSsSecret();
-  if (!ssSecret) {
-    const seed = createRandomSeed(appId, SS_SECRET_SEED_SIZE);
-    ssSecret = createSsSecret(seed);
-    await secretStorage.writeSsSecret(ssSecret);
-  }
-
-  let encrSecret = await secretStorage.readEncrSecret();
-  if (!encrSecret) {
-    const seed = createRandomSeed(appId, ENCR_SECRET_SEED_SIZE);
-    encrSecret = createEncrSecret(seed);
-    await secretStorage.writeEncrSecret(encrSecret);
-  }
-
-  const ssPublicKey = getSsPub(ssSecret);
-  const encrPublicKey = getEncrPub(encrSecret);
-
-  return { ssPublicKey, encrPublicKey, ssSecret, encrSecret };
+  return seq(await getSsKeys(appId, secretStorage), await getEncrKeys(appId, secretStorage)).map(([ss, encr]) => ({
+    ...ss,
+    ...encr,
+  }));
 }
 
 function createDeeplink(payload: Uint8Array) {
@@ -298,10 +301,15 @@ function waitForStatements<T>(
         }
       }
 
-      callback(statements, value => {
+      try {
+        callback(statements, value => {
+          unsubscribe();
+          resolve(value);
+        });
+      } catch (e) {
         unsubscribe();
-        resolve(value);
-      });
+        reject(e);
+      }
     });
   });
 }
