@@ -53,6 +53,10 @@ export function createCachedIdentityRequester(
   }
 
   async function readCache(accounts: string[]) {
+    if (accounts.length === 0) {
+      return ok<Record<string, Identity | null>>({});
+    }
+
     const identities = seq(...(await Promise.all(accounts.map(readSingleCacheRecord))));
     return identities.map(identities => {
       return Object.fromEntries(

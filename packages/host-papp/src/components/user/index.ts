@@ -2,14 +2,12 @@ import type { Statement } from '@polkadot-api/sdk-statement';
 import { toHex } from '@polkadot-api/utils';
 import { Bytes, Enum, Tuple, str } from 'scale-ts';
 
-import type { StatementAdapter } from '../adapters/statement/types.js';
-import type { StorageAdapter } from '../adapters/storage/types.js';
-import type { Result } from '../helpers/result.js';
-import { err, fromPromise, ok, seq } from '../helpers/result.js';
-import { isAbortError, toError } from '../helpers/utils.js';
-import type { SessionTopic } from '../types.js';
-
-import type { EncrPublicKey, EncrSecret, SsPublicKey } from './crypto.js';
+import type { StatementAdapter } from '../../adapters/statement/types.js';
+import type { StorageAdapter } from '../../adapters/storage/types.js';
+import type { Result } from '../../helpers/result.js';
+import { err, fromPromise, ok } from '../../helpers/result.js';
+import { isAbortError, toError } from '../../helpers/utils.js';
+import type { EncrPublicKey, EncrSecret, SsPublicKey } from '../../modules/crypto.js';
 import {
   ENCR_SECRET_SEED_SIZE,
   EncrPubKey,
@@ -26,13 +24,12 @@ import {
   khash,
   mergeBytes,
   stringToBytes,
-} from './crypto.js';
-import type { SecretStorage } from './secretStorage.js';
-import { createSecretStorage } from './secretStorage.js';
-import { createSession } from './statementStore.js';
-import { createSyncStorage } from './syncStorage.js';
-import type { User } from './userManager.js';
-import { createUserManager } from './userManager.js';
+} from '../../modules/crypto.js';
+import { createSession } from '../../modules/statementStore.js';
+import { createSyncStorage } from '../../modules/syncStorage.js';
+
+import { createUserStorage } from './storage.js';
+import type { AuthentificationStatus, SessionTopic, UserSession } from './types.js';
 
 // codecs
 
@@ -46,13 +43,6 @@ export const HandshakeResponsePayload = Enum({
 });
 
 export const HandshakeResponseSensitiveData = Tuple(Bytes(65), Bytes(32));
-
-export type SignInStatus =
-  | { step: 'none' }
-  | { step: 'initial' }
-  | { step: 'pairing'; payload: string }
-  | { step: 'error'; message: string }
-  | { step: 'finished'; user: User };
 
 type Params = {
   /**
@@ -75,28 +65,26 @@ type Params = {
   storage: StorageAdapter;
 };
 
-export function createSignInFlow({ appId, metadata, statements, storage }: Params) {
-  const userManager = createUserManager(appId, storage);
-  const secretStorage = createSecretStorage(appId, storage);
+export function createUserComponent({ appId, metadata, statements, storage }: Params) {
+  const userStorage = createUserStorage(appId, storage);
+  const authStatus = createSyncStorage<AuthentificationStatus>({ step: 'none' });
 
-  const signInStatus = createSyncStorage<SignInStatus>({ step: 'none' });
-
-  let signInPromise: Promise<Result<User | null>> | null = null;
+  let authPromise: Promise<Result<UserSession | null>> | null = null;
   let abort: AbortController | null = null;
 
   async function handshake(signal: AbortSignal) {
-    signInStatus.write({ step: 'initial' });
+    try {
+      authStatus.write({ step: 'initial' });
 
-    const secrets = await getSecretKeys(appId, secretStorage);
+      const { encrSecret, encrPublicKey, ssSecret, ssPublicKey } = getSecretKeys(appId);
 
-    return secrets.andThenPromise(async ({ ssPublicKey, encrPublicKey, encrSecret }) => {
       const handshakeTopic = createHandshakeTopic({ encrPublicKey, ssPublicKey });
       const handshakePayload = createHandshakePayloadV1({ ssPublicKey, encrPublicKey, metadata });
 
-      signInStatus.write({ step: 'pairing', payload: createDeeplink(handshakePayload) });
+      authStatus.write({ step: 'pairing', payload: createDeeplink(handshakePayload) });
 
-      const statementStoreResponse = fromPromise(
-        waitForStatements<User>(statements, handshakeTopic, signal, (statements, resolve) => {
+      const pappResponse = fromPromise(
+        waitForStatements<UserSession>(statements, handshakeTopic, signal, (statements, resolve) => {
           for (const statement of [...statements].reverse()) {
             if (!statement.data) continue;
 
@@ -106,61 +94,66 @@ export function createSignInFlow({ appId, metadata, statements, storage }: Param
               ssPublicKey,
             });
 
-            resolve({ sessionTopic, accountId: toHex(accountId) });
+            resolve({ accountId: toHex(accountId), sessionTopic });
             break;
           }
         }),
         toError,
       );
 
-      return statementStoreResponse
-        .then(x => x.andThenPromise(userManager.createUser))
-        .then(async result =>
-          result
-            .map(user => {
-              signInStatus.write({ step: 'finished', user });
-              return user;
-            })
-            .orElse(e => {
-              const error = toError(e);
-              if (isAbortError(error)) {
-                signInStatus.write({ step: 'none' });
-                return ok(null);
-              } else {
-                signInStatus.write({ step: 'error', message: error.message });
-                return err(error);
-              }
-            }),
-        );
-    });
+      const userCreated = await pappResponse.then(x =>
+        x.andThenPromise(user => userStorage.sessions.create(user, { ss: ssSecret, encr: encrSecret })),
+      );
+
+      return userCreated
+        .map(user => {
+          authStatus.write({ step: 'finished', user });
+          return user;
+        })
+        .orElse(e => {
+          const error = toError(e);
+          if (isAbortError(error)) {
+            authStatus.write({ step: 'none' });
+            return ok(null);
+          } else {
+            authStatus.write({ step: 'error', message: error.message });
+            return err(error);
+          }
+        });
+    } catch (e) {
+      return err(toError(e));
+    }
   }
 
-  const signInFlow = {
-    signInStatus,
+  const userModule = {
+    authStatus,
+    storage: userStorage,
 
-    users: userManager,
-
-    async signIn(): Promise<Result<User | null>> {
-      if (signInPromise) {
-        return signInPromise;
+    async authenticate(): Promise<Result<UserSession | null>> {
+      if (authPromise) {
+        return authPromise;
       }
 
       abort = new AbortController();
+      authPromise = handshake(abort.signal);
 
-      signInPromise = handshake(abort.signal);
-
-      return signInPromise;
+      return authPromise;
     },
-    abortSignIn() {
+
+    abortAuthentication() {
       if (abort) {
-        signInPromise = null;
-        signInStatus.reset();
-        abort.abort();
+        authPromise = null;
+        authStatus.reset();
+        abort.abort('Aborted by user.');
       }
+    },
+
+    disconnect(accountId: string) {
+      return userStorage.sessions.remove(accountId);
     },
   };
 
-  return signInFlow;
+  return userModule;
 }
 
 function createHandshakeTopic({
@@ -231,53 +224,34 @@ function retrieveSessionTopic({
   };
 }
 
-async function getSsKeys(appId: string, secretStorage: SecretStorage) {
-  return (await secretStorage.readSsSecret())
-    .andThenPromise(async ssSecret => {
-      if (ssSecret) {
-        return ok(ssSecret);
-      }
+function getSsKeys(appId: string) {
+  const seed = createRandomSeed(appId, SS_SECRET_SEED_SIZE);
+  const ssSecret = createSsSecret(seed);
 
-      const seed = createRandomSeed(appId, SS_SECRET_SEED_SIZE);
-      const newSsSecret = createSsSecret(seed);
-
-      const write = await secretStorage.writeSsSecret(newSsSecret);
-      return write.map(() => newSsSecret);
-    })
-    .then(x =>
-      x.map(ssSecret => ({
-        ssSecret: ssSecret,
-        ssPublicKey: getSsPub(ssSecret),
-      })),
-    );
+  return {
+    ssSecret: ssSecret,
+    ssPublicKey: getSsPub(ssSecret),
+  };
 }
 
-async function getEncrKeys(appId: string, secretStorage: SecretStorage) {
-  return (await secretStorage.readEncrSecret())
-    .andThenPromise(async encrSecret => {
-      if (encrSecret) {
-        return ok(encrSecret);
-      }
+function getEncrKeys(appId: string) {
+  const seed = createRandomSeed(appId, ENCR_SECRET_SEED_SIZE);
+  const encrSecret = createEncrSecret(seed);
 
-      const seed = createRandomSeed(appId, ENCR_SECRET_SEED_SIZE);
-      const newEncrSecret = createEncrSecret(seed);
-
-      const write = await secretStorage.writeEncrSecret(newEncrSecret);
-      return write.map(() => newEncrSecret);
-    })
-    .then(x =>
-      x.map(encrSecret => ({
-        encrSecret,
-        encrPublicKey: getEncrPub(encrSecret),
-      })),
-    );
+  return {
+    encrSecret,
+    encrPublicKey: getEncrPub(encrSecret),
+  };
 }
 
-async function getSecretKeys(appId: string, secretStorage: SecretStorage) {
-  return seq(await getSsKeys(appId, secretStorage), await getEncrKeys(appId, secretStorage)).map(([ss, encr]) => ({
+function getSecretKeys(appId: string) {
+  const ss = getSsKeys(appId);
+  const encr = getEncrKeys(appId);
+
+  return {
     ...ss,
     ...encr,
-  }));
+  };
 }
 
 function createDeeplink(payload: Uint8Array) {

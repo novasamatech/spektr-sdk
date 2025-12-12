@@ -1,10 +1,11 @@
 import type { PropsWithChildren } from 'react';
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 
 import { Modal } from '../ui/Modal.js';
 import { QrCode } from '../ui/QrCode.js';
 
-import { useSignInFlow } from './SignInStateProvider.js';
+import { useAuthenticateFlow } from './AuthProvider.js';
+import { useUser } from './UserProvider.js';
 
 const Text = ({ children }: PropsWithChildren) => (
   <span style={{ fontSize: '16px', textAlign: 'center', flexShrink: 0, color: 'white', fontFamily: 'sans-serif' }}>
@@ -13,14 +14,26 @@ const Text = ({ children }: PropsWithChildren) => (
 );
 
 export const PairingModal = memo(() => {
-  const signIn = useSignInFlow();
-  const open = signIn.signInStatus.step !== 'none' && signIn.initiatedByUser;
+  const auth = useAuthenticateFlow();
+  const user = useUser();
+  const open = auth.status.step !== 'none';
 
   const toggleModal = (open: boolean) => {
     if (!open) {
-      signIn.abort();
+      auth.abortAuthentication();
     }
   };
+
+  console.log('users', user.users);
+
+  const signedInUser = useMemo(() => {
+    if (auth.status.step === 'finished') {
+      const accountId = auth.status.user.accountId;
+      return user.users.find(x => x.accountId === accountId);
+    }
+
+    return null;
+  }, [auth.status.step, user.users]);
 
   return (
     <Modal isOpen={open} onOpenChange={toggleModal} width={300}>
@@ -35,10 +48,10 @@ export const PairingModal = memo(() => {
         }}
       >
         <Text>Sign in Polkadot app</Text>
-        {signIn.signInStatus.step === 'pairing' && <QrCode value={signIn.signInStatus.payload} size={270} />}
-        {signIn.signInStatus.step === 'finished' && (
+        {auth.status.step === 'pairing' && <QrCode value={auth.status.payload} size={270} />}
+        {auth.status.step === 'finished' && (
           <>
-            <Text>Welcome back, {signIn.identity?.liteUsername ?? 'User'}!</Text>
+            <Text>Welcome back, {signedInUser?.liteUsername ?? 'User'}!</Text>
           </>
         )}
       </div>
