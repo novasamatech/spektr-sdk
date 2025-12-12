@@ -1,18 +1,25 @@
 import { createPappHostAdapter } from '@novasamatech/host-papp';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
+import { useAuthenticateFlow } from './AuthProvider.js';
 import { PairingModal } from './PairingModal.js';
 import { PappProvider } from './PappProvider.js';
-import { useSignInFlow } from './SignInStateProvider.js';
+import { useUser } from './UserProvider.js';
 
 const ConnectButton = () => {
-  const signIn = useSignInFlow();
+  const auth = useAuthenticateFlow();
+  const user = useUser();
 
-  return (
-    <button onClick={() => signIn.signIn()}>
-      {signIn.identity ? signIn.identity.liteUsername : 'Connect Polkadot'}
-    </button>
-  );
+  if (user.selectedUser) {
+    return (
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span>{user.selectedUser.fullUsername ?? user.selectedUser.liteUsername}</span>
+        <button onClick={() => user.selectedUser && auth.disconnect(user.selectedUser.accountId)}>Disconnect</button>
+      </div>
+    );
+  }
+
+  return <button onClick={() => auth.authenticate()}>Connect Polkadot</button>;
 };
 
 const meta: Meta<typeof PappProvider> = {

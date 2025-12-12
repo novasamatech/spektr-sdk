@@ -7,24 +7,30 @@ import { createPapiStatementAdapter } from './adapters/statement/rpc.js';
 import type { StatementAdapter } from './adapters/statement/types.js';
 import { createLocalStorageAdapter } from './adapters/storage/localStorage.js';
 import type { StorageAdapter } from './adapters/storage/types.js';
+import { createUserComponent } from './components/user/index.js';
+import type { AuthentificationStatus } from './components/user/types.js';
 import { SS_PROD_ENDPOINTS } from './constants.js';
 import type { Result } from './helpers/result.js';
 import { ok } from './helpers/result.js';
 import { nonNullable } from './helpers/utils.js';
-import type { SignInStatus } from './modules/signIn.js';
-import { createSignInFlow } from './modules/signIn.js';
 
 export type PappAdapter = {
-  users: {
+  user: {
     // sign in
-    signIn(): Promise<Identity | null>;
-    abortSignIn(): void;
-    getSignInStatus(): SignInStatus;
-    onSignInStatusChange(callback: (status: SignInStatus) => void): VoidFunction;
+    authenticate(): Promise<Identity | null>;
+    abortAuthentication(): void;
+    getAuthStatus(): AuthentificationStatus;
+    onAuthStatusChange(callback: (status: AuthentificationStatus) => void): VoidFunction;
+
+    disconnect(accountId: string): Promise<void>;
 
     // local users management
     getSelectedUser(): Promise<Identity | null>;
-    getAvailableUsers(): Promise<Identity[]>;
+    selectUser(accountId: string): Promise<void>;
+    onSelectedUserChange(callback: (user: Identity | null) => void): VoidFunction;
+
+    getUsers(): Promise<Identity[]>;
+    onUsersChange(callback: (user: Identity[]) => void): VoidFunction;
   };
 };
 
@@ -57,49 +63,82 @@ export function createPappAdapter({ appId, metadata, adapters }: Params): PappAd
     statements = createPapiStatementAdapter(lazyPapiAdapter);
   }
 
-  const signInFlow = createSignInFlow({ appId, metadata, statements, storage });
+  const userComponent = createUserComponent({ appId, metadata, statements, storage });
 
   async function readIdentity(accountId: string): Promise<Result<Identity | null>> {
     return (await identities.readIdentities([accountId])).map(map => map[accountId] ?? null);
   }
 
-  const users: PappAdapter['users'] = {
-    async signIn() {
-      const result = await signInFlow.signIn();
+  const user: PappAdapter['user'] = {
+    async authenticate() {
+      const result = await userComponent.authenticate();
 
       return result
         .andThenPromise(async user => (user ? readIdentity(user.accountId) : ok(null)))
         .then(x => x.unwrapOrThrow());
     },
     async getSelectedUser() {
-      const result = await signInFlow.users.readSelectedUser();
+      const result = await userComponent.storage.sessions.readSelectedUser();
 
       return result
         .andThenPromise(async user => (user ? readIdentity(user.accountId) : ok(null)))
         .then(x => x.unwrapOrThrow());
     },
 
-    getSignInStatus() {
-      return signInFlow.signInStatus.read();
+    getAuthStatus() {
+      return userComponent.authStatus.read();
     },
 
-    onSignInStatusChange(callback) {
-      return signInFlow.signInStatus.subscribe(callback);
+    onAuthStatusChange(callback) {
+      return userComponent.authStatus.subscribe(callback);
     },
 
-    abortSignIn() {
-      return signInFlow.abortSignIn();
+    abortAuthentication() {
+      return userComponent.abortAuthentication();
     },
 
-    async getAvailableUsers(): Promise<Identity[]> {
-      const accounts = await signInFlow.users.readAccounts();
+    disconnect(accountId) {
+      return userComponent.disconnect(accountId).then(x => x.unwrapOrThrow());
+    },
+
+    async selectUser(accountId) {
+      return userComponent.storage.accounts
+        .select(accountId)
+        .then(x => x.unwrapOrThrow())
+        .then(() => undefined);
+    },
+
+    onSelectedUserChange(callback) {
+      return userComponent.storage.accounts.subscribeSelectedAccount(accountId => {
+        if (!accountId) {
+          return callback(null);
+        }
+
+        readIdentity(accountId)
+          .then(x => x.unwrap())
+          .then(callback);
+      });
+    },
+
+    async getUsers(): Promise<Identity[]> {
+      const accounts = await userComponent.storage.accounts.read();
       const accountIdentities = await accounts.andThenPromise(identities.readIdentities);
       return accountIdentities.map(map => Object.values(map).filter(nonNullable)).unwrapOrThrow();
+    },
+
+    onUsersChange(callback): VoidFunction {
+      return userComponent.storage.accounts.subscribe(accounts => {
+        identities
+          .readIdentities(accounts)
+          .then(x => x.unwrapOrThrow())
+          .then(map => Object.values(map).filter(nonNullable))
+          .then(callback);
+      });
     },
   };
 
   const papp: PappAdapter = {
-    users,
+    user,
   };
 
   return papp;
