@@ -22,11 +22,11 @@ export function ok<V = void, E = never>(value: V): Result<V, E> {
     map: <V1>(fn: (v: V) => V1) => ok(fn(value)),
     marErr: <E1>() => result as unknown as Result<V, E1>,
     andThen: <R extends Result<unknown>>(fn: (v: V) => R) => fn(value),
-    andThenPromise: <R extends Result<unknown>>(fn: (v: V) => Promise<R>) => {
+    andThenPromise: async <R extends Result<unknown>>(fn: (v: V) => Promise<R>) => {
       try {
-        return fn(value);
+        return await fn(value);
       } catch (e) {
-        return Promise.resolve(err(e)) as never;
+        return err(e) as never;
       }
     },
     orElse: () => result as never,
@@ -46,7 +46,7 @@ export function err<E, V = never>(value: E): Result<V, E> {
     map: <V1>() => result as unknown as Result<V1, E>,
     marErr: <E1>(fn: (e: E) => E1) => err(fn(value)),
     andThen: <R extends Result<unknown>>() => result as unknown as R,
-    andThenPromise: () => Promise.reject(value),
+    andThenPromise: () => Promise.resolve(result) as never,
     orElse: <R extends Result<unknown>>(fn: (e: E) => R) => fn(value) as never,
     orElsePromise: <R extends Result<unknown>>(fn: (e: E) => Promise<R>) => fn(value) as never,
     unwrap: () => null,

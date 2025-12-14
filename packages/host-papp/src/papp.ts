@@ -7,9 +7,12 @@ import { createPapiStatementAdapter } from './adapters/statement/rpc.js';
 import type { StatementAdapter } from './adapters/statement/types.js';
 import { createLocalStorageAdapter } from './adapters/storage/localStorage.js';
 import type { StorageAdapter } from './adapters/storage/types.js';
+import { createAuthComponent } from './components/auth/index.js';
+import type { AuthentificationStatus } from './components/auth/types.js';
 import { createUserComponent } from './components/user/index.js';
-import type { AuthentificationStatus } from './components/user/types.js';
+import { createUserStorage } from './components/user/storage.js';
 import { SS_PROD_ENDPOINTS } from './constants.js';
+import { callbackRaceResolver } from './helpers/callbackRaceResolver.js';
 import type { Result } from './helpers/result.js';
 import { ok } from './helpers/result.js';
 import { nonNullable } from './helpers/utils.js';
@@ -63,7 +66,9 @@ export function createPappAdapter({ appId, metadata, adapters }: Params): PappAd
     statements = createPapiStatementAdapter(lazyPapiAdapter);
   }
 
-  const userComponent = createUserComponent({ appId, metadata, statements, storage });
+  const userStorage = createUserStorage(appId, storage);
+  const authComponent = createAuthComponent({ appId, metadata, statements, userStorage });
+  const userComponent = createUserComponent({ appId, statements, userStorage });
 
   async function readIdentity(accountId: string): Promise<Result<Identity | null>> {
     return (await identities.readIdentities([accountId])).map(map => map[accountId] ?? null);
@@ -71,14 +76,14 @@ export function createPappAdapter({ appId, metadata, adapters }: Params): PappAd
 
   const user: PappAdapter['user'] = {
     async authenticate() {
-      const result = await userComponent.authenticate();
+      const result = await authComponent.authenticate();
 
       return result
         .andThenPromise(async user => (user ? readIdentity(user.accountId) : ok(null)))
         .then(x => x.unwrapOrThrow());
     },
     async getSelectedUser() {
-      const result = await userComponent.storage.sessions.readSelectedUser();
+      const result = await userStorage.sessions.readSelectedUser();
 
       return result
         .andThenPromise(async user => (user ? readIdentity(user.accountId) : ok(null)))
@@ -86,15 +91,15 @@ export function createPappAdapter({ appId, metadata, adapters }: Params): PappAd
     },
 
     getAuthStatus() {
-      return userComponent.authStatus.read();
+      return authComponent.status.read();
     },
 
     onAuthStatusChange(callback) {
-      return userComponent.authStatus.subscribe(callback);
+      return authComponent.status.subscribe(callback);
     },
 
     abortAuthentication() {
-      return userComponent.abortAuthentication();
+      return authComponent.abortAuthentication();
     },
 
     disconnect(accountId) {
@@ -102,38 +107,39 @@ export function createPappAdapter({ appId, metadata, adapters }: Params): PappAd
     },
 
     async selectUser(accountId) {
-      return userComponent.storage.accounts
+      return userStorage.accounts
         .select(accountId)
         .then(x => x.unwrapOrThrow())
         .then(() => undefined);
     },
 
     onSelectedUserChange(callback) {
-      return userComponent.storage.accounts.subscribeSelectedAccount(accountId => {
+      const resolver = callbackRaceResolver<string | null, Identity | null>(callback, async accountId => {
         if (!accountId) {
-          return callback(null);
+          return null;
         }
 
-        readIdentity(accountId)
-          .then(x => x.unwrap())
-          .then(callback);
+        return readIdentity(accountId).then(x => x.unwrap());
       });
+
+      return userStorage.accounts.subscribeSelectedAccount(resolver);
     },
 
     async getUsers(): Promise<Identity[]> {
-      const accounts = await userComponent.storage.accounts.read();
+      const accounts = await userStorage.accounts.read();
       const accountIdentities = await accounts.andThenPromise(identities.readIdentities);
       return accountIdentities.map(map => Object.values(map).filter(nonNullable)).unwrapOrThrow();
     },
 
     onUsersChange(callback): VoidFunction {
-      return userComponent.storage.accounts.subscribe(accounts => {
-        identities
+      const resolver = callbackRaceResolver<string[], Identity[]>(callback, accounts => {
+        return identities
           .readIdentities(accounts)
           .then(x => x.unwrapOrThrow())
-          .then(map => Object.values(map).filter(nonNullable))
-          .then(callback);
+          .then(map => Object.values(map).filter(nonNullable));
       });
+
+      return userStorage.accounts.subscribe(resolver);
     },
   };
 

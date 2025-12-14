@@ -1,7 +1,3 @@
-export function isAbortError(err: object) {
-  return err && 'name' in err && err.name === 'AbortError';
-}
-
 export function toError(err: unknown) {
   if (err instanceof Error) {
     return err;

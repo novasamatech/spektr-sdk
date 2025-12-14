@@ -45,11 +45,11 @@ export function createCachedIdentityRequester(
       }
     });
   }
-  async function writeSingleCacheRecord(identity: Identity | null) {
+  async function writeSingleCacheRecord(accountId: string, identity: Identity | null) {
     if (identity === null) {
       return ok<void>(undefined);
     }
-    return storage.write(getKey(identity.accountId), JSON.stringify(identity));
+    return storage.write(getKey(accountId), JSON.stringify(identity));
   }
 
   async function readCache(accounts: string[]) {
@@ -73,7 +73,9 @@ export function createCachedIdentityRequester(
   }
 
   async function writeCache(identities: Record<string, Identity | null>) {
-    return seq(...(await Promise.all(Object.values(identities).map(writeSingleCacheRecord)))).map(() => identities);
+    return seq(...(await Promise.all(Object.entries(identities).map(args => writeSingleCacheRecord(...args))))).map(
+      () => identities,
+    );
   }
 
   return async (accounts: string[]): Promise<Result<Record<string, Identity | null>, Error>> => {

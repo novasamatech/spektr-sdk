@@ -4,4 +4,5 @@ export type StorageAdapter = {
   write(key: string, value: string): Promise<Result<void, Error>>;
   read(key: string): Promise<Result<string | null, Error>>;
   clear(key: string): Promise<Result<void, Error>>;
+  subscribe(key: string, callback: (value: string | null) => unknown): VoidFunction;
 };

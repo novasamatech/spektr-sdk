@@ -17,10 +17,3 @@ export type UserSecrets = {
 export type User = UserSession & {
   identity: Identity | null;
 };
-
-export type AuthentificationStatus =
-  | { step: 'none' }
-  | { step: 'initial' }
-  | { step: 'pairing'; payload: string }
-  | { step: 'error'; message: string }
-  | { step: 'finished'; user: UserSession };

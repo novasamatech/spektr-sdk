@@ -2,9 +2,11 @@ import type { StorageAdapter } from '../../adapters/storage/types.js';
 import type { Result } from '../../helpers/result.js';
 import { err, ok, seq } from '../../helpers/result.js';
 import { createSecretStorage } from '../../modules/secretStorage.js';
-import { reactiveStorage } from '../../modules/syncStorage.js';
+import { storageView } from '../../modules/storageView.js';
 
 import type { UserSecrets, UserSession } from './types.js';
+
+export type UserStorage = ReturnType<typeof createUserStorage>;
 
 export const createUserStorage = (appId: string, storage: StorageAdapter) => {
   const secretStorage = createSecretStorage(appId, storage);
@@ -110,7 +112,7 @@ export const createUserStorage = (appId: string, storage: StorageAdapter) => {
 };
 
 const createSessionsStorage = (storage: StorageAdapter) => {
-  const reactive = reactiveStorage<string[]>({
+  const view = storageView<string[]>({
     storage,
     key: 'Users',
     autosync: true,
@@ -121,11 +123,11 @@ const createSessionsStorage = (storage: StorageAdapter) => {
 
   return {
     async read(): Promise<Result<string[], Error>> {
-      return reactive.read();
+      return view.read();
     },
 
     async add(user: string) {
-      const users = await reactive.read();
+      const users = await view.read();
 
       return users.andThenPromise(async users => {
         if (users.some(x => x === user)) {
@@ -133,18 +135,18 @@ const createSessionsStorage = (storage: StorageAdapter) => {
         }
         const newUsers = users.concat(user);
 
-        return reactive.write(newUsers).then(x => x.map(() => newUsers));
+        return view.write(newUsers).then(x => x.map(() => newUsers));
       });
     },
 
     async remove(user: string) {
-      const users = await reactive.read();
+      const users = await view.read();
 
       return users.andThenPromise(async users => {
         const newUsers = users.filter(x => x !== user);
 
         if (newUsers.length !== users.length) {
-          return reactive.write(newUsers).then(x => x.map(() => newUsers));
+          return view.write(newUsers).then(x => x.map(() => newUsers));
         }
 
         return ok<string[]>([]);
@@ -152,7 +154,7 @@ const createSessionsStorage = (storage: StorageAdapter) => {
     },
 
     subscribe(callback: (accounts: string[]) => void) {
-      return reactive.subscribe(v => {
+      return view.subscribe(v => {
         callback(v ?? []);
       });
     },
@@ -160,7 +162,7 @@ const createSessionsStorage = (storage: StorageAdapter) => {
 };
 
 const createSelectedUserStorage = (storage: StorageAdapter) => {
-  return reactiveStorage<string | null>({
+  return storageView<string | null>({
     storage,
     key: 'SelectedUser',
     autosync: true,
