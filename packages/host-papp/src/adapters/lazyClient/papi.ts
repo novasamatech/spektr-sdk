@@ -14,5 +14,10 @@ export const createPapiLazyClient = (provider: JsonRpcProvider): LazyClientAdapt
       }
       return client;
     },
+    disconnect() {
+      if (client) {
+        client.destroy();
+      }
+    },
   };
 };

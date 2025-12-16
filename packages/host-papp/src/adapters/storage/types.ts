@@ -1,8 +1,8 @@
-import type { Result } from '../../helpers/result.js';
+import { ResultAsync } from 'neverthrow';
 
 export type StorageAdapter = {
-  write(key: string, value: string): Promise<Result<void, Error>>;
-  read(key: string): Promise<Result<string | null, Error>>;
-  clear(key: string): Promise<Result<void, Error>>;
+  write(key: string, value: string): ResultAsync<void, Error>;
+  read(key: string): ResultAsync<string | null, Error>;
+  clear(key: string): ResultAsync<void, Error>;
   subscribe(key: string, callback: (value: string | null) => unknown): VoidFunction;
 };

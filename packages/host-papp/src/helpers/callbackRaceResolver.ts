@@ -1,6 +1,6 @@
 export function callbackRaceResolver<T, R>(
   callback: (value: R) => unknown,
-  preprocess: (value: T) => Promise<R>,
+  preprocess: (value: T) => PromiseLike<R>,
 ): (value: T) => unknown {
   let abort = new AbortController();
 

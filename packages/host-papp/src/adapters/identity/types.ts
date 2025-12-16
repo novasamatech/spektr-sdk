@@ -1,4 +1,4 @@
-import type { Result } from '../../helpers/result.js';
+import type { ResultAsync } from 'neverthrow';
 
 export type Identity = {
   accountId: string;
@@ -8,5 +8,5 @@ export type Identity = {
 };
 
 export type IdentityAdapter = {
-  readIdentities(accounts: string[]): Promise<Result<Record<string, Identity | null>, Error>>;
+  readIdentities(accounts: string[]): ResultAsync<Record<string, Identity | null>, Error>;
 };

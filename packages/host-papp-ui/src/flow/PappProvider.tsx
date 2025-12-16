@@ -2,8 +2,8 @@ import type { PappAdapter } from '@novasamatech/host-papp';
 import type { PropsWithChildren } from 'react';
 import { createContext, useContext } from 'react';
 
-import { AuthProvider } from './AuthProvider.js';
-import { UserProvider } from './UserProvider.js';
+import { AuthProvider } from '../providers/AuthProvider.js';
+import { SessionsProvider } from '../providers/SessionsProvider.js';
 
 const Context = createContext<PappAdapter | null>(null);
 
@@ -21,7 +21,7 @@ export const PappProvider = ({ adapter, children }: PropsWithChildren<{ adapter:
   return (
     <Context.Provider value={adapter}>
       <AuthProvider>
-        <UserProvider>{children}</UserProvider>
+        <SessionsProvider>{children}</SessionsProvider>
       </AuthProvider>
     </Context.Provider>
   );

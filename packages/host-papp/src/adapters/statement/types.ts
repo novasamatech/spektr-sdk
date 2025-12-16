@@ -1,11 +1,12 @@
 import type { SignedStatement, Statement } from '@polkadot-api/sdk-statement';
+import type { ResultAsync } from 'neverthrow';
 
-import type { Result } from '../../helpers/result.js';
+import type { Callback } from '../../types.js';
 
-export type StatementsCallback = (statements: Statement[]) => unknown;
+export type StatementsCallback = Callback<Statement[]>;
 
 export type StatementAdapter = {
-  getStatements(topics: Uint8Array[]): Promise<Result<Statement[], Error>>;
+  queryStatements(topics: Uint8Array[], destination?: Uint8Array): ResultAsync<Statement[], Error>;
   subscribeStatements(topics: Uint8Array[], callback: StatementsCallback): VoidFunction;
-  submitStatement(statement: SignedStatement): Promise<Result<void, Error>>;
+  submitStatement(statement: SignedStatement): ResultAsync<void, Error>;
 };

@@ -1,19 +1,7 @@
-import type { Identity } from '../../adapters/identity/types.js';
-import type { EncrSecret, SsSecret } from '../../modules/crypto.js';
-import type { Branded } from '../../types.js';
-
-export type SessionTopic = Branded<Uint8Array, 'SessionTopic'>;
-
-export type UserSession = {
-  accountId: string;
-  sessionTopic: SessionTopic;
-};
+import type { EncrSecret, SharedSecret, SsSecret } from '../../modules/crypto.js';
 
 export type UserSecrets = {
+  sharedSecret: SharedSecret;
   encr: EncrSecret;
   ss: SsSecret;
-};
-
-export type User = UserSession & {
-  identity: Identity | null;
 };

@@ -1,15 +1,15 @@
-import type { AuthentificationStatus, Identity } from '@novasamatech/host-papp';
+import type { AuthentificationStatus, UserSession } from '@novasamatech/host-papp';
 import type { PropsWithChildren } from 'react';
 import { createContext, useCallback, useContext, useDebugValue, useState, useSyncExternalStore } from 'react';
 
-import { usePapp } from './PappProvider.js';
+import { usePapp } from '../flow/PappProvider.js';
 
 type State = {
   status: AuthentificationStatus;
   pending: boolean;
-  authenticate(): Promise<Identity | null>;
+  authenticate(): Promise<UserSession | null>;
   abortAuthentication(): void;
-  disconnect(accountId: string): Promise<void>;
+  disconnect(session: UserSession): Promise<void>;
 };
 
 const Context = createContext<State>({
@@ -30,7 +30,7 @@ export const useAuthenticateFlow = () => {
 
 const useAuthStatus = () => {
   const provider = usePapp();
-  const authStatus = useSyncExternalStore(provider.user.onAuthStatusChange, provider.user.getAuthStatus);
+  const authStatus = useSyncExternalStore(provider.sso.status.subscribe, provider.sso.status.read);
 
   useDebugValue(`Polkadot app authentification status: ${authStatus.step}`);
 
@@ -45,15 +45,28 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
   const authenticate = useCallback(() => {
     setPending(true);
-    return provider.user.authenticate().finally(() => setPending(false));
+    return new Promise<UserSession | null>((resolve, reject) => {
+      provider.sso
+        .authenticate()
+        .andTee(() => setPending(false))
+        .orTee(() => setPending(false))
+        .match(resolve, reject);
+    });
   }, [provider]);
+
+  const disconnect = useCallback(
+    (session: UserSession) => {
+      return new Promise<void>((resolve, reject) => provider.sessions.disconnect(session).match(resolve, reject));
+    },
+    [provider],
+  );
 
   const state: State = {
     pending,
     status,
     authenticate,
-    abortAuthentication: provider.user.abortAuthentication,
-    disconnect: provider.user.disconnect,
+    abortAuthentication: provider.sso.abortAuthentication,
+    disconnect,
   };
 
   return <Context.Provider value={state}>{children}</Context.Provider>;

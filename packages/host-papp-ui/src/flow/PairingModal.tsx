@@ -1,11 +1,10 @@
 import type { PropsWithChildren } from 'react';
 import { memo, useMemo } from 'react';
 
+import { useSessionIdentity } from '../hooks/identity.js';
+import { useAuthenticateFlow } from '../providers/AuthProvider.js';
 import { Modal } from '../ui/Modal.js';
 import { QrCode } from '../ui/QrCode.js';
-
-import { useAuthenticateFlow } from './AuthProvider.js';
-import { useUser } from './UserProvider.js';
 
 const Text = ({ children }: PropsWithChildren) => (
   <span style={{ fontSize: '16px', textAlign: 'center', flexShrink: 0, color: 'white', fontFamily: 'sans-serif' }}>
@@ -15,7 +14,6 @@ const Text = ({ children }: PropsWithChildren) => (
 
 export const PairingModal = memo(() => {
   const auth = useAuthenticateFlow();
-  const user = useUser();
   const open = auth.status.step !== 'none';
 
   const toggleModal = (open: boolean) => {
@@ -24,16 +22,14 @@ export const PairingModal = memo(() => {
     }
   };
 
-  console.log('users', user.users);
-
   const signedInUser = useMemo(() => {
     if (auth.status.step === 'finished') {
-      const accountId = auth.status.user.accountId;
-      return user.users.find(x => x.accountId === accountId);
+      return auth.status.session;
     }
-
     return null;
-  }, [auth.status.step, user.users]);
+  }, [auth.status.step]);
+
+  const [identity, identityPending] = useSessionIdentity(signedInUser);
 
   return (
     <Modal isOpen={open} onOpenChange={toggleModal} width={300}>
@@ -51,7 +47,7 @@ export const PairingModal = memo(() => {
         {auth.status.step === 'pairing' && <QrCode value={auth.status.payload} size={270} />}
         {auth.status.step === 'finished' && (
           <>
-            <Text>Welcome back, {signedInUser?.liteUsername ?? 'User'}!</Text>
+            <Text>Welcome back, {identity?.liteUsername ?? (identityPending ? '...' : 'user')}!</Text>
           </>
         )}
       </div>

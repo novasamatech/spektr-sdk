@@ -1,23 +1,19 @@
 import type { Statement } from '@polkadot-api/sdk-statement';
 import { toHex } from '@polkadot-api/utils';
-import { Bytes, Enum, Tuple, str } from 'scale-ts';
+import type { ResultAsync } from 'neverthrow';
+import { err, errAsync, fromPromise, fromThrowable, ok } from 'neverthrow';
 
-import type { StatementAdapter } from '../../adapters/statement/types.js';
 import { AbortError } from '../../helpers/abortError.js';
-import type { Result } from '../../helpers/result.js';
-import { err, fromPromise, ok } from '../../helpers/result.js';
 import { toError } from '../../helpers/utils.js';
 import type { EncrPublicKey, EncrSecret, SsPublicKey } from '../../modules/crypto.js';
 import {
   ENCR_SECRET_SEED_SIZE,
-  EncrPubKey,
   SS_SECRET_SEED_SIZE,
-  SsPubKey,
   createEncrSecret,
   createRandomSeed,
   createSharedSecret,
+  createSsHardDerivation,
   createSsSecret,
-  createSymmetricKey,
   decrypt,
   getEncrPub,
   getSsPub,
@@ -25,25 +21,18 @@ import {
   mergeBytes,
   stringToBytes,
 } from '../../modules/crypto.js';
+import { createAccount } from '../../modules/session/helpers.js';
+import type { Account } from '../../modules/session/types.js';
 import { createState, readonly } from '../../modules/state.js';
-import { createSession } from '../../modules/statementStore.js';
-import type { UserStorage } from '../user/storage.js';
-import type { SessionTopic, UserSession } from '../user/types.js';
+import { createUserSession } from '../../modules/statementStore.js';
+import type { Transport } from '../../modules/transport/transport.js';
+import type { Callback } from '../../types.js';
+import type { UserSession, UserSessionStorage } from '../user/userSessionStorage.js';
 
+import { HandshakeData, HandshakeResponsePayload, HandshakeResponseSensitiveData } from './codec.js';
 import type { AuthentificationStatus } from './types.js';
 
-// codecs
-
-export const HandshakeData = Enum({
-  V1: Tuple(SsPubKey, EncrPubKey, str),
-});
-
-export const HandshakeResponsePayload = Enum({
-  // [encrypted, tmp_key]
-  V1: Tuple(Bytes(), Bytes(65)),
-});
-
-export const HandshakeResponseSensitiveData = Tuple(Bytes(65), Bytes(32));
+export type AuthComponent = ReturnType<typeof createAuthComponent>;
 
 type Params = {
   /**
@@ -62,88 +51,89 @@ type Params = {
    * ```
    */
   metadata: string;
-  statements: StatementAdapter;
-  userStorage: UserStorage;
+  transport: Transport;
+  userSessionStorage: UserSessionStorage;
 };
 
-export function createAuthComponent({ appId, metadata, statements, userStorage }: Params) {
+export function createAuthComponent({ appId, metadata, transport, userSessionStorage }: Params) {
   const authStatus = createState<AuthentificationStatus>({ step: 'none' });
 
-  let authPromise: Promise<Result<UserSession | null>> | null = null;
+  let authResults: ResultAsync<UserSession | null, Error> | null = null;
   let abort: AbortController | null = null;
 
-  async function handshake(signal: AbortSignal) {
+  function handshake(signal: AbortSignal) {
     try {
       authStatus.write({ step: 'initial' });
 
-      const { encrSecret, encrPublicKey, ssSecret, ssPublicKey } = getSecretKeys(appId);
+      const { encrSecret, encrPublicKey, ssPublicKey } = getSecretKeys(appId);
 
-      const handshakeTopic = createHandshakeTopic({ encrPublicKey, ssPublicKey });
-      const handshakePayload = createHandshakePayloadV1({ ssPublicKey, encrPublicKey, metadata });
+      const hostAccount = createAccount(ssPublicKey, encrPublicKey);
 
-      authStatus.write({ step: 'pairing', payload: createDeeplink(handshakePayload) });
-
-      const pappResponse = fromPromise(
-        waitForStatements<UserSession>(statements, handshakeTopic, signal, (statements, resolve) => {
-          for (const statement of [...statements].reverse()) {
-            if (!statement.data) continue;
-
-            const { sessionTopic, accountId } = retrieveSessionTopic({
-              payload: statement.data.asBytes(),
-              encrSecret,
-              ssPublicKey,
-            });
-
-            resolve({ accountId: toHex(accountId), sessionTopic });
-            break;
-          }
-        }),
-        e => new AbortError(toError(e).message),
+      const handshakePayload = createHandshakePayloadV1({ ssPublicKey, encrPublicKey, metadata }).andTee(payload =>
+        authStatus.write({ step: 'pairing', payload: createDeeplink(payload) }),
       );
 
-      const userCreated = await pappResponse.then(x =>
-        x.andThenPromise(user => userStorage.sessions.create(user, { ss: ssSecret, encr: encrSecret })),
-      );
+      const handshakeTopic = createHandshakeTopic(hostAccount);
+
+      const pappResponse = handshakePayload
+        .andThen(() => handshakeTopic)
+        .asyncAndThen(topic =>
+          waitForStatements<UserSession>(
+            callback => transport.subscribeSession(topic, callback),
+            signal,
+            (statements, resolve) => {
+              for (const statement of [...statements].reverse()) {
+                if (!statement.data) continue;
+
+                const session = retrieveSession({
+                  hostAccount,
+                  encrSecret,
+                  payload: statement.data.asBytes(),
+                });
+
+                resolve(session);
+                break;
+              }
+            },
+          ),
+        );
+
+      const userCreated = pappResponse.andThen(userSessionStorage.add);
 
       return userCreated
-        .map(user => {
-          authStatus.write({ step: 'finished', user });
-          return user;
-        })
-        .orElse(e => {
-          if (AbortError.isAbortError(e)) {
-            authStatus.write({ step: 'none' });
-            return ok(null);
+        .orElse(e => (AbortError.isAbortError(e) ? ok(null) : err(toError(e))))
+        .andTee(session => {
+          if (session) {
+            authStatus.write({ step: 'finished', session });
           } else {
-            const error = toError(e);
-            authStatus.write({ step: 'error', message: error.message });
-            return err(error);
+            authStatus.write({ step: 'none' });
           }
-        });
+        })
+        .orTee(e => authStatus.write({ step: 'error', message: e.message }));
     } catch (e) {
-      return err(toError(e));
+      return errAsync(toError(e));
     }
   }
 
   const authModule = {
     status: readonly(authStatus),
 
-    async authenticate(): Promise<Result<UserSession | null>> {
-      if (authPromise) {
-        return authPromise;
+    authenticate(): ResultAsync<UserSession | null, Error> {
+      if (authResults) {
+        return authResults;
       }
 
       abort = new AbortController();
-      authPromise = handshake(abort.signal);
+      authResults = handshake(abort.signal);
 
-      return authPromise;
+      return authResults;
     },
 
     abortAuthentication() {
       if (abort) {
-        authPromise = null;
+        authResults = null;
         authStatus.reset();
-        abort.abort('Aborted by user.');
+        abort.abort(new AbortError('Aborted by user.'));
       }
     },
   };
@@ -151,30 +141,27 @@ export function createAuthComponent({ appId, metadata, statements, userStorage }
   return authModule;
 }
 
-function createHandshakeTopic({
-  encrPublicKey,
-  ssPublicKey,
-}: {
-  encrPublicKey: EncrPublicKey;
-  ssPublicKey: SsPublicKey;
-}) {
-  return khash(ssPublicKey, mergeBytes(encrPublicKey, stringToBytes('topic')));
-}
+const createHandshakeTopic = fromThrowable(
+  (account: Account) => khash(account.accountId, mergeBytes(account.publicKey, stringToBytes('topic'))),
+  toError,
+);
 
-function createHandshakePayloadV1({
-  encrPublicKey,
-  ssPublicKey,
-  metadata,
-}: {
-  encrPublicKey: EncrPublicKey;
-  ssPublicKey: SsPublicKey;
-  metadata: string;
-}) {
-  return HandshakeData.enc({
-    tag: 'V1',
-    value: [ssPublicKey, encrPublicKey, metadata],
-  });
-}
+const createHandshakePayloadV1 = fromThrowable(
+  ({
+    encrPublicKey,
+    ssPublicKey,
+    metadata,
+  }: {
+    encrPublicKey: EncrPublicKey;
+    ssPublicKey: SsPublicKey;
+    metadata: string;
+  }) =>
+    HandshakeData.enc({
+      tag: 'V1',
+      value: [ssPublicKey, encrPublicKey, metadata],
+    }),
+  toError,
+);
 
 function parseHandshakePayload(payload: Uint8Array) {
   const decoded = HandshakeResponsePayload.dec(payload);
@@ -190,38 +177,31 @@ function parseHandshakePayload(payload: Uint8Array) {
   }
 }
 
-function retrieveSessionTopic({
+function retrieveSession({
   payload,
   encrSecret,
-  ssPublicKey,
+  hostAccount,
 }: {
   payload: Uint8Array;
   encrSecret: EncrSecret;
-  ssPublicKey: SsPublicKey;
-}) {
+  hostAccount: Account;
+}): UserSession {
   const { encrypted, tmpKey } = parseHandshakePayload(payload);
 
-  const symmetricKey = createSymmetricKey(createSharedSecret(encrSecret, tmpKey));
+  const symmetricKey = createSharedSecret(encrSecret, tmpKey);
   const decrypted = decrypt(symmetricKey, encrypted);
 
-  const [pappEncrPublicKey, userPublicKey] = HandshakeResponseSensitiveData.dec(decrypted);
+  const [pappEncrPublicKey, pappAccountId] = HandshakeResponseSensitiveData.dec(decrypted);
   const sharedSecret = createSharedSecret(encrSecret, pappEncrPublicKey);
 
-  const session = createSession({
-    sharedSecret: sharedSecret,
-    accountA: ssPublicKey,
-    accountB: pappEncrPublicKey,
-  });
+  const peerAccount = createAccount(pappAccountId, sharedSecret);
 
-  return {
-    accountId: userPublicKey,
-    sessionTopic: session.a as SessionTopic,
-  };
+  return createUserSession(hostAccount, peerAccount);
 }
 
 function getSsKeys(appId: string) {
   const seed = createRandomSeed(appId, SS_SECRET_SEED_SIZE);
-  const ssSecret = createSsSecret(seed);
+  const ssSecret = createSsHardDerivation(createSsSecret(seed), '//wallet');
 
   return {
     ssSecret: ssSecret,
@@ -254,31 +234,33 @@ function createDeeplink(payload: Uint8Array) {
 }
 
 function waitForStatements<T>(
-  transport: StatementAdapter,
-  topic: Uint8Array,
+  subscribe: (callback: Callback<Statement[]>) => VoidFunction,
   abortSignal: AbortSignal | null,
   callback: (statements: Statement[], resolve: (value: T) => void) => void,
-): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const unsubscribe = transport.subscribeStatements([topic], statements => {
-      if (abortSignal?.aborted) {
-        unsubscribe();
+): ResultAsync<T, Error> {
+  return fromPromise(
+    new Promise<T>((resolve, reject) => {
+      const unsubscribe = subscribe(statements => {
+        if (abortSignal?.aborted) {
+          unsubscribe();
+          try {
+            abortSignal.throwIfAborted();
+          } catch (e) {
+            reject(e);
+          }
+        }
+
         try {
-          abortSignal.throwIfAborted();
+          callback(statements, value => {
+            unsubscribe();
+            resolve(value);
+          });
         } catch (e) {
+          unsubscribe();
           reject(e);
         }
-      }
-
-      try {
-        callback(statements, value => {
-          unsubscribe();
-          resolve(value);
-        });
-      } catch (e) {
-        unsubscribe();
-        reject(e);
-      }
-    });
-  });
+      });
+    }),
+    toError,
+  );
 }

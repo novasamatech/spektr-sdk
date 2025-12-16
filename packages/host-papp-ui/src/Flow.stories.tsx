@@ -1,20 +1,22 @@
 import { createPappHostAdapter } from '@novasamatech/host-papp';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
-import { useAuthenticateFlow } from './AuthProvider.js';
-import { PairingModal } from './PairingModal.js';
-import { PappProvider } from './PappProvider.js';
-import { useUser } from './UserProvider.js';
+import { PairingModal } from './flow/PairingModal.js';
+import { PappProvider } from './flow/PappProvider.js';
+import { useSessionIdentity } from './hooks/identity.js';
+import { useAuthenticateFlow } from './providers/AuthProvider.js';
+import { useSession } from './providers/SessionsProvider.js';
 
 const ConnectButton = () => {
   const auth = useAuthenticateFlow();
-  const user = useUser();
+  const { session } = useSession();
+  const [identity, pending] = useSessionIdentity(session);
 
-  if (user.selectedUser) {
+  if (session) {
     return (
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <span>{user.selectedUser.fullUsername ?? user.selectedUser.liteUsername}</span>
-        <button onClick={() => user.selectedUser && auth.disconnect(user.selectedUser.accountId)}>Disconnect</button>
+        <span>{identity?.fullUsername ?? identity?.liteUsername ?? (pending ? 'Loading...' : 'Unknown user')}</span>
+        <button onClick={() => auth.disconnect(session)}>Disconnect</button>
       </div>
     );
   }

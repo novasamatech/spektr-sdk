@@ -23,9 +23,9 @@ describe('PAPP e2e', () => {
       },
     });
 
-    adapter.auth.onSignInStatusChange(console.log);
+    adapter.sso.status.subscribe(console.log);
 
-    const response = await adapter.auth.signIn();
+    const response = await adapter.sso.authenticate();
 
     console.log(response);
   });

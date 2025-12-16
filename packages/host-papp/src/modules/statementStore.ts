@@ -1,41 +1,35 @@
-import type { UnsignedStatement } from '@polkadot-api/sdk-statement';
 import { getStatementSigner } from '@polkadot-api/sdk-statement';
-import * as sr25519 from '@scure/sr25519';
+import { Binary } from '@polkadot-api/substrate-bindings';
+import { nanoid } from 'nanoid';
+
+import type { UserSession } from '../components/user/userSessionStorage.js';
 
 import type { SsSecret } from './crypto.js';
-import { getSsPub, khash, mergeBytes, stringToBytes } from './crypto.js';
+import { getSsPub, signWithSsSecret } from './crypto.js';
+import type { Account } from './session/types.js';
 
-export function createSession({
-  sharedSecret,
-  accountA,
-  accountB,
-  pinA,
-  pinB,
-}: {
-  sharedSecret: Uint8Array;
-  accountA: Uint8Array;
-  accountB: Uint8Array;
-  pinA?: string;
-  pinB?: string;
-}) {
-  const sessionPrefix = stringToBytes('session');
-  const pinSeparator = stringToBytes('/');
-
-  function makePin(pin?: string) {
-    return pin ? mergeBytes(pinSeparator, stringToBytes(pin)) : pinSeparator;
-  }
-
-  const accountASessionParams = mergeBytes(sessionPrefix, accountA, accountB, makePin(pinA), makePin(pinB));
-  const accountBSessionParams = mergeBytes(sessionPrefix, accountB, accountA, makePin(pinB), makePin(pinA));
-
+export function createUserSession(hostAccount: Account, peerAccount: Account): UserSession {
   return {
-    a: khash(sharedSecret, accountASessionParams),
-    b: khash(sharedSecret, accountBSessionParams),
+    id: nanoid(12),
+    peer: peerAccount,
+    host: hostAccount,
   };
 }
 
-export function createStatement(secret: SsSecret, payload: UnsignedStatement) {
-  const signer = getStatementSigner(getSsPub(secret), 'sr25519', data => sr25519.sign(secret, data));
+type StatementPayload = {
+  priority: number;
+  channel: Uint8Array;
+  topics: Uint8Array[];
+  data: Uint8Array;
+};
 
-  return signer.sign(payload);
+export function createStatement(secret: SsSecret, payload: StatementPayload) {
+  const signer = getStatementSigner(getSsPub(secret), 'sr25519', data => signWithSsSecret(secret, data));
+
+  return signer.sign({
+    priority: payload.priority,
+    channel: Binary.fromBytes(payload.channel),
+    topics: payload.topics.map(Binary.fromBytes),
+    data: Binary.fromBytes(payload.data),
+  });
 }

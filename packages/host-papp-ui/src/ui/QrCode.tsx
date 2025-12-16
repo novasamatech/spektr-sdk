@@ -42,7 +42,7 @@ export const QrCode = memo(({ value, size }: Props) => {
         color: '#ffffff',
       },
       qrOptions: {
-        errorCorrectionLevel: 'H',
+        errorCorrectionLevel: 'M',
       },
     });
   }, [size]);

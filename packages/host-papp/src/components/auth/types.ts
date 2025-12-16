@@ -1,8 +1,8 @@
-import type { UserSession } from '../user/types.js';
+import type { UserSession } from '../user/userSessionStorage.js';
 
 export type AuthentificationStatus =
   | { step: 'none' }
   | { step: 'initial' }
   | { step: 'pairing'; payload: string }
   | { step: 'error'; message: string }
-  | { step: 'finished'; user: UserSession };
+  | { step: 'finished'; session: UserSession };

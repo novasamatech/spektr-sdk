@@ -1,8 +1,9 @@
 import { createStatementSdk } from '@polkadot-api/sdk-statement';
-import { FixedSizeBinary } from '@polkadot-api/substrate-bindings';
+import { Binary } from '@polkadot-api/substrate-bindings';
 import { toHex } from '@polkadot-api/utils';
+import type { ResultAsync } from 'neverthrow';
+import { fromPromise } from 'neverthrow';
 
-import { fromPromise } from '../../helpers/result.js';
 import { toError } from '../../helpers/utils.js';
 import type { LazyClientAdapter } from '../lazyClient/types.js';
 
@@ -45,9 +46,14 @@ export function createPapiStatementAdapter(lazyClient: LazyClientAdapter): State
   }
 
   const transportProvider: StatementAdapter = {
-    getStatements(topics) {
-      // @ts-expect-error lib versions mismatch
-      return fromPromise(sdk.getStatements({ topics: topics.map(topic => new FixedSizeBinary<32>(topic)) }), toError);
+    queryStatements(topics, destination) {
+      return fromPromise(
+        sdk.getStatements({
+          topics: topics.map(t => Binary.fromBytes(t)),
+          dest: destination ? Binary.fromBytes(destination) : null,
+        }),
+        toError,
+      );
     },
     subscribeStatements(topics, callback) {
       const key = createKey(topics);
@@ -56,7 +62,7 @@ export function createPapiStatementAdapter(lazyClient: LazyClientAdapter): State
       if (callbacks.length === 1) {
         const unsub = polling(
           POLLING_INTERVAL,
-          () => transportProvider.getStatements(topics).then(v => v.unwrapOrThrow()),
+          () => transportProvider.queryStatements(topics),
           statements => {
             const list = subscriptions.get(key);
             if (list) {
@@ -88,7 +94,11 @@ export function createPapiStatementAdapter(lazyClient: LazyClientAdapter): State
   return transportProvider;
 }
 
-function polling<R>(interval: number, request: () => Promise<R>, callback: (response: R) => void): VoidFunction {
+function polling<R>(
+  interval: number,
+  request: () => ResultAsync<R, Error>,
+  callback: (response: R) => void,
+): VoidFunction {
   let active = true;
   let tm: NodeJS.Timeout | null = null;
   function createCycle() {
@@ -97,11 +107,15 @@ function polling<R>(interval: number, request: () => Promise<R>, callback: (resp
         return;
       }
 
-      request()
-        .then(callback)
-        .finally(() => {
+      request().match(
+        data => {
+          callback(data);
           createCycle();
-        });
+        },
+        () => {
+          createCycle();
+        },
+      );
     }, interval);
   }
 

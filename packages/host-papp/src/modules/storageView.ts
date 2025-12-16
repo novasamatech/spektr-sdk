@@ -1,5 +1,7 @@
+import type { ResultAsync } from 'neverthrow';
+import { okAsync } from 'neverthrow';
+
 import type { StorageAdapter } from '../adapters/storage/types.js';
-import { ok } from '../helpers/result.js';
 import { nonNullable } from '../helpers/utils.js';
 
 import { createState } from './state.js';
@@ -8,38 +10,41 @@ type Params<T> = {
   storage: StorageAdapter;
   key: string;
   initial: T;
-  autosync: boolean;
+  autosync?: boolean;
   from(value: string): T;
   to(value: T): string | null;
 };
 
-export function storageView<T>({ storage, initial, key, autosync, from, to }: Params<T>) {
+export function storageView<T>({ storage, initial, key, from, to, autosync = true }: Params<T>) {
   const state = createState<string | null>(to(initial));
 
   const enhancedStorage = {
-    async read() {
-      const result = await storage.read(key);
-      return result.map(state.write).map(x => (nonNullable(x) ? from(x) : initial));
+    read() {
+      return storage
+        .read(key)
+        .map(state.write)
+        .map(x => (nonNullable(x) ? from(x) : initial));
     },
 
-    async write(value: T) {
+    write(value: T) {
       const data = to(value);
 
       if (data !== null) {
-        const result = await storage.write(key, data);
-        return result.map(() => state.write(data)).map(() => value);
+        return storage
+          .write(key, data)
+          .map(() => state.write(data))
+          .map(() => value);
       }
 
-      return ok<null, Error>(null);
+      return okAsync<null, Error>(null);
     },
 
-    async clear() {
-      const result = await storage.clear(key);
-      return result.map(() => state.reset());
+    clear() {
+      return storage.clear(key).map(() => state.reset());
     },
 
-    subscribe(fn: (value: T | null) => void) {
-      return state.subscribe(x => fn(nonNullable(x) ? from(x) : null));
+    subscribe(fn: (value: T) => void) {
+      return state.subscribe(x => fn(nonNullable(x) ? from(x) : initial));
     },
   };
 
@@ -50,4 +55,25 @@ export function storageView<T>({ storage, initial, key, autosync, from, to }: Pa
   state.onFirstSubscribe(() => enhancedStorage.read());
 
   return enhancedStorage;
+}
+
+export function storageListView<T>(params: Params<T[]>) {
+  const view = storageView(params);
+
+  const listView = {
+    ...view,
+
+    add(value: T): ResultAsync<T, Error> {
+      return listView.mutate(list => list.concat(value)).map(() => value);
+    },
+
+    mutate(fn: (value: T[]) => T[]): ResultAsync<T[], Error> {
+      return listView.read().andThen(list => {
+        const result = fn(list);
+        return listView.write(result).map(() => result);
+      });
+    },
+  };
+
+  return listView;
 }

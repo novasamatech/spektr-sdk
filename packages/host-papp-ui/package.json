@@ -29,7 +29,8 @@
     "react-dom": ">=18"
   },
   "dependencies": {
-    "qr-code-styling": "1.9.2"
+    "qr-code-styling": "1.9.2",
+    "@polkadot-api/utils": "0.2.0"
   },
   "devDependencies": {
     "@types/react": "19.2.7",

@@ -1,6 +1,6 @@
 import { createNanoEvents } from 'nanoevents';
+import { fromAsyncThrowable } from 'neverthrow';
 
-import { err, ok } from '../../helpers/result.js';
 import { toError } from '../../helpers/utils.js';
 
 import type { StorageAdapter } from './types.js';
@@ -10,33 +10,33 @@ export function createLocalStorageAdapter(prefix: string): StorageAdapter {
   const withPrefix = (key: string) => `PAPP_${prefix}_${key}`;
 
   return {
-    async write(key, value) {
-      try {
-        localStorage.setItem(withPrefix(key), value);
-        events.emit(key, value);
-        return ok(undefined);
-      } catch (e) {
-        return err(toError(e));
-      }
-    },
-    async read(key) {
-      try {
-        return ok(localStorage.getItem(withPrefix(key)));
-      } catch (e) {
-        return err(toError(e));
-      }
-    },
-    async clear(key) {
-      try {
-        localStorage.removeItem(withPrefix(key));
-        events.emit(key, null);
-        return ok(undefined);
-      } catch (e) {
-        return err(toError(e));
-      }
-    },
+    write: fromAsyncThrowable(async (key, value) => {
+      localStorage.setItem(withPrefix(key), value);
+      events.emit(key, value);
+    }, toError),
+    read: fromAsyncThrowable(async key => {
+      return localStorage.getItem(withPrefix(key));
+    }, toError),
+    clear: fromAsyncThrowable(async key => {
+      localStorage.removeItem(withPrefix(key));
+      events.emit(key, null);
+    }, toError),
     subscribe(key, callback) {
-      return events.on(withPrefix(key), callback);
+      const prefixedKey = withPrefix(key);
+      const unsubscribeLocalListener = events.on(prefixedKey, callback);
+
+      const externalListener = (event: StorageEvent) => {
+        if (event.storageArea === localStorage && event.key === prefixedKey) {
+          callback(event.newValue);
+        }
+      };
+
+      window.addEventListener('storage', externalListener);
+
+      return () => {
+        unsubscribeLocalListener();
+        window.removeEventListener('storage', externalListener);
+      };
     },
   };
 }
