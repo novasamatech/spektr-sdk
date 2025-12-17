@@ -1,6 +1,6 @@
 import { Bytes, Enum, Tuple, str } from 'scale-ts';
 
-import { EncrPubKey, SsPubKey } from '../../../modules/crypto.js';
+import { EncrPubKey, SsPubKey } from '../../../crypto.js';
 
 export const HandshakeData = Enum({
   v1: Tuple(SsPubKey, EncrPubKey, str),

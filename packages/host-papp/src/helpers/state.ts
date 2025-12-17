@@ -15,12 +15,14 @@ export function createState<T>(initial: T) {
     read() {
       return currentValue;
     },
-    write(value: T): T {
-      if (currentValue !== value) {
-        currentValue = value;
-        events.emit('value', value);
+    write(value: T | ((prev: T) => T)): T {
+      const actialValue = typeof value === 'function' ? (value as (prev: T) => T)(currentValue) : value;
+
+      if (currentValue !== actialValue) {
+        currentValue = actialValue;
+        events.emit('value', actialValue);
       }
-      return value;
+      return actialValue;
     },
     reset() {
       if (currentValue !== initial) {

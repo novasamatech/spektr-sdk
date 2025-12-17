@@ -13,3 +13,5 @@ export { createDefaultLogger } from './logger.js';
 
 export { type InjectedAccountSchema } from './interactions/accounts.js';
 export { type TxPayloadV1 } from './interactions/sign.js';
+
+export { signPayloadCodec } from './interactions/sign.js';

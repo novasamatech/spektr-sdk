@@ -3,18 +3,21 @@ import { createEncryption } from '@novasamatech/statement-store';
 import type { StorageAdapter } from '@novasamatech/storage-adapter';
 import { okAsync } from 'neverthrow';
 
-import type { SsoSessionRepository, UserSession } from '../ssoSessionRepository.js';
+import { createState } from '../../helpers/state.js';
+import type { Callback } from '../../types.js';
+import { createSsoStatementProver } from '../ssoSessionProver.js';
 import type { UserSecretRepository } from '../userSecretRepository.js';
+import type { StoredUserSession, UserSessionRepository } from '../userSessionRepository.js';
 
-import { createSsoSession } from './ssoSession.js';
-import { createSsoStatementProver } from './ssoSessionProver.js';
+import type { UserSession } from './userSession.js';
+import { createUserSession } from './userSession.js';
 
 export type SsoSessionManager = ReturnType<typeof createSsoSessionManager>;
 
 type Params = {
   storage: StorageAdapter;
   statementStore: StatementStoreAdapter;
-  ssoSessionRepository: SsoSessionRepository;
+  ssoSessionRepository: UserSessionRepository;
   userSecretRepository: UserSecretRepository;
 };
 
@@ -24,24 +27,26 @@ export function createSsoSessionManager({
   statementStore,
   storage,
 }: Params) {
-  let unsubStatements: VoidFunction | null = null;
+  const localSessions = createState<Record<string, UserSession>>({});
 
-  const disconnect = (session: UserSession) => {
+  const disconnect = (session: StoredUserSession) => {
     return ssoSessionRepository.filter(s => s.id !== session.id).map(() => undefined);
   };
 
-  const unsubSessions = ssoSessionRepository.subscribe(userSessions => {
-    if (unsubStatements) {
-      unsubStatements();
-      unsubStatements = null;
-    }
-
-    const ssoSessions: VoidFunction[] = [];
+  ssoSessionRepository.subscribe(userSessions => {
+    const activeSessions = localSessions.read();
+    const toRemove = new Set(Object.keys(activeSessions));
+    const toAdd = new Set<UserSession>();
 
     for (const userSession of userSessions) {
+      if (userSession.id in activeSessions) continue;
+
       const session = createSession(userSession, statementStore, storage, userSecretRepository);
 
-      const unsubscribe = session.subscribe(message => {
+      toRemove.delete(userSession.id);
+      toAdd.add(session);
+
+      session.subscribe(message => {
         switch (message.data.tag) {
           case 'v1': {
             switch (message.data.value.tag) {
@@ -53,44 +58,52 @@ export function createSsoSessionManager({
 
         return okAsync(false);
       });
-
-      ssoSessions.push(unsubscribe);
     }
 
-    unsubStatements = () => {
-      for (const unsubscribe of ssoSessions) {
-        unsubscribe();
-      }
-    };
+    if (toRemove.size > 0) {
+      localSessions.write(prev => {
+        return Object.fromEntries(Object.entries(prev).filter(([id]) => !toRemove.has(id)));
+      });
+    }
+
+    if (toAdd.size > 0) {
+      localSessions.write(prev => ({
+        ...prev,
+        ...Object.fromEntries(Array.from(toAdd).map(s => [s.id, s])),
+      }));
+    }
   });
 
   return {
     sessions: {
-      read: ssoSessionRepository.read,
-      subscribe: ssoSessionRepository.subscribe,
+      read: () => Object.values(localSessions.read()),
+      subscribe: (callback: Callback<UserSession[]>) =>
+        localSessions.subscribe(sessions => callback(Object.values(sessions))),
     },
 
-    disconnect(userSession: UserSession) {
+    disconnect(userSession: StoredUserSession) {
       const session = createSession(userSession, statementStore, storage, userSecretRepository);
 
       return session.sendDisconnectMessage().andThen(() => disconnect(userSession));
     },
 
-    destroy() {
-      unsubSessions();
+    dispose() {
+      for (const session of Object.values(localSessions.read())) {
+        session.dispose();
+      }
     },
   };
 }
 
 function createSession(
-  userSession: UserSession,
+  userSession: StoredUserSession,
   statementStore: StatementStoreAdapter,
   storage: StorageAdapter,
   userSecretRepository: UserSecretRepository,
 ) {
-  const encryption = createEncryption(userSession.remote.publicKey);
+  const encryption = createEncryption(userSession.remoteAccount.publicKey);
   const prover = createSsoStatementProver(userSession, userSecretRepository);
-  return createSsoSession({
+  return createUserSession({
     userSession,
     statementStore,
     encryption,

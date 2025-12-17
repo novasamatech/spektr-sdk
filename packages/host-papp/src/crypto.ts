@@ -1,7 +1,5 @@
 import { p256 } from '@noble/curves/nist.js';
-import { blake2b } from '@noble/hashes/blake2.js';
 import { randomBytes } from '@noble/hashes/utils.js';
-import { mergeUint8 } from '@polkadot-api/utils';
 import {
   HDKD as sr25519HDKD,
   getPublicKey as sr25519GetPublicKey,
@@ -12,7 +10,7 @@ import {
 import type { Codec } from 'scale-ts';
 import { Bytes, str, u32 } from 'scale-ts';
 
-import type { Branded } from '../types.js';
+import type { Branded } from './types.js';
 
 // types
 
@@ -87,16 +85,7 @@ export function getEncrPub(secret: EncrSecret) {
   return p256.getPublicKey(secret, false) as EncrPublicKey;
 }
 
-// helpers
-
-export function createRandomSeed(suffix: string, size: number) {
-  return blake2b(mergeUint8([randomBytes(128), stringToBytes(suffix)]), { dkLen: size });
-}
-
-export function createStableSeed(value: string, size: number) {
-  return blake2b(stringToBytes(value), { dkLen: size });
-}
-
 export function createSharedSecret(secret: EncrSecret, publicKey: Uint8Array) {
+  // slicing first byte: @noble/curves adds y offset at the start
   return p256.getSharedSecret(secret, publicKey).slice(1, 33) as SharedSecret;
 }

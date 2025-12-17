@@ -10,9 +10,7 @@ import type { Statement } from '@polkadot-api/sdk-statement';
 import { mergeUint8, toHex } from '@polkadot-api/utils';
 import { Result, ResultAsync, err, fromPromise, fromThrowable, ok } from 'neverthrow';
 
-import { AbortError } from '../../helpers/abortError.js';
-import { toError } from '../../helpers/utils.js';
-import type { EncrPublicKey, EncrSecret, SsPublicKey } from '../../modules/crypto.js';
+import type { EncrPublicKey, EncrSecret, SsPublicKey } from '../../crypto.js';
 import {
   createEncrSecret,
   createSharedSecret,
@@ -21,12 +19,14 @@ import {
   getEncrPub,
   getSsPub,
   stringToBytes,
-} from '../../modules/crypto.js';
-import { createState, readonly } from '../../modules/state.js';
+} from '../../crypto.js';
+import { AbortError } from '../../helpers/abortError.js';
+import { createState, readonly } from '../../helpers/state.js';
+import { toError } from '../../helpers/utils.js';
 import type { Callback } from '../../types.js';
-import type { SsoSessionRepository, UserSession } from '../ssoSessionRepository.js';
-import { createUserSession } from '../ssoSessionRepository.js';
 import type { UserSecretRepository } from '../userSecretRepository.js';
+import type { StoredUserSession, UserSessionRepository } from '../userSessionRepository.js';
+import { createStoredUserSession } from '../userSessionRepository.js';
 
 import { HandshakeData, HandshakeResponsePayload, HandshakeResponseSensitiveData } from './scale/handshake.js';
 import type { AuthentificationStatus } from './types.js';
@@ -36,14 +36,14 @@ export type AuthComponent = ReturnType<typeof createAuth>;
 type Params = {
   metadata: string;
   statementStore: StatementStoreAdapter;
-  ssoSessionRepository: SsoSessionRepository;
+  ssoSessionRepository: UserSessionRepository;
   userSecretRepository: UserSecretRepository;
 };
 
 export function createAuth({ metadata, statementStore, ssoSessionRepository, userSecretRepository }: Params) {
   const authStatus = createState<AuthentificationStatus>({ step: 'none' });
 
-  let authResults: ResultAsync<UserSession | null, Error> | null = null;
+  let authResults: ResultAsync<StoredUserSession | null, Error> | null = null;
   let abort: AbortController | null = null;
 
   function handshake(signal: AbortSignal) {
@@ -61,7 +61,7 @@ export function createAuth({ metadata, statementStore, ssoSessionRepository, use
         const pappResponse = handshakePayload
           .andThen(() => createHandshakeTopic(localAccount, encrPublicKey))
           .asyncAndThen(topic =>
-            waitForStatements<UserSession>(
+            waitForStatements<StoredUserSession>(
               callback => statementStore.subscribeStatements([topic], callback),
               signal,
               (statements, resolve) => {
@@ -104,7 +104,7 @@ export function createAuth({ metadata, statementStore, ssoSessionRepository, use
   const authModule = {
     status: readonly(authStatus),
 
-    authenticate(): ResultAsync<UserSession | null, Error> {
+    authenticate(): ResultAsync<StoredUserSession | null, Error> {
       if (authResults) {
         return authResults;
       }
@@ -172,7 +172,7 @@ function retrieveSession({
   payload: Uint8Array;
   encrSecret: EncrSecret;
   localAccount: LocalSessionAccount;
-}): Result<UserSession, Error> {
+}): Result<StoredUserSession, Error> {
   const { encrypted, tmpKey } = parseHandshakePayload(payload);
 
   const symmetricKey = createSharedSecret(encrSecret, tmpKey);
@@ -185,7 +185,7 @@ function retrieveSession({
 
       const peerAccount = createRemoteSessionAccount(createAccountId(pappAccountId), sharedSecret);
 
-      return createUserSession(localAccount, peerAccount);
+      return createStoredUserSession(localAccount, peerAccount);
     });
 }
 

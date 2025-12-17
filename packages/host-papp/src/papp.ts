@@ -12,8 +12,8 @@ import type { AuthComponent } from './sso/auth/impl.js';
 import { createAuth } from './sso/auth/impl.js';
 import type { SsoSessionManager } from './sso/sessionManager/impl.js';
 import { createSsoSessionManager } from './sso/sessionManager/impl.js';
-import { createSsoSessionRepository } from './sso/ssoSessionRepository.js';
 import { createUserSecretRepository } from './sso/userSecretRepository.js';
+import { createUserSessionRepository } from './sso/userSessionRepository.js';
 
 export type PappAdapter = {
   sso: AuthComponent;
@@ -55,7 +55,7 @@ export function createPappAdapter({ appId, metadata, adapters }: Params): PappAd
   const identities = adapters?.identities ?? createIdentityRpcAdapter(lazyClient);
   const storage = adapters?.storage ?? createLocalStorageAdapter(appId);
 
-  const ssoSessionRepository = createSsoSessionRepository(storage);
+  const ssoSessionRepository = createUserSessionRepository(storage);
   const userSecretRepository = createUserSecretRepository(appId, storage);
 
   return {

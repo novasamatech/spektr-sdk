@@ -10,7 +10,7 @@ import { toError } from '../helpers.js';
 import type { LazyClient } from './lazyClient.js';
 import type { StatementStoreAdapter } from './types.js';
 
-const POLLING_INTERVAL = 1000;
+const POLLING_INTERVAL = 1500;
 
 function createKey(topics: Uint8Array[]): string {
   return topics.map(toHex).sort().join('');

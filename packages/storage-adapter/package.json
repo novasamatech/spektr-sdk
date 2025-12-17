@@ -24,17 +24,8 @@
     "README.md"
   ],
   "dependencies": {
-    "@polkadot-api/sdk-statement": "^0.2.0",
-    "@polkadot-api/substrate-bindings": "^0.16.5",
-    "@scure/sr25519": "1.0.0",
-    "@noble/curves": "2.0.1",
-    "@noble/hashes": "2.0.1",
-    "@noble/ciphers": "2.1.1",
-    "polkadot-api": "^1.23.1",
-    "nanoevents": "9.1.0",
-    "nanoid": "5.1.6",
-    "neverthrow": "8.2.0",
-    "scale-ts": "1.6.1"
+    "nanoevents": "^9.1.0",
+    "neverthrow": "^8.2.0"
   },
   "publishConfig": {
     "access": "public"

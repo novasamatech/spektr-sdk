@@ -46,7 +46,7 @@ export const useUserSession = () => {
   const sessions = useUserSessions();
   const selectedUser = sessions.at(0) ?? null;
 
-  useDebugValue(`Selected user: ${selectedUser?.remote.accountId.toString() ?? 'None'}`);
+  useDebugValue(`Selected user: ${selectedUser?.remoteAccount.accountId.toString() ?? 'None'}`);
 
   return selectedUser;
 };

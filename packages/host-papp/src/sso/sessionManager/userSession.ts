@@ -7,37 +7,42 @@ import { ResultAsync, okAsync } from 'neverthrow';
 import type { CodecType } from 'scale-ts';
 
 import type { Callback } from '../../types.js';
-import type { UserSession } from '../ssoSessionRepository.js';
+import type { StoredUserSession } from '../userSessionRepository.js';
 
-import { HostRemoteMessageCodec, HostRemoteMessageDataCodec } from './scale/remoteMessage.js';
+import { RemoteMessageCodec, RemoteMessageDataCodec } from './scale/remoteMessage.js';
 
 type ProcessedMessage =
   | {
       processed: true;
-      message: CodecType<typeof HostRemoteMessageCodec>;
+      message: CodecType<typeof RemoteMessageCodec>;
     }
   | {
       processed: false;
     };
 
-export type SsoSession = ReturnType<typeof createSsoSession>;
+export type UserSession = StoredUserSession & {
+  request(message: CodecType<typeof RemoteMessageDataCodec>): ResultAsync<{ requestId: string }, Error>;
+  sendDisconnectMessage(): ResultAsync<{ requestId: string }, Error>;
+  subscribe(callback: Callback<CodecType<typeof RemoteMessageCodec>, ResultAsync<boolean, Error>>): VoidFunction;
+  dispose(): void;
+};
 
-export function createSsoSession({
+export function createUserSession({
   userSession,
   statementStore,
   encryption,
   storage,
   prover,
 }: {
-  userSession: UserSession;
+  userSession: StoredUserSession;
   statementStore: StatementStoreAdapter;
   encryption: Encryption;
   storage: StorageAdapter;
   prover: StatementProver;
-}) {
+}): UserSession {
   const session = createSession({
-    localAccount: userSession.local,
-    remoteAccount: userSession.remote,
+    localAccount: userSession.localAccount,
+    remoteAccount: userSession.remoteAccount,
     statementStore,
     encryption,
     prover,
@@ -51,15 +56,19 @@ export function createSsoSession({
   });
 
   return {
-    request(message: CodecType<typeof HostRemoteMessageDataCodec>) {
-      return session.submitRequest(HostRemoteMessageCodec, {
+    id: userSession.id,
+    localAccount: userSession.localAccount,
+    remoteAccount: userSession.remoteAccount,
+
+    request(message: CodecType<typeof RemoteMessageDataCodec>) {
+      return session.submitRequest(RemoteMessageCodec, {
         messageId: nanoid(),
         data: message,
       });
     },
 
     sendDisconnectMessage() {
-      return session.submitRequest(HostRemoteMessageCodec, {
+      return session.submitRequest(RemoteMessageCodec, {
         messageId: nanoid(),
         data: {
           tag: 'v1' as const,
@@ -71,8 +80,8 @@ export function createSsoSession({
       });
     },
 
-    subscribe(callback: Callback<CodecType<typeof HostRemoteMessageCodec>, ResultAsync<boolean, Error>>) {
-      return session.subscribe(HostRemoteMessageCodec, messages => {
+    subscribe(callback: Callback<CodecType<typeof RemoteMessageCodec>, ResultAsync<boolean, Error>>) {
+      return session.subscribe(RemoteMessageCodec, messages => {
         processedMessages.read().andThen(processed => {
           const results = messages.map<ResultAsync<ProcessedMessage, Error>>(message => {
             if (message.type === 'request') {
@@ -100,6 +109,10 @@ export function createSsoSession({
           });
         });
       });
+    },
+
+    dispose() {
+      return session.dispose();
     },
   };
 }

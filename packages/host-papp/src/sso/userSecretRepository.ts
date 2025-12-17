@@ -7,12 +7,12 @@ import { fromThrowable } from 'neverthrow';
 import type { CodecType } from 'scale-ts';
 import { Struct } from 'scale-ts';
 
+import type { EncrSecret, SsSecret } from '../crypto.js';
+import { BrandedBytesCodec, stringToBytes } from '../crypto.js';
 import { toError } from '../helpers/utils.js';
-import type { EncrSecret, SsSecret } from '../modules/crypto.js';
-import { BrandedBytesCodec, stringToBytes } from '../modules/crypto.js';
 
-type UserSecrets = CodecType<typeof UserSecretsCodec>;
-const UserSecretsCodec = Struct({
+type StoredUserSecrets = CodecType<typeof StoredUserSecretsCodec>;
+const StoredUserSecretsCodec = Struct({
   ssSecret: BrandedBytesCodec<SsSecret>(),
   encrSecret: BrandedBytesCodec<EncrSecret>(),
 });
@@ -22,8 +22,11 @@ export type UserSecretRepository = ReturnType<typeof createUserSecretRepository>
 export function createUserSecretRepository(salt: string, storage: StorageAdapter) {
   const baseKey = 'UserSecrets';
 
-  const encode = fromThrowable(UserSecretsCodec.enc, toError);
-  const decode = fromThrowable((value: Uint8Array | null) => (value ? UserSecretsCodec.dec(value) : null), toError);
+  const encode = fromThrowable(StoredUserSecretsCodec.enc, toError);
+  const decode = fromThrowable(
+    (value: Uint8Array | null) => (value ? StoredUserSecretsCodec.dec(value) : null),
+    toError,
+  );
 
   const encrypt = fromThrowable((value: Uint8Array) => {
     const aes = getAes(salt);
@@ -39,10 +42,10 @@ export function createUserSecretRepository(salt: string, storage: StorageAdapter
   }, toError);
 
   return {
-    read(sessionId: string): ResultAsync<UserSecrets | null, Error> {
+    read(sessionId: string): ResultAsync<StoredUserSecrets | null, Error> {
       return storage.read(createKey(baseKey, sessionId)).andThen(decrypt).andThen(decode);
     },
-    write(sessionId: string, value: UserSecrets) {
+    write(sessionId: string, value: StoredUserSecrets) {
       return encode(value)
         .andThen(encrypt)
         .asyncAndThen(value => storage.write(createKey(baseKey, sessionId), value));

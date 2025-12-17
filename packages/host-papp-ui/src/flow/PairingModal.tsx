@@ -1,7 +1,7 @@
 import type { PropsWithChildren } from 'react';
 import { memo, useMemo } from 'react';
 
-import { useSessionIdentity } from '../hooks/identity.js';
+import { useIdentity } from '../hooks/identity.js';
 import { useAuthenticateFlow } from '../providers/AuthProvider.js';
 import { Modal } from '../ui/Modal.js';
 import { QrCode } from '../ui/QrCode.js';
@@ -29,7 +29,7 @@ export const PairingModal = memo(() => {
     return null;
   }, [auth.status.step]);
 
-  const [identity, identityPending] = useSessionIdentity(signedInUser);
+  const [identity, identityPending] = useIdentity(signedInUser?.remoteAccount.accountId ?? null);
 
   return (
     <Modal isOpen={open} onOpenChange={toggleModal} width={300}>

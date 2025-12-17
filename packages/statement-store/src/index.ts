@@ -1,3 +1,5 @@
+export type { Statement } from '@polkadot-api/sdk-statement';
+
 export type { SessionId } from './model/session.js';
 export { SessionIdCodec, createSessionId } from './model/session.js';
 

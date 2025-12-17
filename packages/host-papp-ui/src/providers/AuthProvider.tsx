@@ -7,7 +7,7 @@ import { usePapp } from '../flow/PappProvider.js';
 type State = {
   status: AuthentificationStatus;
   pending: boolean;
-  authenticate(): Promise<UserSession | null>;
+  authenticate(): Promise<void>;
   abortAuthentication(): void;
   disconnect(session: UserSession): Promise<void>;
 };
@@ -15,7 +15,7 @@ type State = {
 const Context = createContext<State>({
   status: { step: 'none' },
   pending: false,
-  authenticate: () => Promise.resolve(null),
+  authenticate: () => Promise.resolve(),
   abortAuthentication() {
     /* empty */
   },
@@ -45,12 +45,12 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
   const authenticate = useCallback(() => {
     setPending(true);
-    return new Promise<UserSession | null>((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       provider.sso
         .authenticate()
         .andTee(() => setPending(false))
         .orTee(() => setPending(false))
-        .match(resolve, reject);
+        .match(() => resolve(), reject);
     });
   }, [provider]);
 

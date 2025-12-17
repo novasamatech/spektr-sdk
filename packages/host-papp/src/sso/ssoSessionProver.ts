@@ -3,15 +3,16 @@ import { getStatementSigner, statementCodec } from '@polkadot-api/sdk-statement'
 import { err, errAsync, fromThrowable, ok, okAsync } from 'neverthrow';
 import { compact } from 'scale-ts';
 
-import { toError } from '../../helpers/utils.js';
-import { getSsPub, signWithSsSecret, verifyWithSsSecret } from '../../modules/crypto.js';
-import type { UserSession } from '../ssoSessionRepository.js';
-import type { UserSecretRepository } from '../userSecretRepository.js';
+import { getSsPub, signWithSsSecret, verifyWithSsSecret } from '../crypto.js';
+import { toError } from '../helpers/utils.js';
+
+import type { UserSecretRepository } from './userSecretRepository.js';
+import type { StoredUserSession } from './userSessionRepository.js';
 
 const verify = fromThrowable(verifyWithSsSecret, toError);
 
 export function createSsoStatementProver(
-  userSession: UserSession,
+  userSession: StoredUserSession,
   userSecretRepository: UserSecretRepository,
 ): StatementProver {
   const secret = userSecretRepository
