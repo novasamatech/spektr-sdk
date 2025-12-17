@@ -1,4 +1,4 @@
-import { createPappHostAdapter } from '@novasamatech/host-papp';
+import { createPappAdapter } from '@novasamatech/host-papp';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { PairingModal } from './flow/PairingModal.js';
@@ -28,7 +28,10 @@ const meta: Meta<typeof PappProvider> = {
   component: PappProvider,
   title: 'flow/PappProvider',
   args: {
-    adapter: createPappHostAdapter('https://test.com', 'https://shorturl.at/zGkir'),
+    adapter: createPappAdapter({
+      appId: 'https://test.com',
+      metadata: 'https://shorturl.at/zGkir',
+    }),
   },
   render({ adapter }) {
     return (

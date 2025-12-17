@@ -1,16 +1,19 @@
 import type { Identity, UserSession } from '@novasamatech/host-papp';
+import type { AccountId } from '@novasamatech/statement-store';
 import { toHex } from '@polkadot-api/utils';
 import { useEffect, useState } from 'react';
 
 import { usePapp } from '../flow/PappProvider.js';
 
-export function useIdentity(accountId: string | null) {
+export function useIdentity(accountId: AccountId | null) {
   const papp = usePapp();
   const [pending, setPending] = useState(false);
   const [identity, setIdentity] = useState<Identity | null>(null);
 
+  const hexAccountId = accountId ? toHex(accountId) : null;
+
   useEffect(() => {
-    if (!accountId) {
+    if (!hexAccountId) {
       setPending(false);
       return;
     }
@@ -18,7 +21,7 @@ export function useIdentity(accountId: string | null) {
     let mounted = true;
 
     setPending(true);
-    papp.identity.getIdentity(accountId).match(
+    papp.identity.getIdentity(hexAccountId).match(
       identity => {
         if (mounted) {
           setIdentity(identity);
@@ -37,11 +40,11 @@ export function useIdentity(accountId: string | null) {
       setPending(false);
       mounted = false;
     };
-  }, [accountId]);
+  }, [hexAccountId]);
 
   return [identity, pending] as const;
 }
 
 export function useSessionIdentity(session: UserSession | null) {
-  return useIdentity(session ? toHex(session.peer.accountId) : null);
+  return useIdentity(session ? session.remote.accountId : null);
 }

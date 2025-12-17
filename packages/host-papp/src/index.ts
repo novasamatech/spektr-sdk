@@ -1,14 +1,6 @@
-import { createPappAdapter } from './papp.js';
-
 export type { PappAdapter } from './papp.js';
+export { createPappAdapter } from './papp.js';
 
-export type { AuthentificationStatus } from './components/auth/types.js';
-export type { UserSession } from './components/user/userSessionStorage.js';
-export type { Identity } from './adapters/identity/types.js';
-
-export function createPappHostAdapter(appId: string, metadata: string) {
-  return createPappAdapter({
-    appId,
-    metadata,
-  });
-}
+export type { AuthentificationStatus } from './sso/auth/types.js';
+export type { UserSession } from './sso/ssoSessionRepository.js';
+export type { Identity } from './identity/types.js';

@@ -1,0 +1,27 @@
+export type { SessionId } from './model/session.js';
+export { SessionIdCodec, createSessionId } from './model/session.js';
+
+export type { AccountId, LocalSessionAccount, RemoteSessionAccount, SessionAccount } from './model/sessionAccount.js';
+export {
+  AccountIdCodec,
+  LocalSessionAccountCodec,
+  RemoteSessionAccountCodec,
+  createAccountId,
+  createLocalSessionAccount,
+  createRemoteSessionAccount,
+} from './model/sessionAccount.js';
+
+export type { Session } from './session/types.js';
+export { createSession } from './session/session.js';
+
+export type { StatementProver } from './session/statementProver.js';
+
+export type { Encryption } from './session/encyption.js';
+export { createEncryption } from './session/encyption.js';
+
+export type { LazyClient } from './adapter/lazyClient.js';
+export { createLazyClient } from './adapter/lazyClient.js';
+export type { StatementStoreAdapter } from './adapter/types.js';
+export { createPapiStatementStoreAdapter } from './adapter/rpc.js';
+
+export { khash } from './crypto.js';

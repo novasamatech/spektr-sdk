@@ -1,77 +1,66 @@
+import type { LazyClient, StatementStoreAdapter } from '@novasamatech/statement-store';
+import { createLazyClient, createPapiStatementStoreAdapter } from '@novasamatech/statement-store';
+import type { StorageAdapter } from '@novasamatech/storage-adapter';
+import { createLocalStorageAdapter } from '@novasamatech/storage-adapter';
 import { getWsProvider } from '@polkadot-api/ws-provider';
-import type { ResultAsync } from 'neverthrow';
 
-import { createIdentityRpcAdapter } from './adapters/identity/rpc.js';
-import type { Identity, IdentityAdapter } from './adapters/identity/types.js';
-import { createPapiLazyClient } from './adapters/lazyClient/papi.js';
-import { createPapiStatementAdapter } from './adapters/statement/rpc.js';
-import type { StatementAdapter } from './adapters/statement/types.js';
-import { createLocalStorageAdapter } from './adapters/storage/localStorage.js';
-import type { StorageAdapter } from './adapters/storage/types.js';
-import type { AuthComponent } from './components/auth/index.js';
-import { createAuthComponent } from './components/auth/index.js';
-import type { UserSessionsComponent } from './components/user/index.js';
-import { createUserSessionsComponent } from './components/user/index.js';
-import { createUserSessionStorage } from './components/user/userSessionStorage.js';
 import { SS_PROD_ENDPOINTS } from './constants.js';
-import { createTransport } from './modules/transport/transport.js';
+import { createIdentityRepository } from './identity/impl.js';
+import { createIdentityRpcAdapter } from './identity/rpcAdapter.js';
+import type { IdentityAdapter, IdentityRepository } from './identity/types.js';
+import type { AuthComponent } from './sso/auth/impl.js';
+import { createAuth } from './sso/auth/impl.js';
+import type { SsoSessionManager } from './sso/sessionManager/impl.js';
+import { createSsoSessionManager } from './sso/sessionManager/impl.js';
+import { createSsoSessionRepository } from './sso/ssoSessionRepository.js';
+import { createUserSecretRepository } from './sso/userSecretRepository.js';
 
 export type PappAdapter = {
   sso: AuthComponent;
-  sessions: UserSessionsComponent;
-  identity: {
-    getIdentity(accountId: string): ResultAsync<Identity | null, Error>;
-    getIdentities(accounts: string[]): ResultAsync<Record<string, Identity | null>, Error>;
-  };
+  sessions: SsoSessionManager;
+  identity: IdentityRepository;
 };
 
 type Adapters = {
-  statements: StatementAdapter;
+  statementStore: StatementStoreAdapter;
   identities: IdentityAdapter;
   storage: StorageAdapter;
+  lazyClient: LazyClient;
 };
 
 type Params = {
+  /**
+   * Host app Id.
+   * CAUTION! This value should be stable.
+   */
   appId: string;
+  /**
+   * URL for additional metadata that will be displayed during pairing process.
+   * Content of provided json shound be
+   * ```ts
+   * interface Metadata {
+   *   name: string;
+   *   icon: string; // url for icon. Icon should be a rasterized image with min size 256x256 px.
+   * }
+   * ```
+   */
   metadata: string;
-  adapters?: Adapters;
+  adapters?: Partial<Adapters>;
 };
 
 export function createPappAdapter({ appId, metadata, adapters }: Params): PappAdapter {
-  let statements: StatementAdapter;
-  let identities: IdentityAdapter;
-  let storage: StorageAdapter;
+  const lazyClient = adapters?.lazyClient ?? createLazyClient(getWsProvider(SS_PROD_ENDPOINTS));
 
-  if (adapters) {
-    statements = adapters.statements;
-    identities = adapters.identities;
-    storage = adapters.storage;
-  } else {
-    const lazyPapiAdapter = createPapiLazyClient(getWsProvider(SS_PROD_ENDPOINTS));
+  const statementStore = adapters?.statementStore ?? createPapiStatementStoreAdapter(lazyClient);
+  const identities = adapters?.identities ?? createIdentityRpcAdapter(lazyClient);
+  const storage = adapters?.storage ?? createLocalStorageAdapter(appId);
 
-    storage = createLocalStorageAdapter(appId);
-    identities = createIdentityRpcAdapter(lazyPapiAdapter, storage);
-    statements = createPapiStatementAdapter(lazyPapiAdapter);
-  }
+  const ssoSessionRepository = createSsoSessionRepository(storage);
+  const userSecretRepository = createUserSecretRepository(appId, storage);
 
-  const transport = createTransport({ adapter: statements });
-
-  const userSessionStorage = createUserSessionStorage({ storage });
-
-  const identityComponent: PappAdapter['identity'] = {
-    getIdentity(accountId) {
-      return identities.readIdentities([accountId]).map(map => map[accountId] ?? null);
-    },
-    getIdentities(accounts) {
-      return identities.readIdentities(accounts);
-    },
+  return {
+    sso: createAuth({ metadata, statementStore, ssoSessionRepository, userSecretRepository }),
+    sessions: createSsoSessionManager({ storage, statementStore, ssoSessionRepository, userSecretRepository }),
+    identity: createIdentityRepository({ adapter: identities, storage }),
   };
-
-  const papp: PappAdapter = {
-    sso: createAuthComponent({ appId, metadata, transport, userSessionStorage }),
-    sessions: createUserSessionsComponent({ transport, storage, userSessionStorage }),
-    identity: identityComponent,
-  };
-
-  return papp;
 }
