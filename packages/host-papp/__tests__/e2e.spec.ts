@@ -1,31 +1,18 @@
-import { createLazyClient, createPapiStatementStoreAdapter } from '@novasamatech/statement-store';
-import { createMemoryAdapter } from '@novasamatech/storage-adapter';
-import { getWsProvider } from '@polkadot-api/ws-provider';
+import { fromHex } from '@polkadot-api/utils';
 import { describe, it } from 'vitest';
 
-import { SS_PROD_ENDPOINTS } from '../src/constants.js';
-import { createIdentityRpcAdapter } from '../src/identity/rpcAdapter.js';
-import { createPappAdapter } from '../src/papp.js';
+import { RemoteMessageCodec } from '../src/sso/sessionManager/scale/remoteMessage.js';
 
 describe('PAPP e2e', () => {
-  it.skip('should sign in', async () => {
-    const appId = 'https://test.com';
-    const lazyPapiAdapter = createLazyClient(getWsProvider(SS_PROD_ENDPOINTS));
-    const storage = createMemoryAdapter();
-    const adapter = createPappAdapter({
-      appId,
-      metadata: 'test',
-      adapters: {
-        identities: createIdentityRpcAdapter(lazyPapiAdapter),
-        statementStore: createPapiStatementStoreAdapter(lazyPapiAdapter),
-        storage,
-      },
-    });
+  it('should decode', () => {
+    const b = RemoteMessageCodec.dec(
+      fromHex(
+        '0x107465737400019031313131313131313131313131313131313131313131313131313131313131313148433109013078343134313265343636323363323030643738386162376566316335303763343334393066646132636137623438633139663836656139613436636639636161382830783030333538626132183078323430300901307836376661313737613039376266613138663737656139356162353665396263646665623065356238613430653436323938626239336531366236666335303038510130783061303330303661373835626535373637613830623731386264363434313262326237323135333131396364343533616436356332623164383632346566626336346335333630373030653430623534303228307830303030303030302830783030316538343830883078303030303030303030303030303030303030303030303030303030303030303028307830303030303030302448436865636b4e6f6e5a65726f53656e64657240436865636b5370656356657273696f6e38436865636b547856657273696f6e30436865636b47656e6573697338436865636b4d6f7274616c69747928436865636b4e6f6e63652c436865636b576569676874604368617267655472616e73616374696f6e5061796d656e7444436865636b4d6574616461746148617368040000000000010000000002',
+      ),
+    );
 
-    adapter.sso.status.subscribe(console.log);
-
-    const response = await adapter.sso.authenticate();
-
-    console.log(response);
+    if (b.data.value.tag === 'SignRequest') {
+      console.log(b.data.value.value);
+    }
   });
 });

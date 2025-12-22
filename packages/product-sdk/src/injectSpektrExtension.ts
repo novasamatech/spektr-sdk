@@ -1,5 +1,5 @@
 import type { HexString, Transport, TxPayloadV1 } from '@novasamatech/host-api';
-import { unwrapResponseOrThrow } from '@novasamatech/host-api';
+import { unwrapResultOrThrow } from '@novasamatech/host-api';
 import { injectExtension } from '@polkadot/extension-inject';
 import type { InjectedAccounts } from '@polkadot/extension-inject/types';
 import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types/extrinsic';
@@ -37,12 +37,12 @@ export async function createExtensionEnableFactory(transport: Transport) {
         get() {
           return transport
             .request({ tag: 'getAccountsRequestV1', value: undefined }, 'getAccountsResponseV1')
-            .then(unwrapResponseOrThrow);
+            .then(unwrapResultOrThrow);
         },
         subscribe(callback) {
           const unsubscribe = transport.subscribe('getAccountsResponseV1', (_, payload) => {
             try {
-              const accounts = unwrapResponseOrThrow(payload);
+              const accounts = unwrapResultOrThrow(payload);
               callback(accounts);
             } catch {
               transport.provider.logger.error('Failed response on account subscription', payload.value);
@@ -60,19 +60,17 @@ export async function createExtensionEnableFactory(transport: Transport) {
 
       signer: {
         signRaw(raw) {
-          return transport
-            .request({ tag: 'signRawRequestV1', value: raw }, 'signResponseV1')
-            .then(unwrapResponseOrThrow);
+          return transport.request({ tag: 'signRawRequestV1', value: raw }, 'signResponseV1').then(unwrapResultOrThrow);
         },
         signPayload(payload) {
           return transport
             .request({ tag: 'signPayloadRequestV1', value: payload }, 'signResponseV1')
-            .then(unwrapResponseOrThrow);
+            .then(unwrapResultOrThrow);
         },
         createTransaction(payload) {
           return transport
             .request({ tag: 'createTransactionRequestV1', value: payload }, 'createTransactionResponseV1')
-            .then(unwrapResponseOrThrow);
+            .then(unwrapResultOrThrow);
         },
       },
     };

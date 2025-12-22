@@ -1,7 +1,7 @@
 import type { CodecType } from 'scale-ts';
 import { Enum, Struct, str } from 'scale-ts';
 
-import { responseEncoder } from './commonEncoders.js';
+import { Result } from './commonEncoders.js';
 import {
   accountSubscriptionV1Encoder,
   accountUnsubscriptionV1Encoder,
@@ -19,35 +19,36 @@ import {
   signResponseV1Encoder,
 } from './interactions/sign.js';
 
-export function unwrapResponseOrThrow<T>(response: CodecType<ReturnType<typeof responseEncoder<T>>>) {
-  if (response.tag === 'success') {
-    return response.value;
-  } else {
-    throw new Error(response.value);
+export function unwrapResultOrThrow<T>(response: CodecType<ReturnType<typeof Result<T>>>) {
+  switch (response.tag) {
+    case 'Ok':
+      return response.value;
+    case 'Err':
+      throw new Error(response.value);
   }
 }
 
 export type MessagePayloadSchema = CodecType<typeof messagePayloadEncoder>;
 export const messagePayloadEncoder = Enum({
   handshakeRequestV1: handshakeRequestV1Encoder,
-  handshakeResponseV1: responseEncoder(handshakeResponseV1Encoder),
+  handshakeResponseV1: Result(handshakeResponseV1Encoder),
 
   getAccountsRequestV1: getAccountsRequestV1Encoder,
-  getAccountsResponseV1: responseEncoder(getAccountsResponseV1Encoder),
+  getAccountsResponseV1: Result(getAccountsResponseV1Encoder),
   accountSubscriptionV1: accountSubscriptionV1Encoder,
   accountUnsubscriptionV1: accountUnsubscriptionV1Encoder,
 
   supportFeatureRequestV1: supportFeatureRequestV1Encoder,
-  supportFeatureResponseV1: responseEncoder(supportFeatureResponseV1),
+  supportFeatureResponseV1: Result(supportFeatureResponseV1),
 
   papiProviderSendMessageV1: papiProviderSendMessageV1Encoder,
-  papiProviderReceiveMessageV1: responseEncoder(papiProviderReceiveMessageV1Encoder),
+  papiProviderReceiveMessageV1: Result(papiProviderReceiveMessageV1Encoder),
 
   signRawRequestV1: signRawRequestV1Encoder,
   signPayloadRequestV1: signPayloadRequestV1Encoder,
-  signResponseV1: responseEncoder(signResponseV1Encoder),
+  signResponseV1: Result(signResponseV1Encoder),
   createTransactionRequestV1: createTransactionRequestV1Encoder,
-  createTransactionResponseV1: responseEncoder(createTransactionResponseV1Encoder),
+  createTransactionResponseV1: Result(createTransactionResponseV1Encoder),
 
   locationChangedV1: str,
 });

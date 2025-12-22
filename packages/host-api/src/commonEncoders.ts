@@ -5,15 +5,15 @@ import { Bytes, Enum, str } from 'scale-ts';
 import { createTransportEncoder } from './createTransportEncoder.js';
 import type { HexString } from './types.js';
 
-export const hexEncoder = createTransportEncoder<HexString, Codec<Uint8Array>>({
+export const hexCodec = createTransportEncoder<HexString, Codec<Uint8Array>>({
   codec: Bytes(),
   from: v => toHex(v) as HexString,
   to: fromHex,
 });
 
-export function responseEncoder<T>(codec: Codec<T>) {
+export function Result<T>(codec: Codec<T>) {
   return Enum({
-    success: codec,
-    error: str,
+    Ok: codec,
+    Err: str,
   });
 }

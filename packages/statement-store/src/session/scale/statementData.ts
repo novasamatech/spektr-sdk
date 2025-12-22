@@ -1,12 +1,14 @@
 import type { Codec } from 'scale-ts';
 import { Enum, Struct, Vector, enhanceCodec, str, u8 } from 'scale-ts';
 
-export type TransportError = 'decryptionFailed' | 'decodingFailed' | 'unknown';
+export type ResponseCode = 'success' | 'decryptionFailed' | 'decodingFailed' | 'unknown';
 
-export const TransportErrorCodec = enhanceCodec<number, TransportError>(
+export const ResponseCodeCodec = enhanceCodec<number, ResponseCode>(
   u8,
   error => {
     switch (error) {
+      case 'success':
+        return 0;
       case 'decryptionFailed':
         return 1;
       case 'decodingFailed':
@@ -17,6 +19,8 @@ export const TransportErrorCodec = enhanceCodec<number, TransportError>(
   },
   code => {
     switch (code) {
+      case 0:
+        return 'success';
       case 1:
         return 'decryptionFailed';
       case 2:
@@ -36,7 +40,7 @@ export const Request = <T>(data: Codec<T>) => {
 
 export const Response = Struct({
   requestId: str,
-  responseCode: TransportErrorCodec,
+  responseCode: ResponseCodeCodec,
 });
 
 export const StatementData = <T>(data: Codec<T>) => {

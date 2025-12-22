@@ -1,4 +1,4 @@
-import type { LocalSessionAccount, StatementStoreAdapter } from '@novasamatech/statement-store';
+import type { LazyClient, LocalSessionAccount, StatementStoreAdapter } from '@novasamatech/statement-store';
 import {
   createAccountId,
   createEncryption,
@@ -8,18 +8,11 @@ import {
 } from '@novasamatech/statement-store';
 import type { Statement } from '@polkadot-api/sdk-statement';
 import { mergeUint8, toHex } from '@polkadot-api/utils';
+import { generateMnemonic } from '@polkadot-labs/hdkd-helpers';
 import { Result, ResultAsync, err, fromPromise, fromThrowable, ok } from 'neverthrow';
 
-import type { EncrPublicKey, EncrSecret, SsPublicKey } from '../../crypto.js';
-import {
-  createEncrSecret,
-  createSharedSecret,
-  createSsHardDerivation,
-  createSsSecret,
-  getEncrPub,
-  getSsPub,
-  stringToBytes,
-} from '../../crypto.js';
+import type { DerivedSr25519Account, EncrPublicKey, EncrSecret, SsPublicKey } from '../../crypto.js';
+import { createEncrSecret, createSharedSecret, deriveSr25519Account, getEncrPub, stringToBytes } from '../../crypto.js';
 import { AbortError } from '../../helpers/abortError.js';
 import { createState, readonly } from '../../helpers/state.js';
 import { toError } from '../../helpers/utils.js';
@@ -28,6 +21,7 @@ import type { UserSecretRepository } from '../userSecretRepository.js';
 import type { StoredUserSession, UserSessionRepository } from '../userSessionRepository.js';
 import { createStoredUserSession } from '../userSessionRepository.js';
 
+import { createAliceVerifier, createAttestationService } from './attestationService.js';
 import { HandshakeData, HandshakeResponsePayload, HandshakeResponseSensitiveData } from './scale/handshake.js';
 import type { AuthentificationStatus } from './types.js';
 
@@ -38,89 +32,118 @@ type Params = {
   statementStore: StatementStoreAdapter;
   ssoSessionRepository: UserSessionRepository;
   userSecretRepository: UserSecretRepository;
+  lazyClient: LazyClient;
 };
 
-export function createAuth({ metadata, statementStore, ssoSessionRepository, userSecretRepository }: Params) {
+export function createAuth({
+  metadata,
+  statementStore,
+  ssoSessionRepository,
+  userSecretRepository,
+  lazyClient,
+}: Params) {
   const authStatus = createState<AuthentificationStatus>({ step: 'none' });
 
-  let authResults: ResultAsync<StoredUserSession | null, Error> | null = null;
+  let authResult: ResultAsync<StoredUserSession | null, Error> | null = null;
   let abort: AbortController | null = null;
 
-  function handshake(signal: AbortSignal) {
-    return getSecretKeys()
-      .andTee(() => {
-        authStatus.write({ step: 'initial' });
-      })
-      .asyncAndThen(({ encrSecret, encrPublicKey, ssSecret, ssPublicKey }) => {
-        const localAccount = createLocalSessionAccount(createAccountId(ssPublicKey));
+  function attestateAccount(account: DerivedSr25519Account, signal: AbortSignal) {
+    const attestationService = createAttestationService(lazyClient);
 
-        const handshakePayload = createHandshakePayloadV1({ ssPublicKey, encrPublicKey, metadata }).andTee(payload =>
-          authStatus.write({ step: 'pairing', payload: createDeeplink(payload) }),
-        );
+    authStatus.write({ step: 'attestation' });
 
-        const pappResponse = handshakePayload
-          .andThen(() => createHandshakeTopic(localAccount, encrPublicKey))
-          .asyncAndThen(topic =>
-            waitForStatements<StoredUserSession>(
-              callback => statementStore.subscribeStatements([topic], callback),
-              signal,
-              (statements, resolve) => {
-                for (const statement of statements) {
-                  if (!statement.data) continue;
+    const verifier = createAliceVerifier();
+    const username = attestationService.claimUsername();
 
-                  const session = retrieveSession({
-                    localAccount,
-                    encrSecret,
-                    payload: statement.data.asBytes(),
-                  }).unwrapOr(null);
+    return attestationService
+      .grantVerifierAllowance(verifier)
+      .andThrough(() => processSignal(signal))
+      .andThen(() => attestationService.registerLitePerson(username, account, verifier))
+      .andThrough(() => processSignal(signal));
+  }
 
-                  if (session) {
-                    resolve(session);
-                    break;
-                  }
+  function handshake(account: DerivedSr25519Account, mnemonic: string, signal: AbortSignal) {
+    const localAccount = createLocalSessionAccount(createAccountId(account.publicKey));
+
+    return createEncrKeys(mnemonic).asyncAndThen(({ encrSecret, encrPublicKey }) => {
+      const handshakePayload = createHandshakePayloadV1({
+        ssPublicKey: account.publicKey,
+        encrPublicKey,
+        metadata,
+      }).andTee(payload => authStatus.write({ step: 'pairing', payload: createDeeplink(payload) }));
+
+      const pappResponse = handshakePayload
+        .andThen(() => createHandshakeTopic(localAccount, encrPublicKey))
+        .asyncAndThen(topic =>
+          waitForStatements<StoredUserSession>(
+            callback => statementStore.subscribeStatements([topic], callback),
+            signal,
+            (statements, resolve) => {
+              for (const statement of statements) {
+                if (!statement.data) continue;
+
+                const session = retrieveSession({
+                  localAccount,
+                  encrSecret,
+                  payload: statement.data.asBytes(),
+                }).unwrapOr(null);
+
+                if (session) {
+                  resolve(session);
+                  break;
                 }
-              },
-            ),
-          );
-
-        const secretesSaved = pappResponse.andThen(({ id }) =>
-          userSecretRepository.write(id, { ssSecret, encrSecret }),
+              }
+            },
+          ),
         );
-        const userCreated = secretesSaved.andThen(() => pappResponse.andThen(ssoSessionRepository.add));
 
-        const result = ResultAsync.combine([userCreated, secretesSaved]).map(([session]) => session);
+      const secretesSaved = pappResponse.andThen(({ id }) =>
+        userSecretRepository.write(id, { ssSecret: account.secret, encrSecret, mnemonic }),
+      );
+      const userCreated = secretesSaved.andThen(() => pappResponse.andThen(ssoSessionRepository.add));
 
-        return result
-          .orElse(e => (AbortError.isAbortError(e) ? ok(null) : err(toError(e))))
-          .andTee(session => {
-            authStatus.write(session ? { step: 'finished', session } : { step: 'none' });
-          })
-          .orTee(e => {
-            authStatus.write({ step: 'error', message: e.message });
-          });
-      });
+      const result = ResultAsync.combine([userCreated, secretesSaved]).map(([session]) => session);
+
+      return result.orElse(e => (AbortError.isAbortError(e) ? ok(null) : err(toError(e))));
+    });
   }
 
   const authModule = {
     status: readonly(authStatus),
 
     authenticate(): ResultAsync<StoredUserSession | null, Error> {
-      if (authResults) {
-        return authResults;
+      if (authResult) {
+        return authResult;
       }
 
       abort = new AbortController();
-      authResults = handshake(abort.signal);
+      const signal = abort.signal;
 
-      return authResults;
+      const mnemonic = generateMnemonic();
+      const account = deriveSr25519Account(mnemonic, '//wallet');
+
+      authStatus.write({ step: 'initial' });
+      authResult = attestateAccount(account, signal)
+        .andThen(() => handshake(account, mnemonic, signal))
+        .andTee(session => {
+          authStatus.write(session ? { step: 'finished', session } : { step: 'none' });
+        })
+        .orTee(e => {
+          authResult = null;
+          abort = null;
+          authStatus.write({ step: 'error', message: e.message });
+        });
+
+      return authResult;
     },
 
     abortAuthentication() {
       if (abort) {
-        authResults = null;
-        authStatus.reset();
         abort.abort(new AbortError('Aborted by user.'));
+        abort = null;
       }
+      authResult = null;
+      authStatus.reset();
     },
   };
 
@@ -164,6 +187,15 @@ function parseHandshakePayload(payload: Uint8Array) {
   }
 }
 
+const createEncrKeys = fromThrowable((mnemonic: string) => {
+  const encrSecret = createEncrSecret(mnemonic);
+
+  return {
+    encrSecret,
+    encrPublicKey: getEncrPub(encrSecret),
+  };
+}, toError);
+
 function retrieveSession({
   payload,
   encrSecret,
@@ -189,50 +221,27 @@ function retrieveSession({
     });
 }
 
-const getSsKeys = fromThrowable(() => {
-  const ssSecret = createSsHardDerivation(createSsSecret(), '//wallet//sso');
-
-  return {
-    ssSecret: ssSecret,
-    ssPublicKey: getSsPub(ssSecret),
-  };
-}, toError);
-
-const getEncrKeys = fromThrowable(() => {
-  const encrSecret = createEncrSecret();
-
-  return {
-    encrSecret,
-    encrPublicKey: getEncrPub(encrSecret),
-  };
-}, toError);
-
-function getSecretKeys() {
-  return Result.combine([getSsKeys(), getEncrKeys()]).map(([ss, encr]) => ({
-    ...ss,
-    ...encr,
-  }));
-}
-
 function createDeeplink(payload: Uint8Array) {
   return `polkadotapp://pair?handshake=${toHex(payload)}`;
 }
 
 function waitForStatements<T>(
   subscribe: (callback: Callback<Statement[]>) => VoidFunction,
-  abortSignal: AbortSignal | null,
+  signal: AbortSignal,
   callback: (statements: Statement[], resolve: (value: T) => void) => void,
 ): ResultAsync<T, Error> {
   return fromPromise(
     new Promise<T>((resolve, reject) => {
       const unsubscribe = subscribe(statements => {
-        if (abortSignal?.aborted) {
+        const abortError = processSignal(signal).match(
+          () => null,
+          e => e,
+        );
+
+        if (abortError) {
           unsubscribe();
-          try {
-            abortSignal.throwIfAborted();
-          } catch (e) {
-            reject(e);
-          }
+          reject(abortError);
+          return;
         }
 
         try {
@@ -248,4 +257,13 @@ function waitForStatements<T>(
     }),
     toError,
   );
+}
+
+function processSignal(signal: AbortSignal) {
+  try {
+    signal.throwIfAborted();
+    return ok<void>();
+  } catch (e) {
+    return err(toError(e));
+  }
 }

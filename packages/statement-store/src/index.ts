@@ -21,6 +21,8 @@ export type { StatementProver } from './session/statementProver.js';
 export type { Encryption } from './session/encyption.js';
 export { createEncryption } from './session/encyption.js';
 
+export { DecodingError, DecryptionError, UnknownError } from './session/error.js';
+
 export type { LazyClient } from './adapter/lazyClient.js';
 export { createLazyClient } from './adapter/lazyClient.js';
 export type { StatementStoreAdapter } from './adapter/types.js';

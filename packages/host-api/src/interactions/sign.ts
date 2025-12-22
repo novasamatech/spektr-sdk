@@ -2,7 +2,7 @@ import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkado
 import type { CodecType } from 'scale-ts';
 import { Bytes, Enum, Option, Struct, Vector, _void, bool, str, u16, u32 } from 'scale-ts';
 
-import { hexEncoder } from '../commonEncoders.js';
+import { hexCodec } from '../commonEncoders.js';
 import { createTransportEncoder } from '../createTransportEncoder.js';
 import type { HexString } from '../types.js';
 
@@ -46,20 +46,19 @@ export const signRawRequestV1Encoder = createTransportEncoder<SignerPayloadRaw, 
 export type SignPayloadRequestSchema = CodecType<typeof signPayloadRequestV1Encoder>;
 export const signPayloadCodec = Struct({
   address: str,
-  assetId: Option(hexEncoder),
-  blockHash: hexEncoder,
-  blockNumber: hexEncoder,
-  era: hexEncoder,
-  genesisHash: hexEncoder,
-  metadataHash: Option(hexEncoder),
+  blockHash: hexCodec,
+  blockNumber: hexCodec,
+  era: hexCodec,
+  genesisHash: hexCodec,
   method: str,
-  mode: Option(u32),
-  nonce: hexEncoder,
-  specVersion: hexEncoder,
-  tip: hexEncoder,
-  transactionVersion: hexEncoder,
+  nonce: hexCodec,
+  specVersion: hexCodec,
+  tip: hexCodec,
+  transactionVersion: hexCodec,
   signedExtensions: Vector(str),
   version: u32,
+  assetId: Option(hexCodec),
+  mode: Option(u32),
   withSignedTransaction: Option(bool),
 });
 
@@ -73,7 +72,6 @@ export const signPayloadRequestV1Encoder = createTransportEncoder<SignerPayloadJ
       blockNumber: decoded.blockNumber,
       era: decoded.era,
       genesisHash: decoded.genesisHash,
-      metadataHash: decoded.metadataHash,
       method: decoded.method,
       mode: decoded.mode,
       nonce: decoded.nonce,
@@ -109,10 +107,10 @@ export const signPayloadRequestV1Encoder = createTransportEncoder<SignerPayloadJ
 
 const signResult = Struct({
   id: u32,
-  signature: hexEncoder,
+  signature: hexCodec,
   signedTransaction: Option(
     Enum({
-      hex: hexEncoder,
+      hex: hexCodec,
       buffer: Bytes(),
     }),
   ),
@@ -232,17 +230,17 @@ export interface TxPayloadV1 {
 const createTransactionRequestCodec = Struct({
   version: u16,
   signer: Option(str),
-  callData: hexEncoder,
+  callData: hexCodec,
   extensions: Vector(
     Struct({
       id: str,
-      extra: hexEncoder,
-      additionalSigned: hexEncoder,
+      extra: hexCodec,
+      additionalSigned: hexCodec,
     }),
   ),
   txExtVersion: u16,
   context: Struct({
-    metadata: hexEncoder,
+    metadata: hexCodec,
     tokenSymbol: str,
     tokenDecimals: u32,
     bestBlockHeight: u32,
@@ -273,4 +271,4 @@ export const createTransactionRequestV1Encoder = createTransportEncoder<
   },
 });
 
-export const createTransactionResponseV1Encoder = hexEncoder;
+export const createTransactionResponseV1Encoder = hexCodec;

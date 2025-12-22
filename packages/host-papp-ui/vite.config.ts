@@ -1,6 +1,7 @@
 import react from '@vitejs/plugin-react';
 import dts from 'vite-plugin-dts';
 import { externalizeDeps } from 'vite-plugin-externalize-deps';
+import { default as wasm } from 'vite-plugin-wasm';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -21,5 +22,12 @@ export default defineConfig({
       cssFileName: 'index',
     },
   },
-  plugins: [externalizeDeps(), react(), dts()],
+
+  plugins: [
+    externalizeDeps(),
+    react(),
+    dts(),
+    // @ts-expect-error wasm module types are broken in our setup
+    wasm(),
+  ],
 });

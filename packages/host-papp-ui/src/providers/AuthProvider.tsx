@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useDebugValue, useState, useSyn
 
 import { usePapp } from '../flow/PappProvider.js';
 
-type State = {
+type Auth = {
   status: AuthentificationStatus;
   pending: boolean;
   authenticate(): Promise<void>;
@@ -12,7 +12,7 @@ type State = {
   disconnect(session: UserSession): Promise<void>;
 };
 
-const Context = createContext<State>({
+const Context = createContext<Auth>({
   status: { step: 'none' },
   pending: false,
   authenticate: () => Promise.resolve(),
@@ -24,7 +24,7 @@ const Context = createContext<State>({
   },
 });
 
-export const useAuthenticateFlow = () => {
+export const useAuthentication = () => {
   return useContext(Context);
 };
 
@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     [provider],
   );
 
-  const state: State = {
+  const state: Auth = {
     pending,
     status,
     authenticate,

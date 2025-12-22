@@ -2,7 +2,8 @@ import type { PropsWithChildren } from 'react';
 import { memo, useMemo } from 'react';
 
 import { useIdentity } from '../hooks/identity.js';
-import { useAuthenticateFlow } from '../providers/AuthProvider.js';
+import { useAuthentication } from '../providers/AuthProvider.js';
+import { Button } from '../ui/Button.js';
 import { Modal } from '../ui/Modal.js';
 import { QrCode } from '../ui/QrCode.js';
 
@@ -13,7 +14,7 @@ const Text = ({ children }: PropsWithChildren) => (
 );
 
 export const PairingModal = memo(() => {
-  const auth = useAuthenticateFlow();
+  const auth = useAuthentication();
   const open = auth.status.step !== 'none';
 
   const toggleModal = (open: boolean) => {
@@ -44,6 +45,13 @@ export const PairingModal = memo(() => {
         }}
       >
         <Text>Sign in Polkadot app</Text>
+        {auth.status.step === 'error' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Text>Error: {auth.status.message}</Text>
+            <Button onClick={() => auth.authenticate()}>Retry</Button>
+          </div>
+        )}
+        {auth.status.step === 'attestation' && <Text>Loading...</Text>}
         {auth.status.step === 'pairing' && <QrCode value={auth.status.payload} size={270} />}
         {auth.status.step === 'finished' && (
           <>

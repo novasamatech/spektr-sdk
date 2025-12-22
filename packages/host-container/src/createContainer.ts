@@ -11,10 +11,14 @@ import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-
 
 import { createComplexSubscriber } from './createComplexSubscriber.js';
 
-function formatError(e: unknown) {
+function formatOk<T>(value: T) {
+  return { tag: 'Ok' as const, value };
+}
+
+function formatErr(e: unknown) {
   const message = e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';
 
-  return { tag: 'error' as const, value: message };
+  return { tag: 'Err' as const, value: message };
 }
 
 type ContainerHandlers = {
@@ -68,12 +72,12 @@ export function createContainer(provider: TransportProvider, params?: Params) {
 
       return {
         tag: 'getAccountsResponseV1',
-        value: { tag: 'success', value: accounts },
+        value: formatOk(accounts),
       };
     } catch (e) {
       return {
         tag: 'getAccountsResponseV1',
-        value: formatError(e),
+        value: formatErr(e),
       };
     }
   });
@@ -90,7 +94,7 @@ export function createContainer(provider: TransportProvider, params?: Params) {
             return subscriber(accounts => {
               callback({
                 tag: 'getAccountsResponseV1',
-                value: { tag: 'success', value: accounts },
+                value: formatOk(accounts),
               });
             });
           };
@@ -106,12 +110,12 @@ export function createContainer(provider: TransportProvider, params?: Params) {
       const result = await signRaw(message);
       return {
         tag: 'signResponseV1',
-        value: { tag: 'success', value: result },
+        value: formatOk(result),
       };
     } catch (e) {
       return {
         tag: 'signResponseV1',
-        value: formatError(e),
+        value: formatErr(e),
       };
     }
   });
@@ -122,12 +126,12 @@ export function createContainer(provider: TransportProvider, params?: Params) {
       const result = await signPayload(message);
       return {
         tag: 'signResponseV1',
-        value: { tag: 'success', value: result },
+        value: formatOk(result),
       };
     } catch (e) {
       return {
         tag: 'signResponseV1',
-        value: formatError(e),
+        value: formatErr(e),
       };
     }
   });
@@ -140,12 +144,12 @@ export function createContainer(provider: TransportProvider, params?: Params) {
         const result = await createTransaction(message);
         return {
           tag: 'createTransactionResponseV1',
-          value: { tag: 'success', value: result },
+          value: formatOk(result),
         };
       } catch (e) {
         return {
           tag: 'createTransactionResponseV1',
-          value: formatError(e),
+          value: formatErr(e),
         };
       }
     },
@@ -162,15 +166,12 @@ export function createContainer(provider: TransportProvider, params?: Params) {
           const result = await checkChainSupport(message.value.chainId);
           return {
             tag: 'supportFeatureResponseV1',
-            value: {
-              tag: 'success',
-              value: { tag: 'chain', value: { chainId: message.value.chainId, result } },
-            },
+            value: formatOk({ tag: 'chain', value: { chainId: message.value.chainId, result } }),
           };
         } catch (e) {
           return {
             tag: 'supportFeatureResponseV1',
-            value: formatError(e),
+            value: formatErr(e),
           };
         }
       }
@@ -193,7 +194,7 @@ export function createContainer(provider: TransportProvider, params?: Params) {
           connection = provider(message => {
             transport.postMessage('_', {
               tag: 'papiProviderReceiveMessageV1',
-              value: { tag: 'success', value: { chainId, message } },
+              value: { tag: 'Ok', value: { chainId, message } },
             });
           });
         }

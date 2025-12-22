@@ -1,5 +1,5 @@
 import type { HexString, Transport } from '@novasamatech/host-api';
-import { unwrapResponseOrThrow } from '@novasamatech/host-api';
+import { unwrapResultOrThrow } from '@novasamatech/host-api';
 import type { JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
 import { getSyncProvider } from '@polkadot-api/json-rpc-provider-proxy';
 
@@ -20,7 +20,7 @@ export function createSpektrPapiProvider({ chainId, fallback }: Params, internal
 
   const spektrProvider: JsonRpcProvider = onMessage => {
     const unsubscribe = transport.subscribe('papiProviderReceiveMessageV1', (_, payload) => {
-      const unwrapped = unwrapResponseOrThrow(payload);
+      const unwrapped = unwrapResultOrThrow(payload);
       if (unwrapped.chainId === chainId) {
         onMessage(unwrapped.message);
       }
@@ -46,7 +46,7 @@ export function createSpektrPapiProvider({ chainId, fallback }: Params, internal
           'supportFeatureResponseV1',
         )
         .then(payload => {
-          const result = unwrapResponseOrThrow(payload);
+          const result = unwrapResultOrThrow(payload);
 
           if (result.tag === 'chain' && result.value.chainId === chainId) {
             return result.value.result;

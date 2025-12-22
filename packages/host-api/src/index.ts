@@ -1,4 +1,4 @@
-export { messageEncoder, unwrapResponseOrThrow } from './messageEncoder.js';
+export { messageEncoder, unwrapResultOrThrow } from './messageEncoder.js';
 export {
   type MessagePayloadSchema,
   type MessageType,

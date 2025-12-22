@@ -4,7 +4,7 @@ import type { StorageAdapter } from '@novasamatech/storage-adapter';
 import { createLocalStorageAdapter } from '@novasamatech/storage-adapter';
 import { getWsProvider } from '@polkadot-api/ws-provider';
 
-import { SS_PROD_ENDPOINTS } from './constants.js';
+import { SS_STABLE_STAGE_ENDPOINTS } from './constants.js';
 import { createIdentityRepository } from './identity/impl.js';
 import { createIdentityRpcAdapter } from './identity/rpcAdapter.js';
 import type { IdentityAdapter, IdentityRepository } from './identity/types.js';
@@ -49,7 +49,7 @@ type Params = {
 };
 
 export function createPappAdapter({ appId, metadata, adapters }: Params): PappAdapter {
-  const lazyClient = adapters?.lazyClient ?? createLazyClient(getWsProvider(SS_PROD_ENDPOINTS));
+  const lazyClient = adapters?.lazyClient ?? createLazyClient(getWsProvider(SS_STABLE_STAGE_ENDPOINTS));
 
   const statementStore = adapters?.statementStore ?? createPapiStatementStoreAdapter(lazyClient);
   const identities = adapters?.identities ?? createIdentityRpcAdapter(lazyClient);
@@ -59,7 +59,7 @@ export function createPappAdapter({ appId, metadata, adapters }: Params): PappAd
   const userSecretRepository = createUserSecretRepository(appId, storage);
 
   return {
-    sso: createAuth({ metadata, statementStore, ssoSessionRepository, userSecretRepository }),
+    sso: createAuth({ metadata, statementStore, ssoSessionRepository, userSecretRepository, lazyClient }),
     sessions: createSsoSessionManager({ storage, statementStore, ssoSessionRepository, userSecretRepository }),
     identity: createIdentityRepository({ adapter: identities, storage }),
   };

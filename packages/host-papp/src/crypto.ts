@@ -1,5 +1,5 @@
 import { p256 } from '@noble/curves/nist.js';
-import { randomBytes } from '@noble/hashes/utils.js';
+import { mnemonicToEntropy, mnemonicToMiniSecret } from '@polkadot-labs/hdkd-helpers';
 import {
   HDKD as sr25519HDKD,
   getPublicKey as sr25519GetPublicKey,
@@ -8,7 +8,7 @@ import {
   verify as sr25519Verify,
 } from '@scure/sr25519';
 import type { Codec } from 'scale-ts';
-import { Bytes, str, u32 } from 'scale-ts';
+import { Bytes, str } from 'scale-ts';
 
 import type { Branded } from './types.js';
 
@@ -45,19 +45,45 @@ export function bytesToString(bytes: Uint8Array) {
   return textDecoder.decode(bytes);
 }
 
-// statement store key pair
+function parseDerivations(derivationsStr: string) {
+  const DERIVATION_RE = /(\/{1,2})([^/]+)/g;
 
-export const SS_SECRET_SEED_SIZE = 32;
-
-export function createSsSecret(seed: Uint8Array = randomBytes(SS_SECRET_SEED_SIZE)) {
-  return sr25519SecretFromSeed(seed) as SsSecret;
+  const derivations = [] as [type: 'hard' | 'soft', code: string][];
+  for (const [, type, code] of derivationsStr.matchAll(DERIVATION_RE)) {
+    if (code) {
+      derivations.push([type === '//' ? 'hard' : 'soft', code]);
+    }
+  }
+  return derivations;
 }
 
-export function createSsHardDerivation(secret: SsSecret, derivation: string | number) {
+function createChainCode(derivation: string) {
   const chainCode = new Uint8Array(32);
-  chainCode.set(typeof derivation === 'string' ? str.enc(derivation) : u32.enc(derivation));
+  chainCode.set(str.enc(derivation));
+  return chainCode;
+}
 
-  return sr25519HDKD.secretHard(secret, chainCode) as SsSecret;
+// statement store key pair
+
+export function createSsSecret(mnemonic: string): SsSecret {
+  const miniSecret = mnemonicToMiniSecret(mnemonic);
+  return sr25519SecretFromSeed(miniSecret) as SsSecret;
+}
+
+export function createSsDerivation(secret: SsSecret, derivation: string) {
+  const derivations = parseDerivations(derivation);
+
+  return derivations.reduce((secret, [type, derivation]) => {
+    const chainCode = createChainCode(derivation);
+
+    switch (type) {
+      case 'hard':
+        return sr25519HDKD.secretHard(secret, chainCode) as SsSecret;
+
+      case 'soft':
+        return sr25519HDKD.secretSoft(secret, chainCode) as SsSecret;
+    }
+  }, secret);
 }
 
 export function getSsPub(secret: SsSecret) {
@@ -72,11 +98,33 @@ export function verifyWithSsSecret(message: Uint8Array, signature: Uint8Array, p
   return sr25519Verify(message, signature, publicKey);
 }
 
+export type DerivedSr25519Account = {
+  secret: SsSecret;
+  publicKey: SsPublicKey;
+  entropy: Uint8Array;
+  sign(message: Uint8Array): Uint8Array;
+  verify(message: Uint8Array, signature: Uint8Array): boolean;
+};
+
+export function deriveSr25519Account(mnemonic: string, derivation: string): DerivedSr25519Account {
+  const secret = createSsDerivation(createSsSecret(mnemonic), derivation);
+  const publicKey = getSsPub(secret);
+
+  return {
+    secret,
+    publicKey,
+    entropy: mnemonicToEntropy(mnemonic),
+    sign: message => signWithSsSecret(secret, message),
+    verify: (message, signature) => verifyWithSsSecret(message, signature, publicKey),
+  };
+}
+
 // encryption key pair
 
-export const ENCR_SECRET_SEED_SIZE = 48;
-
-export function createEncrSecret(seed: Uint8Array = randomBytes(ENCR_SECRET_SEED_SIZE)) {
+export function createEncrSecret(mnemonic: string) {
+  const miniSecret = mnemonicToMiniSecret(mnemonic);
+  const seed = new Uint8Array(48);
+  seed.set(miniSecret);
   const { secretKey } = p256.keygen(seed);
   return secretKey as EncrSecret;
 }

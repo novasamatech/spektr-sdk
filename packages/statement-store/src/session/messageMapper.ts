@@ -6,17 +6,19 @@ import type { Message } from './types.js';
 export function toMessage<T>(statementData: CodecType<ReturnType<typeof StatementData<T>>>): Message<T>[] {
   switch (statementData.tag) {
     case 'request':
-      return statementData.value.data.map((data, index) => ({
+      return statementData.value.data.map((payload, index) => ({
         type: 'request',
-        requestId: `${statementData.value.requestId}-${index.toString()}`,
-        data,
+        localId: `${statementData.value.requestId}-${index.toString()}`,
+        requestId: statementData.value.requestId,
+        payload,
       }));
     case 'response':
       return [
         {
           type: 'response',
+          localId: statementData.value.requestId,
           requestId: statementData.value.requestId,
-          code: statementData.value.responseCode,
+          responseCode: statementData.value.responseCode,
         },
       ];
   }

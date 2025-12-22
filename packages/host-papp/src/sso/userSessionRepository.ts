@@ -37,7 +37,6 @@ export const createUserSessionRepository = (storage: StorageAdapter) => {
   return fieldListView<StoredUserSession>({
     storage,
     key: 'SsoSessions',
-    initial: [],
     from: x => codec.dec(fromHex(x)),
     to: x => toHex(codec.enc(x)),
   });

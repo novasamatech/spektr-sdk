@@ -1,16 +1,15 @@
-import { Bytes, Enum, Struct, _void, str } from 'scale-ts';
+import { Enum, Struct, _void, str } from 'scale-ts';
 
-export const RemoteMessageDataCodec = Enum({
-  v1: Enum({
-    Disconnected: _void,
-    // TODO implement
-    SigningRequest: Bytes(),
-    // TODO implement
-    // SigningResponse: Bytes(),
-  }),
-});
+import { SignPayloadRequestCodec } from './signPayloadRequest.js';
+import { SignPayloadResponseCodec } from './signPayloadResponse.js';
 
 export const RemoteMessageCodec = Struct({
   messageId: str,
-  data: RemoteMessageDataCodec,
+  data: Enum({
+    v1: Enum({
+      Disconnected: _void,
+      SignRequest: SignPayloadRequestCodec,
+      SignResponse: SignPayloadResponseCodec,
+    }),
+  }),
 });

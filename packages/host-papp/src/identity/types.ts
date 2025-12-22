@@ -1,13 +1,13 @@
 import type { ResultAsync } from 'neverthrow';
 
-type Credibility =
+export type Credibility =
   | {
       type: 'Lite';
     }
   | {
       type: 'Person';
-      alias: number;
-      lastUpdate: bigint;
+      alias: `0x${string}`;
+      lastUpdate: string;
     };
 
 export type Identity = {

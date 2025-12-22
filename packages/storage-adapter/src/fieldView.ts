@@ -49,8 +49,8 @@ export function fieldView<T>({ storage, initial, key, from, to, autosync = true 
   return enhancedStorage;
 }
 
-export function fieldListView<T>(params: Params<T[]>) {
-  const view = fieldView(params);
+export function fieldListView<T>(params: Omit<Params<T[]>, 'initial'>) {
+  const view = fieldView({ ...params, initial: [] });
 
   const listView = {
     ...view,

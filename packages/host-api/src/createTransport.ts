@@ -242,7 +242,7 @@ export function createTransport(provider: TransportProvider, params?: TransportP
     transportInstance.handleMessage<'handshakeRequestV1', 'handshakeResponseV1'>('handshakeRequestV1', async () => ({
       tag: 'handshakeResponseV1',
       value: {
-        tag: 'success',
+        tag: 'Ok',
         value: undefined,
       },
     }));

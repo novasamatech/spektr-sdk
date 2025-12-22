@@ -1,7 +1,7 @@
 import type { Statement } from '@polkadot-api/sdk-statement';
 import { Binary } from '@polkadot-api/substrate-bindings';
 import { nanoid } from 'nanoid';
-import { ResultAsync, err, fromThrowable, ok, okAsync } from 'neverthrow';
+import { ResultAsync, err, fromPromise, fromThrowable, ok, okAsync } from 'neverthrow';
 import type { Codec } from 'scale-ts';
 import { Bytes } from 'scale-ts';
 
@@ -14,11 +14,12 @@ import type { LocalSessionAccount, RemoteSessionAccount } from '../model/session
 import type { Callback } from '../types.js';
 
 import type { Encryption } from './encyption.js';
+import { DecodingError, DecryptionError, UnknownError } from './error.js';
 import { toMessage } from './messageMapper.js';
-import type { TransportError } from './scale/statementData.js';
+import type { ResponseCode } from './scale/statementData.js';
 import { StatementData } from './scale/statementData.js';
 import type { StatementProver } from './statementProver.js';
-import type { Message, Session } from './types.js';
+import type { Message, RequestMessage, ResponseMessage, Session } from './types.js';
 
 export type SessionParams = {
   localAccount: LocalSessionAccount;
@@ -50,8 +51,14 @@ export function createSession({
       .andThen(statementStore.submitStatement);
   }
 
-  return {
-    submitRequest<T>(codec: Codec<T>, message: T) {
+  const session: Session = {
+    request<T>(codec: Codec<T>, data: T) {
+      return session.submitRequestMessage(codec, data).andThen(({ requestId }) => {
+        return session.waitForResponseMessage(requestId).andThen(({ responseCode }) => mapResponseCode(responseCode));
+      });
+    },
+
+    submitRequestMessage<T>(codec: Codec<T>, message: T) {
       const requestId = nanoid();
       const sessionId = createSessionId(remoteAccount.publicKey, localAccount, remoteAccount);
       const statementDataCodec = StatementData(codec);
@@ -68,7 +75,7 @@ export function createSession({
         .map(() => ({ requestId }));
     },
 
-    submitResponse(requestId: string, responseCode: TransportError) {
+    submitResponseMessage(requestId: string, responseCode: ResponseCode) {
       const sessionId = createSessionId(remoteAccount.publicKey, localAccount, remoteAccount);
       const statementDataCodec = StatementData(Bytes());
 
@@ -82,25 +89,63 @@ export function createSession({
       return rawData.asyncAndThen(data => submit(sessionId, createResponseChannel(sessionId), data));
     },
 
+    waitForRequestMessage<T, S extends T>(
+      codec: Codec<T>,
+      filter: (message: T) => message is S,
+    ): ResultAsync<RequestMessage<S>, Error> {
+      const promise = new Promise<RequestMessage<S>>(resolve => {
+        const unsubscribe = session.subscribe(codec, messages => {
+          for (const message of messages) {
+            if (message.type === 'request' && filter(message.payload)) {
+              unsubscribe();
+              resolve({
+                type: 'request',
+                localId: message.localId,
+                requestId: message.requestId,
+                payload: message.payload,
+              });
+              break;
+            }
+          }
+        });
+      });
+
+      return fromPromise(promise, toError);
+    },
+
+    waitForResponseMessage(requestId: string) {
+      const promise = new Promise<ResponseMessage>(resolve => {
+        const unsub = session.subscribe(Bytes(), messages => {
+          const response = messages.filter(m => m.type === 'response').find(m => m.requestId === requestId);
+          if (response) {
+            unsub();
+            resolve(response);
+          }
+        });
+      });
+
+      return fromPromise(promise, toError);
+    },
+
     subscribe<T>(codec: Codec<T>, callback: Callback<Message<T>[]>) {
       const statementDataCodec = StatementData(codec);
       const sessionId = createSessionId(remoteAccount.publicKey, remoteAccount, localAccount);
 
+      function processStatement(statement: Statement) {
+        if (!statement.data) return okAsync(null);
+
+        const data = statement.data.asBytes();
+
+        return prover
+          .verifyMessageProof(statement)
+          .andThen(verified => (verified ? ok() : err(new Error('Statement proof is not valid'))))
+          .andThen(() => encryption.decrypt(data))
+          .map(statementDataCodec.dec)
+          .orElse(() => ok(null));
+      }
+
       return statementStore.subscribeStatements([sessionId], statements => {
-        ResultAsync.combine(
-          statements.map(statement => {
-            if (!statement.data) return okAsync(null);
-
-            const data = statement.data.asBytes();
-
-            return prover
-              .verifyMessageProof(statement)
-              .andThen(verified => (verified ? ok() : err(new Error('Statement proof is not valid'))))
-              .andThen(() => encryption.decrypt(data))
-              .map(statementDataCodec.dec)
-              .orElse(() => ok(null));
-          }),
-        )
+        ResultAsync.combine(statements.map(processStatement))
           .map(messages => messages.filter(nonNullable).flatMap(toMessage))
           .andTee(messages => {
             if (messages.length > 0) {
@@ -117,6 +162,21 @@ export function createSession({
       subscriptions = [];
     },
   };
+
+  return session;
+}
+
+function mapResponseCode(responseCode: ResponseCode) {
+  switch (responseCode) {
+    case 'success':
+      return ok();
+    case 'decodingFailed':
+      return err(new DecodingError());
+    case 'decryptionFailed':
+      return err(new DecryptionError());
+    case 'unknown':
+      return err(new UnknownError());
+  }
 }
 
 function now() {
