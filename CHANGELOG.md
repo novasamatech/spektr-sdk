@@ -1,3 +1,13 @@
+## 0.5.0-12 (2025-12-22)
+
+### 🚀 Features
+
+- papp integration WIP ([e3e2650](https://github.com/novasamatech/spektr-sdk/commit/e3e2650))
+
+### ❤️ Thank You
+
+- Sergey Zhuravlev @johnthecat
+
 ## 0.5.0-11 (2025-12-22)
 
 ### 🚀 Features
