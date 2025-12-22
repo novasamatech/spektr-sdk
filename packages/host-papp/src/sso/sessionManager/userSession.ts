@@ -11,6 +11,7 @@ import type { CodecType } from 'scale-ts';
 import type { Callback } from '../../types.js';
 import type { StoredUserSession } from '../userSessionRepository.js';
 
+import type { RemoteMessage } from './scale/remoteMessage.js';
 import { RemoteMessageCodec } from './scale/remoteMessage.js';
 import type { SignPayloadRequest } from './scale/signPayloadRequest.js';
 import type { SignPayloadResponse } from './scale/signPayloadResponse.js';
@@ -26,7 +27,7 @@ type ProcessedMessage =
 
 export type UserSession = StoredUserSession & {
   sendDisconnectMessage(): ResultAsync<void, Error>;
-  signPayload(payload: SignPayloadRequest): ResultAsync<SignPayloadResponse, Error>;
+  signPayload(payload: SignPayloadRequest): ResultAsync<SignPayloadResponse['payload'], Error>;
   subscribe(callback: Callback<CodecType<typeof RemoteMessageCodec>, ResultAsync<boolean, Error>>): VoidFunction;
   dispose(): void;
 };
@@ -82,8 +83,16 @@ export function createUserSession({
         },
       });
 
+      const responseFilter = (message: RemoteMessage) => {
+        return (
+          message.data.tag === 'v1' &&
+          message.data.value.tag === 'SignResponse' &&
+          message.data.value.value.respondingTo === messageId
+        );
+      };
+
       return request
-        .andThen(() => session.waitForRequestMessage(RemoteMessageCodec, message => message.messageId === messageId))
+        .andThen(() => session.waitForRequestMessage(RemoteMessageCodec, responseFilter))
         .andThen(message => {
           const { data } = message.payload;
 
@@ -91,7 +100,7 @@ export function createUserSession({
             case 'v1': {
               switch (data.value.tag) {
                 case 'SignResponse':
-                  return ok(data.value.value);
+                  return ok(data.value.value.payload);
                 default:
                   return err(new Error(`Incorrect sign response: ${data.value.tag}`));
               }
