@@ -1,3 +1,5 @@
+export { SS_STABLE_STAGE_ENDPOINTS, SS_UNSTABLE_STAGE_ENDPOINTS } from './constants.js';
+
 export type { PappAdapter } from './papp.js';
 export { createPappAdapter } from './papp.js';
 
