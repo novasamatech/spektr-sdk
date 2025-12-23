@@ -1,7 +1,7 @@
 {
   "name": "@novasamatech/host-api",
   "type": "module",
-  "version": "0.5.0-14",
+  "version": "0.5.0-15",
   "description": "Host API: transport implementation for host - product integration.",
   "license": "Apache-2.0",
   "repository": {
