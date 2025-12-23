@@ -1,5 +1,6 @@
 import type { Statement } from '@polkadot-api/sdk-statement';
 import { Binary } from '@polkadot-api/substrate-bindings';
+import { toHex } from '@polkadot-api/utils';
 import { nanoid } from 'nanoid';
 import { ResultAsync, err, fromPromise, fromThrowable, ok, okAsync } from 'neverthrow';
 import type { Codec } from 'scale-ts';
@@ -39,6 +40,7 @@ export function createSession({
   let subscriptions: VoidFunction[] = [];
 
   function submit(sessionId: SessionId, channel: Uint8Array, data: Uint8Array) {
+    console.log('data', toHex(data));
     return encryption
       .encrypt(data)
       .map<Statement>(data => ({
@@ -61,13 +63,13 @@ export function createSession({
     submitRequestMessage<T>(codec: Codec<T>, message: T) {
       const requestId = nanoid();
       const sessionId = createSessionId(remoteAccount.publicKey, localAccount, remoteAccount);
-      const statementDataCodec = StatementData(codec);
 
-      const encode = fromThrowable(statementDataCodec.enc, toError);
+      const encode = fromThrowable(StatementData.enc, toError);
+      const encoded = codec.enc(message);
 
       const rawData = encode({
         tag: 'request',
-        value: { requestId, data: [message] },
+        value: { requestId, data: [encoded] },
       });
 
       return rawData
@@ -77,9 +79,8 @@ export function createSession({
 
     submitResponseMessage(requestId: string, responseCode: ResponseCode) {
       const sessionId = createSessionId(remoteAccount.publicKey, localAccount, remoteAccount);
-      const statementDataCodec = StatementData(Bytes());
 
-      const encode = fromThrowable(statementDataCodec.enc, toError);
+      const encode = fromThrowable(StatementData.enc, toError);
 
       const rawData = encode({
         tag: 'response',
@@ -128,7 +129,6 @@ export function createSession({
     },
 
     subscribe<T>(codec: Codec<T>, callback: Callback<Message<T>[]>) {
-      const statementDataCodec = StatementData(codec);
       const sessionId = createSessionId(remoteAccount.publicKey, remoteAccount, localAccount);
 
       function processStatement(statement: Statement) {
@@ -140,13 +140,13 @@ export function createSession({
           .verifyMessageProof(statement)
           .andThen(verified => (verified ? ok() : err(new Error('Statement proof is not valid'))))
           .andThen(() => encryption.decrypt(data))
-          .map(statementDataCodec.dec)
+          .map(StatementData.dec)
           .orElse(() => ok(null));
       }
 
       return statementStore.subscribeStatements([sessionId], statements => {
         ResultAsync.combine(statements.map(processStatement))
-          .map(messages => messages.filter(nonNullable).flatMap(toMessage))
+          .map(messages => messages.filter(nonNullable).flatMap(x => toMessage(x, codec)))
           .andTee(messages => {
             if (messages.length > 0) {
               callback(messages);

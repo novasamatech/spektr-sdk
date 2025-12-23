@@ -18,6 +18,7 @@ export const SignPayloadRequestCodec = Struct({
   signedExtensions: Vector(str),
   version: u32,
   assetId: Option(hexCodec),
+  metadataHash: Option(hexCodec),
   mode: Option(u32),
   withSignedTransaction: Option(bool),
 });

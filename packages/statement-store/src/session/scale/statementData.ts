@@ -1,5 +1,4 @@
-import type { Codec } from 'scale-ts';
-import { Enum, Struct, Vector, enhanceCodec, str, u8 } from 'scale-ts';
+import { Bytes, Enum, Struct, Vector, enhanceCodec, str, u8 } from 'scale-ts';
 
 export type ResponseCode = 'success' | 'decryptionFailed' | 'decodingFailed' | 'unknown';
 
@@ -31,21 +30,17 @@ export const ResponseCodeCodec = enhanceCodec<number, ResponseCode>(
   },
 );
 
-export const Request = <T>(data: Codec<T>) => {
-  return Struct({
-    requestId: str,
-    data: Vector(data),
-  });
-};
+export const Request = Struct({
+  requestId: str,
+  data: Vector(Bytes()),
+});
 
 export const Response = Struct({
   requestId: str,
   responseCode: ResponseCodeCodec,
 });
 
-export const StatementData = <T>(data: Codec<T>) => {
-  return Enum({
-    request: Request(data),
-    response: Response,
-  });
-};
+export const StatementData = Enum({
+  request: Request,
+  response: Response,
+});

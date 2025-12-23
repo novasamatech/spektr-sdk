@@ -41,10 +41,13 @@ const SignPayloadExample = ({ session }: { session: UserSession | null }) => {
     version: 4,
     assetId: undefined,
     mode: undefined,
+    metadataHash: undefined,
     withSignedTransaction: false,
   };
 
-  return <button onClick={() => session.signPayload(payload)}>Example sign request</button>;
+  return (
+    <button onClick={() => session.signPayload(payload).match(console.log, console.error)}>Example sign request</button>
+  );
 };
 
 const ConnectButton = () => {
