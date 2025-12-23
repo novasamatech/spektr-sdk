@@ -1,12 +1,15 @@
 import type { CodecType } from 'scale-ts';
-import { Bytes, Option, Struct, str } from 'scale-ts';
+import { Bytes, Option, Result, Struct, str } from 'scale-ts';
+
+export type SignPayloadResponseData = CodecType<typeof SignPayloadResponseDataCodec>;
+export const SignPayloadResponseDataCodec = Struct({
+  signature: Bytes(),
+  signedTransaction: Option(Bytes()),
+});
 
 export type SignPayloadResponse = CodecType<typeof SignPayloadResponseCodec>;
 export const SignPayloadResponseCodec = Struct({
   // referencing to RemoteMessage.messageId
   respondingTo: str,
-  payload: Struct({
-    signature: Bytes(),
-    signedTransaction: Option(Bytes()),
-  }),
+  payload: Result(SignPayloadResponseDataCodec, str),
 });

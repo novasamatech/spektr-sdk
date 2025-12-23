@@ -14,7 +14,7 @@ import type { StoredUserSession } from '../userSessionRepository.js';
 import type { RemoteMessage } from './scale/remoteMessage.js';
 import { RemoteMessageCodec } from './scale/remoteMessage.js';
 import type { SignPayloadRequest } from './scale/signPayloadRequest.js';
-import type { SignPayloadResponse } from './scale/signPayloadResponse.js';
+import type { SignPayloadResponseData } from './scale/signPayloadResponse.js';
 
 type ProcessedMessage =
   | {
@@ -27,7 +27,7 @@ type ProcessedMessage =
 
 export type UserSession = StoredUserSession & {
   sendDisconnectMessage(): ResultAsync<void, Error>;
-  signPayload(payload: SignPayloadRequest): ResultAsync<SignPayloadResponse['payload'], Error>;
+  signPayload(payload: SignPayloadRequest): ResultAsync<SignPayloadResponseData, Error>;
   subscribe(callback: Callback<CodecType<typeof RemoteMessageCodec>, ResultAsync<boolean, Error>>): VoidFunction;
   dispose(): void;
 };
@@ -100,7 +100,11 @@ export function createUserSession({
             case 'v1': {
               switch (data.value.tag) {
                 case 'SignResponse':
-                  return ok(data.value.value.payload);
+                  if (data.value.value.payload.success) {
+                    return ok(data.value.value.payload.value);
+                  } else {
+                    return err(new Error(data.value.value.payload.value));
+                  }
                 default:
                   return err(new Error(`Incorrect sign response: ${data.value.tag}`));
               }
