@@ -10,7 +10,7 @@ export const SignPayloadRequestCodec = Struct({
   blockNumber: hexCodec,
   era: hexCodec,
   genesisHash: hexCodec,
-  method: str,
+  method: hexCodec,
   nonce: hexCodec,
   specVersion: hexCodec,
   tip: hexCodec,
