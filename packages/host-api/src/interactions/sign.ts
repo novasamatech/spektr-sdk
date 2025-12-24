@@ -1,4 +1,4 @@
-import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types';
+import type { SignerPayloadRaw, SignerResult } from '@polkadot/types/types';
 import type { CodecType } from 'scale-ts';
 import { Bytes, Enum, Option, Struct, Vector, _void, bool, str, u16, u32 } from 'scale-ts';
 
@@ -43,7 +43,7 @@ export const signRawRequestV1Encoder = createTransportEncoder<SignerPayloadRaw, 
 /**
  * @see {import('@polkadot/types/types').SignerPayloadJSON}
  */
-export type SignPayloadRequestSchema = CodecType<typeof signPayloadRequestV1Encoder>;
+export type SignPayloadRequest = CodecType<typeof signPayloadRequestV1Encoder>;
 export const signPayloadCodec = Struct({
   address: str,
   blockHash: hexCodec,
@@ -63,48 +63,7 @@ export const signPayloadCodec = Struct({
   withSignedTransaction: Option(bool),
 });
 
-export const signPayloadRequestV1Encoder = createTransportEncoder<SignerPayloadJSON, typeof signPayloadCodec>({
-  codec: signPayloadCodec,
-  from(decoded) {
-    return {
-      address: decoded.address,
-      assetId: decoded.assetId,
-      blockHash: decoded.blockHash,
-      blockNumber: decoded.blockNumber,
-      era: decoded.era,
-      genesisHash: decoded.genesisHash,
-      method: decoded.method,
-      mode: decoded.mode,
-      nonce: decoded.nonce,
-      specVersion: decoded.specVersion,
-      tip: decoded.tip,
-      transactionVersion: decoded.transactionVersion,
-      signedExtensions: decoded.signedExtensions,
-      version: decoded.version,
-      withSignedTransaction: decoded.withSignedTransaction,
-    };
-  },
-  to(value) {
-    return {
-      address: value.address,
-      assetId: value.assetId,
-      blockHash: value.blockHash,
-      blockNumber: value.blockNumber,
-      era: value.era,
-      genesisHash: value.genesisHash,
-      metadataHash: value.metadataHash,
-      method: value.method,
-      mode: value.mode,
-      nonce: value.nonce,
-      specVersion: value.specVersion,
-      tip: value.tip,
-      transactionVersion: value.transactionVersion,
-      signedExtensions: value.signedExtensions,
-      version: value.version,
-      withSignedTransaction: value.withSignedTransaction,
-    };
-  },
-});
+export const signPayloadRequestV1Encoder = signPayloadCodec;
 
 const signResult = Struct({
   id: u32,

@@ -1,4 +1,4 @@
-import type { HexString, Transport, TxPayloadV1 } from '@novasamatech/host-api';
+import type { HexString, SignPayloadRequest, Transport, TxPayloadV1 } from '@novasamatech/host-api';
 import { unwrapResultOrThrow } from '@novasamatech/host-api';
 import { injectExtension } from '@polkadot/extension-inject';
 import type { InjectedAccounts } from '@polkadot/extension-inject/types';
@@ -37,12 +37,12 @@ export async function createExtensionEnableFactory(transport: Transport) {
         get() {
           return transport
             .request({ tag: 'getAccountsRequestV1', value: undefined }, 'getAccountsResponseV1')
-            .then(unwrapResultOrThrow);
+            .then(v => unwrapResultOrThrow(v, e => new Error(e)));
         },
         subscribe(callback) {
           const unsubscribe = transport.subscribe('getAccountsResponseV1', (_, payload) => {
             try {
-              const accounts = unwrapResultOrThrow(payload);
+              const accounts = unwrapResultOrThrow(payload, e => new Error(e));
               callback(accounts);
             } catch {
               transport.provider.logger.error('Failed response on account subscription', payload.value);
@@ -60,17 +60,28 @@ export async function createExtensionEnableFactory(transport: Transport) {
 
       signer: {
         signRaw(raw) {
-          return transport.request({ tag: 'signRawRequestV1', value: raw }, 'signResponseV1').then(unwrapResultOrThrow);
+          return transport
+            .request({ tag: 'signRawRequestV1', value: raw }, 'signResponseV1')
+            .then(v => unwrapResultOrThrow(v, e => new Error(e)));
         },
         signPayload(payload) {
+          const codecPayload: SignPayloadRequest = {
+            ...payload,
+            method: payload.method as HexString,
+            assetId: payload.assetId,
+            mode: payload.mode,
+            withSignedTransaction: payload.withSignedTransaction,
+            metadataHash: payload.metadataHash,
+          };
+
           return transport
-            .request({ tag: 'signPayloadRequestV1', value: payload }, 'signResponseV1')
-            .then(unwrapResultOrThrow);
+            .request({ tag: 'signPayloadRequestV1', value: codecPayload }, 'signResponseV1')
+            .then(v => unwrapResultOrThrow(v, e => new Error(e)));
         },
         createTransaction(payload) {
           return transport
             .request({ tag: 'createTransactionRequestV1', value: payload }, 'createTransactionResponseV1')
-            .then(unwrapResultOrThrow);
+            .then(v => unwrapResultOrThrow(v, e => new Error(e)));
         },
       },
     };

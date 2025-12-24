@@ -4,13 +4,13 @@ import { hexCodec } from '../commonEncoders.js';
 
 export const supportFeatureRequestV1Encoder = Enum({
   chain: Struct({
-    chainId: hexCodec,
+    genesisHash: hexCodec,
   }),
 });
 
 export const supportFeatureResponseV1 = Enum({
   chain: Struct({
-    chainId: hexCodec,
+    genesisHash: hexCodec,
     result: bool,
   }),
 });
