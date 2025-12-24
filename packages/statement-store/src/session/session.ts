@@ -151,6 +151,13 @@ export function createSession({
             if (messages.length > 0) {
               callback(messages);
             }
+          })
+          // TODO rework
+          .andTee(messages => {
+            const requests = messages.filter(m => m.type === 'request').map(m => m.requestId);
+            const responses = requests.map(requestId => session.submitResponseMessage(requestId, 'success'));
+
+            return ResultAsync.combine(responses);
           });
       });
     },
