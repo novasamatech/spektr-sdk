@@ -1,4 +1,3 @@
-import type { PropsWithChildren } from 'react';
 import { memo, useMemo } from 'react';
 
 import { useIdentity } from '../hooks/identity.js';
