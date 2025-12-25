@@ -1,0 +1,61 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 62px 65px;
+}
+
+.genericText {
+  font-family: Inter, sans-serif;
+  font-size: 20px;
+}
+
+.loader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.header {
+  font-family: Inter, sans-serif;
+  text-align: center;
+  font-size: 32px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.83;
+  letter-spacing: -0.573px;
+  margin-bottom: 9px;
+}
+
+.scanCallToAction {
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  font-family: Inter, sans-serif;
+  font-size: 17.789px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 1.883px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.description {
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  font-family: Inter, sans-serif;
+  font-size: 17.789px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  margin-top: 32px;
+}

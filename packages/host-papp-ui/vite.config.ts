@@ -8,6 +8,12 @@ export default defineConfig({
   server: {
     hmr: false,
   },
+  css: {
+    modules: {
+      generateScopedName: 'papp_[name]_[local]_[contenthash:base64:5]',
+      hashPrefix: 'papp-ui',
+    },
+  },
   build: {
     rollupOptions: {
       output: {

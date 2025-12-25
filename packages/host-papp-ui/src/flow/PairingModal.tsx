@@ -3,17 +3,23 @@ import { memo, useMemo } from 'react';
 
 import { useIdentity } from '../hooks/identity.js';
 import { useAuthentication } from '../providers/AuthProvider.js';
+import { useTranslations } from '../providers/TranslationProvider.js';
 import { Button } from '../ui/Button.js';
+import { Loader } from '../ui/Loader.js';
 import { Modal } from '../ui/Modal.js';
 import { QrCode } from '../ui/QrCode.js';
+import type { ThemeVariant } from '../ui/Theme.js';
+import { Theme } from '../ui/Theme.js';
 
-const Text = ({ children }: PropsWithChildren) => (
-  <span style={{ fontSize: '16px', textAlign: 'center', flexShrink: 0, color: 'white', fontFamily: 'sans-serif' }}>
-    {children}
-  </span>
-);
+import styles from './PairingModal.module.css';
 
-export const PairingModal = memo(() => {
+type Props = {
+  theme?: ThemeVariant;
+};
+
+export const PairingModal = memo(({ theme = 'dark' }: Props) => {
+  const translation = useTranslations();
+
   const auth = useAuthentication();
   const open = auth.status.step !== 'none';
 
@@ -33,32 +39,34 @@ export const PairingModal = memo(() => {
   const [identity, identityPending] = useIdentity(signedInUser?.remoteAccount.accountId ?? null);
 
   return (
-    <Modal isOpen={open} onOpenChange={toggleModal} width={300}>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 16,
-          paddingInline: 8,
-          paddingBlock: 16,
-          alignItems: 'center',
-        }}
-      >
-        <Text>Sign in Polkadot app</Text>
-        {auth.status.step === 'error' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <Text>Error: {auth.status.message}</Text>
-            <Button onClick={() => auth.authenticate()}>Retry</Button>
-          </div>
-        )}
-        {auth.status.step === 'attestation' && <Text>Loading...</Text>}
-        {auth.status.step === 'pairing' && <QrCode value={auth.status.payload} size={270} />}
-        {auth.status.step === 'finished' && (
-          <>
-            <Text>Welcome back, {identity?.liteUsername ?? (identityPending ? '...' : 'user')}!</Text>
-          </>
-        )}
-      </div>
-    </Modal>
+    <Theme value={theme}>
+      <Modal isOpen={open} onOpenChange={toggleModal} width={425}>
+        <div className={styles.container}>
+          <span className={styles.header}>{translation.pairingHeader}</span>
+          <span className={styles.scanCallToAction}>{translation.pairingScanCallToAction}</span>
+          {auth.status.step === 'error' && (
+            <div className={styles.error}>
+              <span className={styles.genericText}>{auth.status.message}</span>
+              <Button onClick={() => auth.authenticate()}>{translation.pairingRetry}</Button>
+            </div>
+          )}
+          {auth.status.step === 'attestation' && (
+            <div className={styles.loader}>
+              <Loader size={20} />
+              <span className={styles.genericText}>{translation.pairingAttestationLoader}</span>
+            </div>
+          )}
+          {auth.status.step === 'pairing' && <QrCode value={auth.status.payload} size={270} />}
+          {auth.status.step === 'finished' && (
+            <>
+              <span className={styles.genericText}>
+                {translation.pairingWelcomeMessage} {identity?.liteUsername ?? (identityPending ? '...' : 'user')}!
+              </span>
+            </>
+          )}
+          <span className={styles.description}>{translation.pairingDescription}</span>
+        </div>
+      </Modal>
+    </Theme>
   );
 });
