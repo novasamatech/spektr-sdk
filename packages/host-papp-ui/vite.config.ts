@@ -32,7 +32,7 @@ export default defineConfig({
   plugins: [
     externalizeDeps(),
     react(),
-    dts(),
+    dts({}),
     // @ts-expect-error wasm module types are broken in our setup
     wasm(),
   ],
