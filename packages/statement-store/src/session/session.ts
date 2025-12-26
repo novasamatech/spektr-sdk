@@ -1,6 +1,5 @@
 import type { Statement } from '@polkadot-api/sdk-statement';
 import { Binary } from '@polkadot-api/substrate-bindings';
-import { toHex } from '@polkadot-api/utils';
 import { nanoid } from 'nanoid';
 import { ResultAsync, err, fromPromise, fromThrowable, ok, okAsync } from 'neverthrow';
 import type { Codec } from 'scale-ts';
@@ -40,7 +39,6 @@ export function createSession({
   let subscriptions: VoidFunction[] = [];
 
   function submit(sessionId: SessionId, channel: Uint8Array, data: Uint8Array) {
-    console.log('data', toHex(data));
     return encryption
       .encrypt(data)
       .map<Statement>(data => ({
