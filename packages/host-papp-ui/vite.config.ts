@@ -1,5 +1,5 @@
-import react from '@vitejs/plugin-react';
-import dts from 'vite-plugin-dts';
+import { default as react } from '@vitejs/plugin-react';
+import { default as dts } from 'vite-plugin-dts';
 import { externalizeDeps } from 'vite-plugin-externalize-deps';
 import { default as wasm } from 'vite-plugin-wasm';
 import { defineConfig } from 'vitest/config';
