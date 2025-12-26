@@ -4,10 +4,10 @@ import { createContainer } from '@novasamatech/host-container';
 import { createExtensionEnableFactory } from '@novasamatech/product-sdk';
 
 import type { SignerResult } from '@polkadot/types/types';
-import { default as mitt } from 'mitt';
+import { createNanoEvents } from 'nanoevents';
 import { assert, describe, expect, it, vitest } from 'vitest';
 
-import { createHostApiProviders } from './__mocks__/hostApiProviders';
+import { createHostApiProviders } from './__mocks__/hostApiProviders.js';
 
 async function setup() {
   const providers = createHostApiProviders();
@@ -51,7 +51,7 @@ describe('injected web3 provider', () => {
 
   it('should subscribe accounts', async () => {
     const mockAccounts: InjectedAccountSchema[] = [{ name: 'test', address: '0x00', type: 'sr25519' }];
-    const accountsBus = mitt<{ accounts: InjectedAccountSchema[] }>();
+    const accountsBus = createNanoEvents<{ accounts: (a: InjectedAccountSchema[]) => void }>();
 
     const { container, injected } = await setup();
 
@@ -60,10 +60,7 @@ describe('injected web3 provider', () => {
         return [];
       },
       subscribe(callback) {
-        accountsBus.on('accounts', callback);
-        return () => {
-          accountsBus.off('accounts', callback);
-        };
+        return accountsBus.on('accounts', callback);
       },
     });
 

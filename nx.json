@@ -28,6 +28,21 @@
           "watchDepsName": "watch-deps"
         }
       }
+    },
+    {
+      "plugin": "@nx/storybook/plugin",
+      "options": {
+        "serveStorybookTargetName": "storybook",
+        "buildStorybookTargetName": "build-storybook",
+        "testStorybookTargetName": "test-storybook",
+        "staticStorybookTargetName": "static-storybook"
+      }
+    },
+    {
+      "plugin": "@nx/vite/plugin",
+      "options": {
+        "buildTargetName": "build-vite"
+      }
     }
   ],
   "namedInputs": {
@@ -38,13 +53,14 @@
       "{workspaceRoot}/tsconfig.json",
       "{workspaceRoot}/package.json"
     ],
-    "default": ["{projectRoot}/**/*", "sharedGlobals"]
+    "project": ["{projectRoot}/**/*"],
+    "default": ["project", "sharedGlobals"]
   },
   "targetDefaults": {
     "build": {
       "cache": true,
       "dependsOn": ["^build", "default"],
-      "inputs": ["default"]
+      "inputs": ["^project", "default"]
     },
     "typecheck": {
       "dependsOn": ["^build", "^typecheck", "default"],

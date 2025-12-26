@@ -1,24 +1,19 @@
 import type { TransportProvider } from '@novasamatech/host-api';
 import { createDefaultLogger } from '@novasamatech/host-api';
 
-import { default as mitt } from 'mitt';
+import { createNanoEvents } from 'nanoevents';
 
 export function createHostApiProviders() {
   type Events = 'toHost' | 'toSdk';
-  const bus = mitt<Record<Events, Uint8Array>>();
+  const bus = createNanoEvents<Record<Events, (v: Uint8Array) => void>>();
 
   function createProvider(listenTo: Events, postTo: Events): TransportProvider {
     return {
       logger: createDefaultLogger(),
       isCorrectEnvironment: () => true,
-      dispose: () => bus.off(listenTo),
-      subscribe(callback) {
-        bus.on(listenTo, callback);
-        return () => bus.off(listenTo, callback);
-      },
-      postMessage(message) {
-        bus.emit(postTo, message);
-      },
+      dispose: () => delete bus.events[listenTo],
+      subscribe: callback => bus.on(listenTo, callback),
+      postMessage: message => bus.emit(postTo, message),
     };
   }
 

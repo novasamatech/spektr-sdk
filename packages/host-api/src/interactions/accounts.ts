@@ -2,7 +2,9 @@ import type { InjectedAccount, KeypairType } from '@polkadot-api/pjs-signer';
 import type { Codec, CodecType } from 'scale-ts';
 import { Enum, Option, Struct, Vector, _void, str } from 'scale-ts';
 
-import { createTransportEncoder } from '../createTransportEncoder';
+import { hexCodec } from '../commonEncoders.js';
+import { createTransportEncoder } from '../createTransportEncoder.js';
+import type { HexString } from '../types.js';
 
 const keypairCodec = Enum<Record<KeypairType, Codec<undefined>>>({
   ed25519: _void,
@@ -20,7 +22,7 @@ const keypairEncoder = createTransportEncoder<KeypairType, typeof keypairCodec>(
 
 const injectedAccountCodec = Struct({
   address: str,
-  genesisHash: Option(str),
+  genesisHash: Option(hexCodec),
   name: Option(str),
   type: Option(keypairEncoder),
 });
@@ -37,7 +39,7 @@ const injectedAccountEncoder = createTransportEncoder<InjectedAccount, typeof in
   to(value) {
     return {
       address: value.address,
-      genesisHash: value.genesisHash ? value.genesisHash : undefined,
+      genesisHash: value.genesisHash ? (value.genesisHash as HexString) : undefined,
       name: value.name,
       type: value.type,
     };

@@ -1,0 +1,45 @@
+@keyframes fadeInOpacity {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.backdrop {
+  z-index: 1000;
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  opacity: 1;
+  animation-name: fadeInOpacity;
+  animation-iteration-count: 1;
+  animation-timing-function: ease-in;
+  animation-duration: 0.3s;
+}
+
+.modal {
+  z-index: 1001;
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 300px;
+  height: fit-content;
+  border-radius: 32px;
+  opacity: 1;
+  animation-name: fadeInOpacity;
+  animation-iteration-count: 1;
+  animation-timing-function: ease-in;
+  animation-duration: 0.5s;
+}
+
+.modalLight {
+  background: white;
+  color: black;
+}
+
+.modalDark {
+  background: black;
+  color: white;
+}

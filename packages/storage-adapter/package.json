@@ -1,0 +1,33 @@
+{
+  "name": "@novasamatech/storage-adapter",
+  "type": "module",
+  "version": "0.5.0-17",
+  "description": "Statement store integration",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/novasamatech/spektr-sdk.git"
+  },
+  "keywords": [
+    "polkadot"
+  ],
+  "main": "dist/index.js",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "dependencies": {
+    "nanoevents": "^9.1.0",
+    "neverthrow": "^8.2.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

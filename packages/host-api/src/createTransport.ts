@@ -1,11 +1,16 @@
-import mitt from 'mitt';
+import { createNanoEvents } from 'nanoevents';
 import { nanoid } from 'nanoid';
 
-import { HANDSHAKE_INTERVAL } from './constants';
-import { delay, promiseWithResolvers } from './helpers';
-import type { MessagePayloadSchema, MessageType, PickMessagePayload, PickMessagePayloadValue } from './messageEncoder';
-import { messageEncoder } from './messageEncoder';
-import type { ConnectionStatus, Transport, TransportProvider } from './types';
+import { HANDSHAKE_INTERVAL } from './constants.js';
+import { delay, promiseWithResolvers } from './helpers.js';
+import type {
+  MessagePayloadSchema,
+  MessageType,
+  PickMessagePayload,
+  PickMessagePayloadValue,
+} from './messageEncoder.js';
+import { messageEncoder } from './messageEncoder.js';
+import type { ConnectionStatus, Transport, TransportProvider } from './types.js';
 
 type TransportParams = Partial<{
   handshakeTimeout: number;
@@ -21,8 +26,8 @@ export function createTransport(provider: TransportProvider, params?: TransportP
   let connectionStatus: ConnectionStatus = 'disconnected';
   let disposed = false;
 
-  const events = mitt<{
-    connectionStatus: ConnectionStatus;
+  const events = createNanoEvents<{
+    connectionStatus: (status: ConnectionStatus) => void;
   }>();
 
   events.on('connectionStatus', value => {
@@ -219,20 +224,16 @@ export function createTransport(provider: TransportProvider, params?: TransportP
     },
 
     onConnectionStatusChange(callback: (status: ConnectionStatus) => void) {
-      events.on('connectionStatus', callback);
-
       callback(connectionStatus);
 
-      return () => {
-        events.off('connectionStatus', callback);
-      };
+      return events.on('connectionStatus', callback);
     },
 
     dispose() {
       disposed = true;
       provider.dispose();
       changeConnectionStatus('disconnected');
-      events.all.clear();
+      events.events = {};
       handshakeAbortController.abort('Transport disposed');
     },
   };
@@ -241,7 +242,7 @@ export function createTransport(provider: TransportProvider, params?: TransportP
     transportInstance.handleMessage<'handshakeRequestV1', 'handshakeResponseV1'>('handshakeRequestV1', async () => ({
       tag: 'handshakeResponseV1',
       value: {
-        tag: 'success',
+        success: true,
         value: undefined,
       },
     }));

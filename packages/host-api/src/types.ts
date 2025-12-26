@@ -1,4 +1,9 @@
-import type { MessagePayloadSchema, MessageType, PickMessagePayload, PickMessagePayloadValue } from './messageEncoder';
+import type {
+  MessagePayloadSchema,
+  MessageType,
+  PickMessagePayload,
+  PickMessagePayloadValue,
+} from './messageEncoder.js';
 
 export type HexString = `0x${string}`;
 

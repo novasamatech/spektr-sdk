@@ -5,7 +5,7 @@ import { createSpektrMetaProvider } from '@novasamatech/product-sdk';
 
 import { describe, expect, it } from 'vitest';
 
-import { createHostApiProviders } from './__mocks__/hostApiProviders';
+import { createHostApiProviders } from './__mocks__/hostApiProviders.js';
 
 function setup() {
   const providers = createHostApiProviders();

@@ -1,9 +1,9 @@
 import type { HexString, Transport } from '@novasamatech/host-api';
-import { unwrapResponseOrThrow } from '@novasamatech/host-api';
+import { unwrapResultOrThrow } from '@novasamatech/host-api';
 import type { JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
 import { getSyncProvider } from '@polkadot-api/json-rpc-provider-proxy';
 
-import { defaultTransport } from './defaultTransport';
+import { defaultTransport } from './defaultTransport.js';
 
 type Params = {
   chainId: HexString;
@@ -14,21 +14,24 @@ type InternalParams = {
   transport?: Transport;
 };
 
-export function createSpektrPapiProvider({ chainId, fallback }: Params, internal?: InternalParams): JsonRpcProvider {
+export function createSpektrPapiProvider(
+  { chainId: genesisHash, fallback }: Params,
+  internal?: InternalParams,
+): JsonRpcProvider {
   const transport = internal?.transport ?? defaultTransport;
   if (!transport.isCorrectEnvironment()) return fallback;
 
   const spektrProvider: JsonRpcProvider = onMessage => {
     const unsubscribe = transport.subscribe('papiProviderReceiveMessageV1', (_, payload) => {
-      const unwrapped = unwrapResponseOrThrow(payload);
-      if (unwrapped.chainId === chainId) {
+      const unwrapped = unwrapResultOrThrow(payload, e => new Error(e));
+      if (unwrapped.genesisHash === genesisHash) {
         onMessage(unwrapped.message);
       }
     });
 
     return {
       send(message) {
-        transport.postMessage('_', { tag: 'papiProviderSendMessageV1', value: { chainId, message } });
+        transport.postMessage('_', { tag: 'papiProviderSendMessageV1', value: { genesisHash, message } });
       },
       disconnect() {
         unsubscribe();
@@ -42,13 +45,13 @@ export function createSpektrPapiProvider({ chainId, fallback }: Params, internal
 
       return transport
         .request(
-          { tag: 'supportFeatureRequestV1', value: { tag: 'chain', value: { chainId } } },
+          { tag: 'supportFeatureRequestV1', value: { tag: 'chain', value: { genesisHash } } },
           'supportFeatureResponseV1',
         )
         .then(payload => {
-          const result = unwrapResponseOrThrow(payload);
+          const result = unwrapResultOrThrow(payload, e => new Error(e));
 
-          if (result.tag === 'chain' && result.value.chainId === chainId) {
+          if (result.tag === 'chain' && result.value.genesisHash === genesisHash) {
             return result.value.result;
           }
         })

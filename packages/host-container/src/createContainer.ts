@@ -9,12 +9,18 @@ import { createTransport } from '@novasamatech/host-api';
 import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types';
 import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
 
-import { createComplexSubscriber } from './createComplexSubscriber';
+import { createComplexSubscriber } from './createComplexSubscriber.js';
 
-function formatError(e: unknown) {
-  const message = e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';
+function errorToString(e: unknown) {
+  return e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';
+}
 
-  return { tag: 'error' as const, value: message };
+function formatOk<const T>(value: T) {
+  return { success: true as const, value };
+}
+
+function formatErr<const T>(e: T) {
+  return { success: false as const, value: e };
 }
 
 type ContainerHandlers = {
@@ -27,7 +33,7 @@ type ContainerHandlers = {
     signPayload(payload: SignerPayloadJSON): Promise<SignerResult>;
     createTransaction(payload: TxPayloadV1): Promise<HexString>;
   };
-  chainSupport(chainId: HexString): Promise<boolean>;
+  chainSupport(genesisHash: HexString): Promise<boolean>;
 };
 
 type Params = {
@@ -68,12 +74,12 @@ export function createContainer(provider: TransportProvider, params?: Params) {
 
       return {
         tag: 'getAccountsResponseV1',
-        value: { tag: 'success', value: accounts },
+        value: formatOk(accounts),
       };
     } catch (e) {
       return {
         tag: 'getAccountsResponseV1',
-        value: formatError(e),
+        value: formatErr(errorToString(e)),
       };
     }
   });
@@ -90,7 +96,7 @@ export function createContainer(provider: TransportProvider, params?: Params) {
             return subscriber(accounts => {
               callback({
                 tag: 'getAccountsResponseV1',
-                value: { tag: 'success', value: accounts },
+                value: formatOk(accounts),
               });
             });
           };
@@ -106,12 +112,12 @@ export function createContainer(provider: TransportProvider, params?: Params) {
       const result = await signRaw(message);
       return {
         tag: 'signResponseV1',
-        value: { tag: 'success', value: result },
+        value: formatOk(result),
       };
     } catch (e) {
       return {
         tag: 'signResponseV1',
-        value: formatError(e),
+        value: formatErr(errorToString(e)),
       };
     }
   });
@@ -122,12 +128,12 @@ export function createContainer(provider: TransportProvider, params?: Params) {
       const result = await signPayload(message);
       return {
         tag: 'signResponseV1',
-        value: { tag: 'success', value: result },
+        value: formatOk(result),
       };
     } catch (e) {
       return {
         tag: 'signResponseV1',
-        value: formatError(e),
+        value: formatErr(errorToString(e)),
       };
     }
   });
@@ -140,12 +146,12 @@ export function createContainer(provider: TransportProvider, params?: Params) {
         const result = await createTransaction(message);
         return {
           tag: 'createTransactionResponseV1',
-          value: { tag: 'success', value: result },
+          value: formatOk(result),
         };
       } catch (e) {
         return {
           tag: 'createTransactionResponseV1',
-          value: formatError(e),
+          value: formatErr(errorToString(e)),
         };
       }
     },
@@ -159,18 +165,15 @@ export function createContainer(provider: TransportProvider, params?: Params) {
       if (message.tag === 'chain') {
         try {
           const checkChainSupport = externalHandlers.chainSupport ?? defaultHandlers.chainSupport;
-          const result = await checkChainSupport(message.value.chainId);
+          const result = await checkChainSupport(message.value.genesisHash);
           return {
             tag: 'supportFeatureResponseV1',
-            value: {
-              tag: 'success',
-              value: { tag: 'chain', value: { chainId: message.value.chainId, result } },
-            },
+            value: formatOk({ tag: 'chain', value: { genesisHash: message.value.genesisHash, result } }),
           };
         } catch (e) {
           return {
             tag: 'supportFeatureResponseV1',
-            value: formatError(e),
+            value: formatErr(errorToString(e)),
           };
         }
       }
@@ -183,7 +186,7 @@ export function createContainer(provider: TransportProvider, params?: Params) {
   }
 
   return {
-    connectToPapiProvider(chainId: HexString, provider: JsonRpcProvider) {
+    connectToPapiProvider(genesisHash: HexString, provider: JsonRpcProvider) {
       init();
 
       let connection: JsonRpcConnection | null = null;
@@ -193,12 +196,12 @@ export function createContainer(provider: TransportProvider, params?: Params) {
           connection = provider(message => {
             transport.postMessage('_', {
               tag: 'papiProviderReceiveMessageV1',
-              value: { tag: 'success', value: { chainId, message } },
+              value: formatOk({ genesisHash, message }),
             });
           });
         }
 
-        if (message.chainId === chainId) {
+        if (message.genesisHash === genesisHash) {
           connection.send(message.message);
         }
       });
