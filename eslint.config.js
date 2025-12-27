@@ -2,8 +2,8 @@ import js from '@eslint/js';
 import nx from '@nx/eslint-plugin';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
-import {importX} from 'eslint-plugin-import-x'
-import {defineConfig, globalIgnores} from 'eslint/config';
+import { importX } from 'eslint-plugin-import-x';
+import { defineConfig, globalIgnores } from 'eslint/config';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 
 export default defineConfig([
@@ -26,6 +26,15 @@ export default defineConfig([
     },
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
       '@nx/enforce-module-boundaries': [
         'error',
         {
@@ -57,9 +66,8 @@ export default defineConfig([
               pattern: '@novasamatech/*',
               position: 'after',
             },
-          ]
+          ],
         },
-
       ],
     },
   },

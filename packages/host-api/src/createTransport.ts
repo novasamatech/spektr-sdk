@@ -1,22 +1,33 @@
 import { createNanoEvents } from 'nanoevents';
 import { nanoid } from 'nanoid';
 
-import { HANDSHAKE_INTERVAL } from './constants.js';
-import { delay, promiseWithResolvers } from './helpers.js';
+import { HANDSHAKE_INTERVAL, JAM_CODEC_PROTOCOL_ID } from './constants.js';
+import {
+  composeAction,
+  delay,
+  enumValue,
+  errResult,
+  isEnumVariant,
+  okResult,
+  promiseWithResolvers,
+} from './helpers.js';
 import type {
-  MessagePayloadSchema,
-  MessageType,
+  ComposeMessageAction,
+  MessageActionByVersion,
+  MessageVersion,
   PickMessagePayload,
   PickMessagePayloadValue,
-} from './messageEncoder.js';
-import { messageEncoder } from './messageEncoder.js';
-import type { ConnectionStatus, Transport, TransportProvider } from './types.js';
+} from './interactions/message.js';
+import { Message } from './interactions/message.js';
+import type { ConnectionStatus, SubscriptionHandler, Transport, TransportProvider } from './types.js';
 
 type TransportParams = Partial<{
   handshakeTimeout: number;
 }>;
 
 export function createTransport(provider: TransportProvider, params?: TransportParams): Transport {
+  let codecVersion = JAM_CODEC_PROTOCOL_ID;
+
   const handshakeTimeout = params?.handshakeTimeout ?? Number.POSITIVE_INFINITY;
 
   const handshakeAbortController = new AbortController();
@@ -50,6 +61,18 @@ export function createTransport(provider: TransportProvider, params?: TransportP
     }
   }
 
+  function throwIfInvalidCodecVersion() {
+    if (codecVersion !== JAM_CODEC_PROTOCOL_ID) {
+      throw new Error(`Unsupported codec version: ${codecVersion}`);
+    }
+  }
+
+  function checks() {
+    throwIfDisposed();
+    throwIfIncorrectEnvironment();
+    throwIfInvalidCodecVersion();
+  }
+
   function connectionStatusToBoolean(connectionStatus: ConnectionStatus) {
     switch (connectionStatus) {
       case 'disconnected':
@@ -68,8 +91,7 @@ export function createTransport(provider: TransportProvider, params?: TransportP
     },
 
     isReady() {
-      throwIfIncorrectEnvironment();
-      throwIfDisposed();
+      checks();
 
       if (connectionStatusResolved) {
         return Promise.resolve(connectionStatusToBoolean(connectionStatus));
@@ -86,7 +108,7 @@ export function createTransport(provider: TransportProvider, params?: TransportP
       const request = new Promise<boolean>(resolve => {
         const id = nanoid();
 
-        const unsubscribe = transportInstance.subscribe('handshakeResponseV1', responseId => {
+        const unsubscribe = transportInstance.listenMessages('v1', 'handshake_response', responseId => {
           if (responseId !== id) return;
           clearInterval(interval);
           unsubscribe();
@@ -104,7 +126,7 @@ export function createTransport(provider: TransportProvider, params?: TransportP
             return;
           }
 
-          transportInstance.postMessage(id, { tag: 'handshakeRequestV1', value: undefined });
+          transportInstance.postMessage(id, enumValue('v1', enumValue('handshake_request', codecVersion)));
         }, HANDSHAKE_INTERVAL);
       });
 
@@ -131,95 +153,200 @@ export function createTransport(provider: TransportProvider, params?: TransportP
       return handshakePromise;
     },
 
-    subscribeAny(callback) {
-      throwIfIncorrectEnvironment();
-      throwIfDisposed();
-
-      return provider.subscribe(message => {
-        let result;
-        try {
-          result = messageEncoder.dec(message);
-        } catch {
-          return;
-        }
-
-        callback(result.id, result.payload);
-      });
-    },
-
-    subscribe<const Type extends MessageType>(
-      type: Type,
-      callback: (id: string, payload: PickMessagePayloadValue<Type>) => void,
+    async request<const V extends MessageVersion, const Method extends string>(
+      version: V,
+      method: Method,
+      payload: PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'request'>>,
+      signal?: AbortSignal,
     ) {
-      throwIfIncorrectEnvironment();
-      throwIfDisposed();
-
-      return transportInstance.subscribeAny((id, message) => {
-        if (message.tag == type) {
-          callback(id, message.value as PickMessagePayloadValue<Type>);
-        }
-      });
-    },
-
-    postMessage(id, payload) {
-      throwIfIncorrectEnvironment();
-      throwIfDisposed();
-
-      const encoded = messageEncoder.enc({ id, payload });
-      provider.postMessage(encoded);
-      return id;
-    },
-
-    async request<Response extends MessageType>(
-      payload: MessagePayloadSchema,
-      response: Response,
-      abortSignal?: AbortSignal,
-    ) {
-      throwIfIncorrectEnvironment();
-      throwIfDisposed();
+      checks();
 
       const ready = await transportInstance.isReady();
       if (!ready) {
         throw new Error('Polkadot host is not ready');
       }
 
-      abortSignal?.throwIfAborted();
+      signal?.throwIfAborted();
 
       const requestId = nanoid();
-      const { resolve, reject, promise } = promiseWithResolvers<PickMessagePayloadValue<Response>>();
 
-      const unsubscribe = transportInstance.subscribe(response, (receivedId, payload) => {
+      const requestAction = composeAction(version, method, 'request');
+      const responseAction = composeAction(version, method, 'response');
+
+      const { resolve, reject, promise } =
+        promiseWithResolvers<PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'response'>>>();
+
+      const unsubscribe = transportInstance.listenMessages(version, responseAction, (receivedId, payload) => {
         if (receivedId === requestId) {
-          abortSignal?.removeEventListener('abort', stop);
           unsubscribe();
-          resolve(payload as PickMessagePayloadValue<Response>);
+          unsubscribeSignal();
+          resolve(payload.value as PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'response'>>);
         }
       });
 
       const stop = () => {
         unsubscribe();
-        reject(abortSignal?.reason ?? new Error('Request aborted'));
+        unsubscribeSignal();
+        reject(signal?.reason ?? new Error('Request aborted'));
       };
 
-      abortSignal?.addEventListener('abort', stop, { once: true });
+      const unsubscribeSignal = () => {
+        signal?.removeEventListener('abort', stop);
+      };
 
-      transportInstance.postMessage(requestId, payload);
+      signal?.addEventListener('abort', stop, { once: true });
+
+      const requestMessage = enumValue(
+        version,
+        enumValue(requestAction, payload) as never as PickMessagePayload<V, ComposeMessageAction<V, Method, 'request'>>,
+      );
+
+      transportInstance.postMessage(requestId, requestMessage);
 
       return promise;
     },
 
-    handleMessage<Request extends MessageType, Response extends MessageType>(
-      type: Request,
-      handler: (message: PickMessagePayloadValue<Request>) => Promise<PickMessagePayload<Response> | void>,
+    handleRequest<const V extends MessageVersion, const Method extends string>(
+      version: V,
+      method: Method,
+      handler: (
+        message: PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'request'>>,
+      ) => Promise<PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'response'>>>,
     ) {
-      throwIfIncorrectEnvironment();
-      throwIfDisposed();
+      checks();
 
-      return transportInstance.subscribe(type, (id, payload) => {
-        handler(payload).then(result => {
-          if (!result) return;
-          transportInstance.postMessage(id, result);
-        });
+      const requestAction = composeAction(version, method, 'request');
+      const responseAction = composeAction(version, method, 'response');
+
+      return transportInstance.listenMessages(version, requestAction, (requestId, payload) => {
+        handler(payload.value as PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'request'>>).then(
+          result => {
+            const responseMessage = enumValue(
+              version,
+              enumValue(responseAction, result) as never as PickMessagePayload<
+                V,
+                ComposeMessageAction<V, Method, 'response'>
+              >,
+            );
+
+            transportInstance.postMessage(requestId, responseMessage);
+          },
+        );
+      });
+    },
+
+    subscribe<const V extends MessageVersion, const Method extends string>(
+      version: V,
+      method: Method,
+      payload: PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'start'>>,
+      callback: (payload: PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'receive'>>) => void,
+    ) {
+      checks();
+
+      const requestId = nanoid();
+
+      const startAction = composeAction(version, method, 'start');
+      const stopAction = composeAction(version, method, 'stop');
+      const receiveAction = composeAction(version, method, 'receive');
+
+      const unsubscribe = transportInstance.listenMessages(version, receiveAction, (receivedId, data) => {
+        if (receivedId === requestId) {
+          callback(data.value as PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'receive'>>);
+        }
+      });
+
+      const startPayload = enumValue(startAction, payload) as never as PickMessagePayload<
+        V,
+        ComposeMessageAction<V, Method, 'start'>
+      >;
+
+      transportInstance.postMessage(requestId, enumValue('v1', startPayload));
+
+      return () => {
+        unsubscribe();
+
+        const stopPayload = enumValue(stopAction, undefined) as PickMessagePayload<
+          V,
+          ComposeMessageAction<V, Method, 'stop'>
+        >;
+
+        transportInstance.postMessage(requestId, enumValue('v1', stopPayload));
+      };
+    },
+
+    handleSubscription<const V extends MessageVersion, const Method extends string>(
+      version: V,
+      method: Method,
+      handler: SubscriptionHandler<V, Method>,
+    ) {
+      checks();
+
+      const startAction = composeAction(version, method, 'start');
+      const stopAction = composeAction(version, method, 'stop');
+      const receiveAction = composeAction(version, method, 'receive');
+
+      const subscriptions: Map<string, VoidFunction> = new Map();
+
+      const unsubStart = transportInstance.listenMessages(version, startAction, (requestId, payload) => {
+        if (subscriptions.has(requestId)) {
+          // subscription already exists
+          return null;
+        }
+
+        subscriptions.set(
+          requestId,
+          handler(payload.value as PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'start'>>, value => {
+            const receivePayload = enumValue(receiveAction, value) as never as PickMessagePayload<
+              V,
+              ComposeMessageAction<V, Method, 'receive'>
+            >;
+
+            transportInstance.postMessage(requestId, enumValue(version, receivePayload));
+          }),
+        );
+      });
+
+      const unsubStop = transportInstance.listenMessages(version, stopAction, requestId => {
+        const unsubscribe = subscriptions.get(requestId);
+        unsubscribe?.();
+      });
+
+      return () => {
+        for (const unsub of subscriptions.values()) {
+          unsub();
+        }
+
+        unsubStart();
+        unsubStop();
+      };
+    },
+
+    postMessage(requestId, payload) {
+      checks();
+
+      const encoded = Message.enc({ requestId, payload });
+      provider.postMessage(encoded);
+    },
+
+    listenMessages<const V extends MessageVersion, const Action extends MessageActionByVersion<V>>(
+      version: V,
+      action: Action,
+      callback: (requestId: string, data: PickMessagePayload<V, Action>) => void,
+    ) {
+      return provider.subscribe(message => {
+        let result;
+        try {
+          result = Message.dec(message);
+        } catch {
+          return;
+        }
+
+        if (isEnumVariant(result.payload, version)) {
+          const value = result.payload.value;
+          if (isEnumVariant(value, action)) {
+            callback(result.requestId, value as PickMessagePayload<V, Action>);
+          }
+        }
       });
     },
 
@@ -239,13 +366,16 @@ export function createTransport(provider: TransportProvider, params?: TransportP
   };
 
   if (provider.isCorrectEnvironment()) {
-    transportInstance.handleMessage<'handshakeRequestV1', 'handshakeResponseV1'>('handshakeRequestV1', async () => ({
-      tag: 'handshakeResponseV1',
-      value: {
-        success: true,
-        value: undefined,
-      },
-    }));
+    transportInstance.handleRequest('v1', 'handshake', async version => {
+      codecVersion = version;
+
+      switch (version) {
+        case JAM_CODEC_PROTOCOL_ID:
+          return okResult(undefined);
+        default:
+          return errResult(enumValue('UnsupportedProtocolVersion', undefined));
+      }
+    });
   }
 
   return transportInstance;

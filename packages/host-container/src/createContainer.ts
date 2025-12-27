@@ -1,10 +1,4 @@
-import type {
-  ConnectionStatus,
-  HexString,
-  InjectedAccountSchema,
-  TransportProvider,
-  TxPayloadV1,
-} from '@novasamatech/host-api';
+import type { ConnectionStatus, HexString, TransportProvider } from '@novasamatech/host-api';
 import { createTransport } from '@novasamatech/host-api';
 import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types';
 import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
@@ -25,7 +19,7 @@ function formatErr<const T>(e: T) {
 
 type ContainerHandlers = {
   accounts: {
-    get(): Promise<InjectedAccountSchema[]>;
+    get(): Promise<InjectedAccount[]>;
     subscribe(callback: (accounts: InjectedAccountSchema[]) => void): VoidFunction;
   };
   sign: {
@@ -106,10 +100,29 @@ export function createContainer(provider: TransportProvider, params?: Params) {
 
   // sign subscription
 
-  transport.handleMessage<'signRawRequestV1', 'signResponseV1'>('signRawRequestV1', async message => {
+  transport.handleRequest('v1', 'sign_raw', async message => {
     try {
       const signRaw = externalHandlers.sign?.signRaw ?? defaultHandlers.sign.signRaw;
-      const result = await signRaw(message);
+      let payload: SignerPayloadRaw;
+
+      switch (message.data.tag) {
+        case 'Bytes':
+          payload = {
+            address: message.address,
+            data: toHex(message.data.value),
+            type: 'bytes',
+          };
+          break;
+        case 'Payload':
+          payload = {
+            address: message.address,
+            data: message.data.value,
+            type: 'payload',
+          };
+          break;
+      }
+
+      const result = await signRaw(payload);
       return {
         tag: 'signResponseV1',
         value: formatOk(result),

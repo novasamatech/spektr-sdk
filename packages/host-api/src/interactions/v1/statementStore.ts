@@ -1,0 +1,88 @@
+import { Bytes, Enum, Option, Result, Struct, Tuple, Vector, _void, u32, u64 } from 'scale-ts';
+
+import { GenericErr } from '../commonCodecs.js';
+
+import { ProductAccountId } from './accounts.js';
+
+// structs definition
+
+export const Topic = Bytes(32);
+export const Channel = Bytes(32);
+export const DecryptionKey = Bytes(32);
+
+// Proof structures
+const Sr25519StatementProof = Struct({
+  signature: Bytes(64),
+  signer: Bytes(32),
+});
+
+const Ed25519StatementProof = Struct({
+  signature: Bytes(64),
+  signer: Bytes(32),
+});
+
+const EcdsaStatementProof = Struct({
+  signature: Bytes(65),
+  signer: Bytes(33),
+});
+
+const OnChainStatementProof = Struct({
+  who: Bytes(32),
+  blockHash: Bytes(32),
+  event: u64,
+});
+
+const StatementProof = Enum({
+  Sr25519: Sr25519StatementProof,
+  Ed25519: Ed25519StatementProof,
+  Ecdsa: EcdsaStatementProof,
+  OnChain: OnChainStatementProof,
+});
+
+export const Statement = Struct({
+  proof: Option(StatementProof),
+  decryptionKey: Option(DecryptionKey),
+  priority: Option(u32),
+  channel: Option(Channel),
+  topics: Vector(Topic),
+  data: Option(Bytes()),
+});
+
+export const SignedStatement = Struct({
+  proof: StatementProof,
+  decryptionKey: Option(DecryptionKey),
+  priority: Option(u32),
+  channel: Option(Channel),
+  topics: Vector(Topic),
+  data: Option(Bytes()),
+});
+
+// requesting
+
+export const StatementStoreQueryV1_request = Vector(Topic);
+export const StatementStoreQueryV1_response = Result(Vector(Statement), GenericErr);
+
+export const StatementStoreSubscribeV1_start = Vector(Topic);
+export const StatementStoreSubscribeV1_receive = Vector(Statement);
+
+// creating proof
+
+export const StatementProofErr = Enum({
+  UnableToSign: _void,
+  UnknownAccount: _void,
+  Unknown: GenericErr,
+});
+
+export const StatementStoreCreateProofV1_request = Tuple(ProductAccountId, Statement);
+export const StatementStoreCreateProofV1_response = Result(StatementProof, StatementProofErr);
+
+// submitting
+
+export const StatementSubmitErr = Enum({
+  StoreIsFull: _void,
+  // TBD based on statement store implementation
+  Unknown: GenericErr,
+});
+
+export const StatementStoreSubmitV1_request = SignedStatement;
+export const StatementStoreSubmitV1_response = Result(_void, StatementSubmitErr);

@@ -1,17 +1,14 @@
-export { messageEncoder, unwrapResultOrThrow } from './messageEncoder.js';
+export type { ConnectionStatus, Logger, Transport, TransportProvider } from './types.js';
+export { enumValue, errResult, isEnumVariant, okResult, unwrapResultOrThrow } from './helpers.js';
+
+export type { HexString } from './interactions/types.js';
+
+export { Message } from './interactions/message.js';
 export {
-  type MessagePayloadSchema,
-  type MessageType,
+  type MessageActionByVersion,
   type PickMessagePayload,
   type PickMessagePayloadValue,
-} from './messageEncoder.js';
+} from './interactions/message.js';
 
 export { createTransport } from './createTransport.js';
-export type { ConnectionStatus, HexString, Logger, Transport, TransportProvider } from './types.js';
-
 export { createDefaultLogger } from './logger.js';
-
-export { type InjectedAccountSchema } from './interactions/accounts.js';
-export { type SignPayloadRequest, type TxPayloadV1 } from './interactions/sign.js';
-
-export { signPayloadCodec } from './interactions/sign.js';
