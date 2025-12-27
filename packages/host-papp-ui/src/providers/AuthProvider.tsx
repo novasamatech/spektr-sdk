@@ -1,11 +1,12 @@
-import type { AuthentificationStatus, UserSession } from '@novasamatech/host-papp';
+import type { AttestationStatus, PairingStatus, UserSession } from '@novasamatech/host-papp';
 import type { PropsWithChildren } from 'react';
 import { createContext, useCallback, useContext, useDebugValue, useState, useSyncExternalStore } from 'react';
 
 import { usePapp } from '../flow/PappProvider.js';
 
 type Auth = {
-  status: AuthentificationStatus;
+  pairingStatus: PairingStatus;
+  attestationStatus: AttestationStatus;
   pending: boolean;
   authenticate(): Promise<void>;
   abortAuthentication(): void;
@@ -13,7 +14,8 @@ type Auth = {
 };
 
 const Context = createContext<Auth>({
-  status: { step: 'none' },
+  pairingStatus: { step: 'none' },
+  attestationStatus: { step: 'none' },
   pending: false,
   authenticate: () => Promise.resolve(),
   abortAuthentication() {
@@ -28,20 +30,33 @@ export const useAuthentication = () => {
   return useContext(Context);
 };
 
-const useAuthStatus = () => {
+const usePairingStatus = () => {
   const provider = usePapp();
-  const authStatus = useSyncExternalStore(provider.sso.status.subscribe, provider.sso.status.read);
+  const pairingStatus = useSyncExternalStore(provider.sso.pairingStatus.subscribe, provider.sso.pairingStatus.read);
 
-  useDebugValue(`Polkadot app authentification status: ${authStatus.step}`);
+  useDebugValue(`Polkadot app pairing status: ${pairingStatus.step}`);
 
-  return authStatus;
+  return pairingStatus;
+};
+
+const useAttestationStatus = () => {
+  const provider = usePapp();
+  const attestationStatus = useSyncExternalStore(
+    provider.sso.attestationStatus.subscribe,
+    provider.sso.attestationStatus.read,
+  );
+
+  useDebugValue(`Polkadot app attestation status: ${attestationStatus.step}`);
+
+  return attestationStatus;
 };
 
 export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [pending, setPending] = useState(false);
   const provider = usePapp();
 
-  const status = useAuthStatus();
+  const pairingStatus = usePairingStatus();
+  const attestationStatus = useAttestationStatus();
 
   const authenticate = useCallback(() => {
     setPending(true);
@@ -63,7 +78,8 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
   const state: Auth = {
     pending,
-    status,
+    pairingStatus,
+    attestationStatus,
     authenticate,
     abortAuthentication: provider.sso.abortAuthentication,
     disconnect,

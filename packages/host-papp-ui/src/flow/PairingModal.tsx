@@ -1,10 +1,12 @@
-import { memo, useMemo } from 'react';
+import type { AccountId } from '@novasamatech/statement-store';
+import { memo } from 'react';
 
+import { useAuthStatus } from '../hooks/authStatus.js';
 import { useIdentity } from '../hooks/identity.js';
 import { useAuthentication } from '../providers/AuthProvider.js';
 import { useTranslations } from '../providers/TranslationProvider.js';
 import { Button } from '../ui/Button.js';
-import { Loader } from '../ui/Loader.js';
+import { Logo } from '../ui/Logo.js';
 import { Modal } from '../ui/Modal.js';
 import { QrCode } from '../ui/QrCode.js';
 import type { ThemeVariant } from '../ui/Theme.js';
@@ -17,55 +19,92 @@ type Props = {
 };
 
 export const PairingModal = memo(({ theme = 'dark' }: Props) => {
-  const translation = useTranslations();
-
   const auth = useAuthentication();
-  const open = auth.status.step !== 'none';
+  const { status } = useAuthStatus();
+
+  const open = status.step !== 'none';
 
   const toggleModal = (open: boolean) => {
-    if (!open) {
+    if (!open && status.step !== 'attestation') {
       auth.abortAuthentication();
     }
   };
 
-  const signedInUser = useMemo(() => {
-    if (auth.status.step === 'finished') {
-      return auth.status.session;
-    }
-    return null;
-  }, [auth.status.step]);
-
-  const [identity, identityPending] = useIdentity(signedInUser?.remoteAccount.accountId ?? null);
-
   return (
     <Theme value={theme}>
-      <Modal isOpen={open} onOpenChange={toggleModal} width={425}>
+      <Modal open={open} onOpenChange={toggleModal} width="fit-content">
         <div className={styles.container}>
-          <span className={styles.header}>{translation.pairingHeader}</span>
-          <span className={styles.scanCallToAction}>{translation.pairingScanCallToAction}</span>
-          {auth.status.step === 'error' && (
-            <div className={styles.error}>
-              <span className={styles.genericText}>{auth.status.message}</span>
-              <Button onClick={() => auth.authenticate()}>{translation.pairingRetry}</Button>
-            </div>
-          )}
-          {auth.status.step === 'attestation' && (
-            <div className={styles.loader}>
-              <Loader size={20} />
-              <span className={styles.genericText}>{translation.pairingAttestationLoader}</span>
-            </div>
-          )}
-          {auth.status.step === 'pairing' && <QrCode value={auth.status.payload} size={270} />}
-          {auth.status.step === 'finished' && (
-            <>
-              <span className={styles.genericText}>
-                {translation.pairingWelcomeMessage} {identity?.liteUsername ?? (identityPending ? '...' : 'user')}!
-              </span>
-            </>
-          )}
-          <span className={styles.description}>{translation.pairingDescription}</span>
+          {status.step === 'pairing' && <PairingStep payload={status.payload} />}
+          {status.step === 'pairingError' && <PairingErrorStep message={status.message} />}
+          {status.step === 'attestation' && <LoadingStep />}
+          {status.step === 'attestationError' && <PairingErrorStep message={status.message} />}
+          {status.step === 'finished' && <FinishedStep accountId={status.session.remoteAccount.accountId} />}
         </div>
       </Modal>
     </Theme>
   );
 });
+
+const PairingStep = ({ payload }: { payload: string }) => {
+  const translation = useTranslations();
+
+  return (
+    <div className={styles.pairingContainer}>
+      <span className={styles.pairingHeader}>{translation.pairingHeader}</span>
+      <span className={styles.scanCallToAction}>{translation.pairingScanCallToAction}</span>
+      <QrCode value={payload} size={270} />
+      <span className={styles.pairingDescription}>{translation.pairingDescription}</span>
+    </div>
+  );
+};
+
+const LoadingStep = () => {
+  const translation = useTranslations();
+
+  return (
+    <div className={styles.loaderContainer}>
+      <div className={styles.spinner}>
+        <Logo />
+      </div>
+      <span className={styles.loaderText}>{translation.pairingLoader}</span>
+    </div>
+  );
+};
+
+const FinishedStep = ({ accountId }: { accountId: AccountId }) => {
+  const auth = useAuthentication();
+
+  const [identity, identityPending] = useIdentity(accountId);
+
+  return (
+    <div className={styles.finishedContainer}>
+      <div className={styles.finishedLogo}>
+        <Logo size={52} />
+        <div className={styles.finishedLogoTitle}>Polkadot</div>
+      </div>
+      <div className={styles.finishedWelcome}>Welcome to Polkadot</div>
+      <div className={styles.finishedUsername}>
+        {identity?.fullUsername ?? identity?.liteUsername ?? (identityPending ? 'Loading...' : 'Unknown user')}
+      </div>
+      <div className={styles.finishedVoucher}></div>
+      <div className={styles.finishedButton}>
+        <Button onClick={() => auth.abortAuthentication()}>Let's go</Button>
+      </div>
+    </div>
+  );
+};
+
+const PairingErrorStep = ({ message }: { message: string }) => {
+  const auth = useAuthentication();
+  const translation = useTranslations();
+
+  return (
+    <div className={styles.errorContainer}>
+      <span className={styles.errorTitle}>Sorry, we've got some troubles!</span>
+      <span className={styles.genericText}>{message}</span>
+      <div className={styles.errorButton}>
+        <Button onClick={() => auth.authenticate()}>{translation.pairingRetry}</Button>
+      </div>
+    </div>
+  );
+};

@@ -23,7 +23,7 @@ import { createStoredUserSession } from '../userSessionRepository.js';
 
 import { createAliceVerifier, createAttestationService } from './attestationService.js';
 import { HandshakeData, HandshakeResponsePayload, HandshakeResponseSensitiveData } from './scale/handshake.js';
-import type { AuthentificationStatus } from './types.js';
+import type { AttestationStatus, PairingStatus } from './types.js';
 
 export type AuthComponent = ReturnType<typeof createAuth>;
 
@@ -42,74 +42,102 @@ export function createAuth({
   userSecretRepository,
   lazyClient,
 }: Params) {
-  const authStatus = createState<AuthentificationStatus>({ step: 'none' });
+  const attestationStatus = createState<AttestationStatus>({ step: 'none' });
+  const pairingStatus = createState<PairingStatus>({ step: 'none' });
 
   let authResult: ResultAsync<StoredUserSession | null, Error> | null = null;
   let abort: AbortController | null = null;
 
-  function attestateAccount(account: DerivedSr25519Account, signal: AbortSignal) {
+  function attestAccount(account: DerivedSr25519Account, signal: AbortSignal) {
     const attestationService = createAttestationService(lazyClient);
-
-    authStatus.write({ step: 'attestation' });
 
     const verifier = createAliceVerifier();
     const username = attestationService.claimUsername();
+
+    attestationStatus.write({ step: 'attestation', username });
 
     return attestationService
       .grantVerifierAllowance(verifier)
       .andThrough(() => processSignal(signal))
       .andThen(() => attestationService.registerLitePerson(username, account, verifier))
-      .andThrough(() => processSignal(signal));
+      .andThrough(() => processSignal(signal))
+      .andTee(() => {
+        attestationStatus.write({ step: 'finished' });
+      })
+      .orTee(e => {
+        if (!(e instanceof AbortError)) {
+          attestationStatus.write({ step: 'attestationError', message: e.message });
+        }
+      });
   }
 
-  function handshake(account: DerivedSr25519Account, mnemonic: string, signal: AbortSignal) {
+  function handshake(account: DerivedSr25519Account, signal: AbortSignal) {
     const localAccount = createLocalSessionAccount(createAccountId(account.publicKey));
 
-    return createEncrKeys(mnemonic).asyncAndThen(({ encrSecret, encrPublicKey }) => {
-      const handshakePayload = createHandshakePayloadV1({
+    pairingStatus.write({ step: 'initial' });
+
+    const encrKeys = createEncrKeys(account.entropy);
+    const handshakePayload = encrKeys.andThen(({ publicKey }) =>
+      createHandshakePayloadV1({
         ssPublicKey: account.publicKey,
-        encrPublicKey,
+        encrPublicKey: publicKey,
         metadata,
-      }).andTee(payload => authStatus.write({ step: 'pairing', payload: createDeeplink(payload) }));
+      }),
+    );
+    const handshakeTopic = encrKeys.andThen(({ publicKey }) => createHandshakeTopic(localAccount, publicKey));
 
-      const pappResponse = handshakePayload
-        .andThen(() => createHandshakeTopic(localAccount, encrPublicKey))
-        .asyncAndThen(topic =>
-          waitForStatements<StoredUserSession>(
-            callback => statementStore.subscribeStatements([topic], callback),
-            signal,
-            (statements, resolve) => {
-              for (const statement of statements) {
-                if (!statement.data) continue;
+    const dataPrepared = Result.combine([handshakePayload, handshakeTopic, encrKeys]).andTee(([payload]) =>
+      pairingStatus.write({ step: 'pairing', payload: createDeeplink(payload) }),
+    );
 
-                const session = retrieveSession({
-                  localAccount,
-                  encrSecret,
-                  payload: statement.data.asBytes(),
-                }).unwrapOr(null);
+    return dataPrepared.asyncAndThen(([, handshakeTopic, encrKeys]) => {
+      const pappResponse = waitForStatements<StoredUserSession>(
+        callback => statementStore.subscribeStatements([handshakeTopic], callback),
+        signal,
+        (statements, resolve) => {
+          for (const statement of statements) {
+            if (!statement.data) continue;
 
-                if (session) {
-                  resolve(session);
-                  break;
-                }
-              }
-            },
-          ),
-        );
+            const session = retrieveSession({
+              localAccount,
+              encrSecret: encrKeys.secret,
+              payload: statement.data.asBytes(),
+            }).unwrapOr(null);
 
-      const secretesSaved = pappResponse.andThen(({ id }) =>
-        userSecretRepository.write(id, { ssSecret: account.secret, encrSecret, mnemonic }),
+            if (session) {
+              resolve(session);
+              break;
+            }
+          }
+        },
       );
+
+      const secretesSaved = pappResponse.andThen(({ id }) => {
+        return userSecretRepository.write(id, {
+          ssSecret: account.secret,
+          encrSecret: encrKeys.secret,
+          entropy: account.entropy,
+        });
+      });
+      // secrets and sso session should be chained, or it can produce an incorrect state
       const userCreated = secretesSaved.andThen(() => pappResponse.andThen(ssoSessionRepository.add));
+      const sessionReceived = ResultAsync.combine([userCreated, secretesSaved]).map(([session]) => session);
 
-      const result = ResultAsync.combine([userCreated, secretesSaved]).map(([session]) => session);
-
-      return result.orElse(e => (AbortError.isAbortError(e) ? ok(null) : err(toError(e))));
+      return sessionReceived
+        .andTee(session => {
+          pairingStatus.write(session ? { step: 'finished', session } : { step: 'none' });
+        })
+        .orTee(e => {
+          if (!(e instanceof AbortError)) {
+            pairingStatus.write({ step: 'pairingError', message: e.message });
+          }
+        });
     });
   }
 
   const authModule = {
-    status: readonly(authStatus),
+    pairingStatus: readonly(pairingStatus),
+    attestationStatus: readonly(attestationStatus),
 
     authenticate(): ResultAsync<StoredUserSession | null, Error> {
       if (authResult) {
@@ -117,21 +145,18 @@ export function createAuth({
       }
 
       abort = new AbortController();
-      const signal = abort.signal;
 
-      const mnemonic = generateMnemonic();
-      const account = deriveSr25519Account(mnemonic, '//wallet');
+      const account = deriveSr25519Account(generateMnemonic(), '//wallet//sso');
 
-      authStatus.write({ step: 'initial' });
-      authResult = attestateAccount(account, signal)
-        .andThen(() => handshake(account, mnemonic, signal))
-        .andTee(session => {
-          authStatus.write(session ? { step: 'finished', session } : { step: 'none' });
+      authResult = ResultAsync.combine([handshake(account, abort.signal), attestAccount(account, abort.signal)])
+        .map(([session]) => session)
+        .orElse(e => (e instanceof AbortError ? ok(null) : err(e)))
+        .andTee(() => {
+          abort = null;
         })
-        .orTee(e => {
+        .orTee(() => {
           authResult = null;
           abort = null;
-          authStatus.write({ step: 'error', message: e.message });
         });
 
       return authResult;
@@ -143,7 +168,8 @@ export function createAuth({
         abort = null;
       }
       authResult = null;
-      authStatus.reset();
+      pairingStatus.reset();
+      attestationStatus.reset();
     },
   };
 
@@ -187,12 +213,12 @@ function parseHandshakePayload(payload: Uint8Array) {
   }
 }
 
-const createEncrKeys = fromThrowable((mnemonic: string) => {
-  const encrSecret = createEncrSecret(mnemonic);
+const createEncrKeys = fromThrowable((entropy: Uint8Array) => {
+  const secret = createEncrSecret(entropy);
 
   return {
-    encrSecret,
-    encrPublicKey: getEncrPub(encrSecret),
+    secret,
+    publicKey: getEncrPub(secret),
   };
 }, toError);
 

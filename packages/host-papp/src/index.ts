@@ -3,7 +3,7 @@ export { SS_STABLE_STAGE_ENDPOINTS, SS_UNSTABLE_STAGE_ENDPOINTS } from './consta
 export type { PappAdapter } from './papp.js';
 export { createPappAdapter } from './papp.js';
 
-export type { AuthentificationStatus } from './sso/auth/types.js';
+export type { AttestationStatus, PairingStatus } from './sso/auth/types.js';
 export type { UserSession } from './sso/sessionManager/userSession.js';
 export type { Identity } from './identity/types.js';
 
