@@ -1,7 +1,9 @@
-import { Bytes, Enum, Result, Struct, Vector, _void, str, u32, u8 } from 'scale-ts';
+import { Bytes, Enum, Result, Struct, Tuple, Vector, _void, str, u32, u8 } from 'scale-ts';
 
 import { GenericErr, Hex, Nullable } from '../commonCodecs.js';
 import type { HexString } from '../types.js';
+
+import { AccountId, ProductAccountId } from './accounts.js';
 
 /**
  * createTransaction implementation
@@ -11,10 +13,46 @@ import type { HexString } from '../types.js';
 export const CreateTransactionErr = Enum({
   FailedToDecode: _void,
   Rejected: _void,
+  // Unsupported payload version
   // Failed to infer missing extensions, some extension is unsupported, etc.
   NotSupported: str,
   Unknown: GenericErr,
 });
+
+export const TxPayloadExtensionV1 = Struct({
+  id: str,
+  extra: Hex(),
+  additionalSigned: Hex(),
+});
+
+export const TxPayloadContextV1 = Struct({
+  metadata: Hex(),
+  tokenSymbol: str,
+  tokenDecimals: u32,
+  bestBlockHeight: u32,
+});
+
+export const TxPayloadV1 = Struct({
+  signer: Nullable(str),
+  callData: Hex(),
+  extensions: Vector(TxPayloadExtensionV1),
+  txExtVersion: u8,
+  context: TxPayloadContextV1,
+});
+
+export const VersionedTxPayload = Enum({
+  v1: TxPayloadV1,
+});
+
+// transaction in context of host api account model
+
+export const CreateTransactionV1_request = Tuple(ProductAccountId, VersionedTxPayload);
+export const CreateTransactionV1_response = Result(Bytes(), CreateTransactionErr);
+
+export const CreateTransactionWithNonProductAccountV1_request = Tuple(AccountId, VersionedTxPayload);
+export const CreateTransactionWithNonProductAccountV1_response = Result(Bytes(), CreateTransactionErr);
+
+// related types
 
 export interface TxPayloadV1Interface {
   /** Payload version. MUST be 1. */
@@ -88,32 +126,3 @@ export interface TxPayloadV1Interface {
     bestBlockHeight: number;
   };
 }
-
-export const TxPayloadExtensionV1 = Struct({
-  id: str,
-  extra: Hex,
-  additionalSigned: Hex,
-});
-
-export const TxPayloadContextV1 = Struct({
-  metadata: Hex,
-  tokenSymbol: str,
-  tokenDecimals: u32,
-  bestBlockHeight: u32,
-});
-
-export const TxPayloadV1 = Struct({
-  signer: Nullable(str),
-  callData: Hex,
-  extensions: Vector(TxPayloadExtensionV1),
-  txExtVersion: u8,
-  context: TxPayloadContextV1,
-});
-
-export const VersionedTxPayload = Enum({
-  v1: TxPayloadV1,
-});
-
-export const CreateTransactionV1_request = VersionedTxPayload;
-
-export const CreateTransactionV1_response = Result(Bytes(), CreateTransactionErr);

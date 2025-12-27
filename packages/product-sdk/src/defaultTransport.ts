@@ -64,4 +64,4 @@ function createDefaultSdkProvider(): TransportProvider {
 }
 
 export const defaultProvider = createDefaultSdkProvider();
-export const defaultTransport = createTransport(defaultProvider, { handshakeTimeout: 1_000 });
+export const defaultTransport = createTransport(defaultProvider);

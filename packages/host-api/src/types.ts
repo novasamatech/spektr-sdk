@@ -1,8 +1,7 @@
 import type {
   ComposeMessageAction,
-  MessageActionByVersion,
+  MessageAction,
   MessagePayloadSchema,
-  MessageVersion,
   PickMessagePayload,
   PickMessagePayloadValue,
 } from './interactions/message.js';
@@ -19,21 +18,14 @@ export type TransportProvider = {
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 
-export type SubscriptionHandler<V extends MessageVersion, Method extends string> = (
-  params: PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'start'>>,
-  send: (value: PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'receive'>>) => void,
-) => VoidFunction;
+export type RequestHandler<Method extends string> = (
+  message: PickMessagePayloadValue<ComposeMessageAction<Method, 'request'>>,
+) => Promise<PickMessagePayloadValue<ComposeMessageAction<Method, 'response'>>>;
 
-export type TransportRequester<
-  V extends MessageVersion,
-  Request extends MessageActionByVersion<V>,
-  Response extends MessageActionByVersion<V>,
-> = {
-  request(
-    payload: PickMessagePayloadValue<V, Request>,
-    signal?: AbortSignal,
-  ): Promise<PickMessagePayloadValue<V, Response>>;
-};
+export type SubscriptionHandler<Method extends string> = (
+  params: PickMessagePayloadValue<ComposeMessageAction<Method, 'start'>>,
+  send: (value: PickMessagePayloadValue<ComposeMessageAction<Method, 'receive'>>) => void,
+) => VoidFunction;
 
 export type Transport = {
   readonly provider: TransportProvider;
@@ -43,41 +35,28 @@ export type Transport = {
   onConnectionStatusChange(callback: (status: ConnectionStatus) => void): VoidFunction;
   dispose(): void;
 
-  request<const V extends MessageVersion, const Method extends string>(
-    version: V,
+  request<const Method extends string>(
     method: Method,
-    payload: PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'request'>>,
+    payload: PickMessagePayloadValue<ComposeMessageAction<Method, 'request'>>,
     signal?: AbortSignal,
-  ): Promise<PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'response'>>>;
+  ): Promise<PickMessagePayloadValue<ComposeMessageAction<Method, 'response'>>>;
 
-  handleRequest<const V extends MessageVersion, const Method extends string>(
-    version: V,
+  handleRequest<const Method extends string>(method: Method, handler: RequestHandler<Method>): VoidFunction;
+
+  subscribe<const Method extends string>(
     method: Method,
-    handler: (
-      message: PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'request'>>,
-    ) => Promise<PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'response'>>>,
+    payload: PickMessagePayloadValue<ComposeMessageAction<Method, 'start'>>,
+    callback: (payload: PickMessagePayloadValue<ComposeMessageAction<Method, 'receive'>>) => void,
   ): VoidFunction;
 
-  subscribe<const V extends MessageVersion, const Method extends string>(
-    version: V,
-    method: Method,
-    payload: PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'start'>>,
-    callback: (payload: PickMessagePayloadValue<V, ComposeMessageAction<V, Method, 'receive'>>) => void,
-  ): VoidFunction;
-
-  handleSubscription<const V extends MessageVersion, const Method extends string>(
-    version: V,
-    method: Method,
-    handler: SubscriptionHandler<V, Method>,
-  ): VoidFunction;
+  handleSubscription<const Method extends string>(method: Method, handler: SubscriptionHandler<Method>): VoidFunction;
 
   // low level method, use on your own risk
   postMessage(requestId: string, payload: MessagePayloadSchema): void;
 
   // low level method, use on your own risk
-  listenMessages<const V extends MessageVersion, const Action extends MessageActionByVersion<V>>(
-    version: V,
+  listenMessages<const Action extends MessageAction>(
     action: Action,
-    callback: (requestId: string, data: PickMessagePayload<V, Action>) => void,
+    callback: (requestId: string, data: PickMessagePayload<Action>) => void,
   ): VoidFunction;
 };

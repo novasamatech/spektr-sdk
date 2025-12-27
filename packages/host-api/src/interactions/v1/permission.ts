@@ -8,12 +8,12 @@ export const PermissionErr = Enum({
 });
 
 export const ChainConnectPermission = Struct({
-  genesisHash: Hex,
+  genesisHash: Hex(),
   name: str,
 });
 
 export const Permission = Enum({
-  ChainSubmit: Hex,
+  ChainSubmit: Hex(),
   ChainConnect: ChainConnectPermission,
   NetworkRequest: Vector(str),
   // TBD

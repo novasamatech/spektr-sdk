@@ -48,23 +48,6 @@ export const Statement = Struct({
   data: Option(Bytes()),
 });
 
-export const SignedStatement = Struct({
-  proof: StatementProof,
-  decryptionKey: Option(DecryptionKey),
-  priority: Option(u32),
-  channel: Option(Channel),
-  topics: Vector(Topic),
-  data: Option(Bytes()),
-});
-
-// requesting
-
-export const StatementStoreQueryV1_request = Vector(Topic);
-export const StatementStoreQueryV1_response = Result(Vector(Statement), GenericErr);
-
-export const StatementStoreSubscribeV1_start = Vector(Topic);
-export const StatementStoreSubscribeV1_receive = Vector(Statement);
-
 // creating proof
 
 export const StatementProofErr = Enum({
@@ -75,14 +58,3 @@ export const StatementProofErr = Enum({
 
 export const StatementStoreCreateProofV1_request = Tuple(ProductAccountId, Statement);
 export const StatementStoreCreateProofV1_response = Result(StatementProof, StatementProofErr);
-
-// submitting
-
-export const StatementSubmitErr = Enum({
-  StoreIsFull: _void,
-  // TBD based on statement store implementation
-  Unknown: GenericErr,
-});
-
-export const StatementStoreSubmitV1_request = SignedStatement;
-export const StatementStoreSubmitV1_response = Result(_void, StatementSubmitErr);

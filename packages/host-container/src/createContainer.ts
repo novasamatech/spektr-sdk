@@ -1,58 +1,52 @@
-import type { ConnectionStatus, HexString, TransportProvider } from '@novasamatech/host-api';
-import { createTransport } from '@novasamatech/host-api';
+import type {
+  Account,
+  AccountId,
+  CodecType,
+  ConnectionStatus,
+  HexString,
+  ProductAccountId,
+  TransportProvider,
+  TxPayloadV1Interface,
+} from '@novasamatech/host-api';
+import { createTransport, errResult, okResult } from '@novasamatech/host-api';
 import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types';
-import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
-
-import { createComplexSubscriber } from './createComplexSubscriber.js';
+import type { JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
+import { toHex } from '@polkadot-api/utils';
 
 function errorToString(e: unknown) {
   return e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';
 }
 
-function formatOk<const T>(value: T) {
-  return { success: true as const, value };
-}
-
-function formatErr<const T>(e: T) {
-  return { success: false as const, value: e };
-}
-
 type ContainerHandlers = {
-  accounts: {
-    get(): Promise<InjectedAccount[]>;
-    subscribe(callback: (accounts: InjectedAccountSchema[]) => void): VoidFunction;
-  };
+  nonProductAccounts(): Promise<CodecType<typeof Account>[]>;
   sign: {
     signRaw(raw: SignerPayloadRaw): Promise<SignerResult>;
     signPayload(payload: SignerPayloadJSON): Promise<SignerResult>;
-    createTransaction(payload: TxPayloadV1): Promise<HexString>;
   };
+  createTransaction(account: CodecType<typeof ProductAccountId>, payload: TxPayloadV1Interface): Promise<HexString>;
+  createTransactionWithNonProductAccount(
+    account: CodecType<typeof AccountId>,
+    payload: TxPayloadV1Interface,
+  ): Promise<HexString>;
   chainSupport(genesisHash: HexString): Promise<boolean>;
-};
-
-type Params = {
-  handshakeTimeout: number;
 };
 
 export type Container = ReturnType<typeof createContainer>;
 
 const defaultHandlers: ContainerHandlers = {
-  accounts: {
-    get: async () => [],
-    subscribe: () => () => {
-      /* empty */
-    },
-  },
+  nonProductAccounts: async () => [],
   sign: {
     signRaw: () => Promise.reject(new Error('signRaw is not implemented')),
     signPayload: () => Promise.reject(new Error('signPayload is not implemented')),
-    createTransaction: () => Promise.reject(new Error('createTransaction is not implemented')),
+  },
+  createTransaction(): Promise<HexString> {
+    return Promise.reject('Not implemented');
   },
   chainSupport: async () => false,
 };
 
-export function createContainer(provider: TransportProvider, params?: Params) {
-  const transport = createTransport(provider, { handshakeTimeout: params?.handshakeTimeout });
+export function createContainer(provider: TransportProvider) {
+  const transport = createTransport(provider);
   if (!transport.isCorrectEnvironment()) {
     throw new Error('Transport is not available: dapp provider has incorrect environment');
   }
@@ -61,42 +55,16 @@ export function createContainer(provider: TransportProvider, params?: Params) {
 
   // account subscription
 
-  transport.handleMessage<'getAccountsRequestV1', 'getAccountsResponseV1'>('getAccountsRequestV1', async () => {
+  transport.handleRequest('v1', 'get_non_product_accounts', async () => {
     try {
-      const handler = externalHandlers.accounts ?? defaultHandlers.accounts;
-      const accounts = await handler.get();
+      const nonProductAccounts = externalHandlers.nonProductAccounts ?? defaultHandlers.nonProductAccounts;
+      const accounts = await nonProductAccounts();
 
-      return {
-        tag: 'getAccountsResponseV1',
-        value: formatOk(accounts),
-      };
+      return okResult(accounts);
     } catch (e) {
-      return {
-        tag: 'getAccountsResponseV1',
-        value: formatErr(errorToString(e)),
-      };
+      return errResult(errorToString(e));
     }
   });
-
-  const accountSubscriber = transport
-    ? createComplexSubscriber<'accountSubscriptionV1', 'getAccountsResponseV1'>({
-        transport,
-        subscribeRequest: 'accountSubscriptionV1',
-        unsubscribeRequest: 'accountUnsubscriptionV1',
-        getSubscriber() {
-          return callback => {
-            const subscriber = externalHandlers.accounts?.subscribe ?? defaultHandlers.accounts.subscribe;
-
-            return subscriber(accounts => {
-              callback({
-                tag: 'getAccountsResponseV1',
-                value: formatOk(accounts),
-              });
-            });
-          };
-        },
-      })
-    : null;
 
   // sign subscription
 
@@ -123,75 +91,62 @@ export function createContainer(provider: TransportProvider, params?: Params) {
       }
 
       const result = await signRaw(payload);
-      return {
-        tag: 'signResponseV1',
-        value: formatOk(result),
-      };
+      return okResult(result);
     } catch (e) {
-      return {
-        tag: 'signResponseV1',
-        value: formatErr(errorToString(e)),
-      };
+      return errResult(errorToString(e));
     }
   });
 
-  transport.handleMessage<'signPayloadRequestV1', 'signResponseV1'>('signPayloadRequestV1', async message => {
+  transport.handleRequest('v1', 'sign_payload', async payload => {
     try {
       const signPayload = externalHandlers.sign?.signPayload ?? defaultHandlers.sign.signPayload;
-      const result = await signPayload(message);
+
+      const result = await signPayload(payload);
+      return okResult(result);
+    } catch (e) {
+      return errResult(errorToString(e));
+    }
+  });
+
+  transport.handleRequest('v1', 'create_transaction', async ([productAccounId, payload]) => {
+    try {
+      const createTransaction = externalHandlers.createTransaction ?? defaultHandlers.createTransaction;
+      const result = await createTransaction(productAccounId, payload);
       return {
-        tag: 'signResponseV1',
-        value: formatOk(result),
+        tag: 'createTransactionResponseV1',
+        value: okResult(result),
       };
     } catch (e) {
       return {
-        tag: 'signResponseV1',
-        value: formatErr(errorToString(e)),
+        tag: 'createTransactionResponseV1',
+        value: errResult(errorToString(e)),
       };
     }
   });
 
-  transport.handleMessage<'createTransactionRequestV1', 'createTransactionResponseV1'>(
-    'createTransactionRequestV1',
-    async message => {
-      try {
-        const createTransaction = externalHandlers.sign?.createTransaction ?? defaultHandlers.sign.createTransaction;
-        const result = await createTransaction(message);
-        return {
-          tag: 'createTransactionResponseV1',
-          value: formatOk(result),
-        };
-      } catch (e) {
-        return {
-          tag: 'createTransactionResponseV1',
-          value: formatErr(errorToString(e)),
-        };
-      }
-    },
-  );
+  // feature support handling
 
-  // chain support subscription
-
-  transport.handleMessage<'supportFeatureRequestV1', 'supportFeatureResponseV1'>(
-    'supportFeatureRequestV1',
-    async message => {
-      if (message.tag === 'chain') {
+  transport.handleRequest('v1', 'feature', async message => {
+    switch (message.tag) {
+      case 'chain': {
         try {
           const checkChainSupport = externalHandlers.chainSupport ?? defaultHandlers.chainSupport;
-          const result = await checkChainSupport(message.value.genesisHash);
+          const result = await checkChainSupport(message.value);
           return {
             tag: 'supportFeatureResponseV1',
-            value: formatOk({ tag: 'chain', value: { genesisHash: message.value.genesisHash, result } }),
+            value: okResult({ tag: 'chain', value: { genesisHash: message.value, result } }),
           };
         } catch (e) {
           return {
             tag: 'supportFeatureResponseV1',
-            value: formatErr(errorToString(e)),
+            value: errResult(errorToString(e)),
           };
         }
       }
-    },
-  );
+      default: {
+      }
+    }
+  });
 
   function init() {
     // init status subscription
@@ -199,24 +154,21 @@ export function createContainer(provider: TransportProvider, params?: Params) {
   }
 
   return {
-    connectToPapiProvider(genesisHash: HexString, provider: JsonRpcProvider) {
+    connectJsonRpcProvider(genesisHash: HexString, provider: JsonRpcProvider) {
       init();
 
-      let connection: JsonRpcConnection | null = null;
-
-      return transport.handleMessage('papiProviderSendMessageV1', async message => {
-        if (!connection) {
-          connection = provider(message => {
-            transport.postMessage('_', {
-              tag: 'papiProviderReceiveMessageV1',
-              value: formatOk({ genesisHash, message }),
-            });
-          });
+      return transport.handleSubscription('v1', 'jsonrpc_message_subscribe', (requestedGenesisHash, send) => {
+        if (requestedGenesisHash !== genesisHash) {
+          return () => {
+            // empty subscription, we don't want to react to foreign chain subscription request
+          };
         }
 
-        if (message.genesisHash === genesisHash) {
-          connection.send(message.message);
-        }
+        const connection = provider(send);
+
+        return () => {
+          connection?.disconnect();
+        };
       });
     },
 
