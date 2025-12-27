@@ -1,6 +1,7 @@
+import { nanoid } from 'nanoid';
 import type { ResultPayload } from 'scale-ts';
 
-import type { ComposeMessageAction, MessageVersion } from './interactions/message.js';
+import type { ComposeMessageAction } from './interactions/message.js';
 
 export function delay(ttl: number) {
   return new Promise<void>(resolve => setTimeout(resolve, ttl));
@@ -51,10 +52,13 @@ export function isEnumVariant<const Tag extends string, const Enum extends { tag
   return v.tag === tag;
 }
 
-export function composeAction<const V extends MessageVersion, const Method extends string, const Suffix extends string>(
-  _: V,
+export function composeAction<const Method extends string, const Suffix extends string>(
   method: Method,
   suffix: Suffix,
 ) {
-  return `${method}_${suffix}` as ComposeMessageAction<V, Method, Suffix>;
+  return `${method}_${suffix}` as ComposeMessageAction<Method, Suffix>;
+}
+
+export function createRequestId() {
+  return nanoid(8);
 }

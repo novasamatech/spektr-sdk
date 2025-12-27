@@ -1,6 +1,6 @@
 import { Bytes, Enum, Option, Result, Struct, Vector, _void, bool, str, u32 } from 'scale-ts';
 
-import { GenericErr, Hex } from '../commonCodecs.js';
+import { GenericErr, GenesisHash, Hex } from '../commonCodecs.js';
 
 // common structures
 
@@ -11,8 +11,8 @@ export const SigningErr = Enum({
 });
 
 export const SigningResult = Struct({
-  signature: Hex,
-  signedTransaction: Option(Hex),
+  signature: Hex(),
+  signedTransaction: Option(Hex()),
 });
 
 // sign raw
@@ -32,19 +32,19 @@ export const SignRawV1_response = Result(SigningResult, SigningErr);
 
 export const SigningPayload = Struct({
   address: str,
-  blockHash: Hex,
-  blockNumber: Hex,
-  era: Hex,
-  genesisHash: Hex,
-  method: Hex,
-  nonce: Hex,
-  specVersion: Hex,
-  tip: Hex,
-  transactionVersion: Hex,
+  blockHash: Hex(),
+  blockNumber: Hex(),
+  era: Hex(),
+  genesisHash: GenesisHash,
+  method: Hex(),
+  nonce: Hex(),
+  specVersion: Hex(),
+  tip: Hex(),
+  transactionVersion: Hex(),
   signedExtensions: Vector(str),
   version: u32,
-  assetId: Option(Hex),
-  metadataHash: Option(Hex),
+  assetId: Option(Hex()),
+  metadataHash: Option(Hex()),
   mode: Option(u32),
   withSignedTransaction: Option(bool),
 });

@@ -1,5 +1,5 @@
-import type { HexString, SignPayloadRequest, Transport, TxPayloadV1 } from '@novasamatech/host-api';
-import { unwrapResultOrThrow } from '@novasamatech/host-api';
+import type { HexString, Transport, TxPayloadV1Interface } from '@novasamatech/host-api';
+import { enumValue, unwrapResultOrThrow } from '@novasamatech/host-api';
 import { injectExtension } from '@polkadot/extension-inject';
 import type { InjectedAccounts } from '@polkadot/extension-inject/types';
 import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types/extrinsic';
@@ -34,27 +34,29 @@ export async function createExtensionEnableFactory(transport: Transport) {
   async function enable(): Promise<Injected> {
     return {
       accounts: {
-        get() {
-          return transport
-            .request({ tag: 'getAccountsRequestV1', value: undefined }, 'getAccountsResponseV1')
-            .then(v => unwrapResultOrThrow(v, e => new Error(e)));
+        async get() {
+          const response = await transport.request('get_non_product_accounts', enumValue('v1', undefined));
+
+          if (response.tag !== 'v1') {
+            throw new Error('Uns');
+          }
         },
         subscribe(callback) {
-          const unsubscribe = transport.subscribe('getAccountsResponseV1', (_, payload) => {
-            try {
-              const accounts = unwrapResultOrThrow(payload, e => new Error(e));
-              callback(accounts);
-            } catch {
-              transport.provider.logger.error('Failed response on account subscription', payload.value);
-            }
-          });
-
-          transport.postMessage('_', { tag: 'accountSubscriptionV1', value: undefined });
-
-          return () => {
-            transport.postMessage('_', { tag: 'accountUnsubscriptionV1', value: undefined });
-            unsubscribe();
-          };
+          // const unsubscribe = transport.subscribe('getAccountsResponseV1', (_, payload) => {
+          //   try {
+          //     const accounts = unwrapResultOrThrow(payload, e => new Error(e));
+          //     callback(accounts);
+          //   } catch {
+          //     transport.provider.logger.error('Failed response on account subscription', payload.value);
+          //   }
+          // });
+          //
+          // transport.postMessage('_', { tag: 'accountSubscriptionV1', value: undefined });
+          //
+          // return () => {
+          //   transport.postMessage('_', { tag: 'accountUnsubscriptionV1', value: undefined });
+          //   unsubscribe();
+          // };
         },
       },
 

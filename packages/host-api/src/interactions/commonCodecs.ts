@@ -7,12 +7,15 @@ import type { HexString } from './types.js';
 export const Nullable = <T>(inner: Codec<T>) =>
   enhanceCodec<T | undefined, T | null>(
     Option(inner),
-    v => v ?? undefined,
-    v => v ?? null,
+    v => (v === null ? undefined : v),
+    v => (v === undefined ? null : v),
   );
 
-export const Hex = enhanceCodec<Uint8Array, HexString>(Bytes(), fromHex, v => toHex(v) as HexString);
+export const Hex = (length?: number) =>
+  enhanceCodec<Uint8Array, HexString>(Bytes(length), fromHex, v => toHex(v) as HexString);
 
 export const GenericErr = Struct({
   reason: str,
 });
+
+export const GenesisHash = Hex();

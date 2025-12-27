@@ -9,7 +9,7 @@ export const StorageErr = Enum({
   Unknown: GenericErr,
 });
 
-export const StorageKey = Hex;
+export const StorageKey = Hex();
 export const StorageValue = Bytes();
 
 // actions
