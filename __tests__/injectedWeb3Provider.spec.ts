@@ -22,7 +22,6 @@ async function setup() {
   return { container, injected };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function notImplemented(_: unknown): Promise<never> {
   throw new Error('Not implemented');
 }
