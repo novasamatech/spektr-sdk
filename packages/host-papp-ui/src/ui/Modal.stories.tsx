@@ -14,7 +14,7 @@ const meta: Meta<typeof Modal> = {
     return (
       <>
         <button onClick={() => setOpen(true)}>Open Modal</button>
-        <Modal isOpen={open} onOpenChange={setOpen} width={width}>
+        <Modal open={open} onOpenChange={setOpen} width={width}>
           {children}
         </Modal>
       </>

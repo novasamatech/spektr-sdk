@@ -7,7 +7,7 @@ const meta: Meta<typeof Button> = {
   title: 'Button',
   decorators: [
     Story => (
-      <div style={{ padding: 20, background: 'black', color: 'white', width: 'fit-content' }}>
+      <div style={{ padding: 20, background: 'black', color: 'white' }}>
         <Story />
       </div>
     ),

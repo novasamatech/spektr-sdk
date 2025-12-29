@@ -5,8 +5,10 @@ export type Translations = {
   pairingHeader: string;
   pairingScanCallToAction: string;
   pairingDescription: string;
-  pairingAttestationLoader: string;
+  pairingLoader: string;
+  pairingAttestationError: string;
   pairingRetry: string;
+  pairingError: string;
   pairingWelcomeMessage: string;
 };
 
@@ -20,8 +22,10 @@ const defaultKeys: TranslationsMap = {
     pairingScanCallToAction: 'scan a qr code with a phone',
     pairingDescription:
       'Scanning the QR code opens the Polkadot mobile app, where users are guided step-by-step through the onboarding or setup process.',
-    pairingAttestationLoader: 'Passing attestation',
+    pairingLoader: 'Just a second...',
+    pairingAttestationError: 'Error while passing attestation',
     pairingRetry: 'Retry',
+    pairingError: 'Error while pairing',
     pairingWelcomeMessage: 'Welcome back,',
   },
 };

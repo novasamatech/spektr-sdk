@@ -5,7 +5,7 @@ import { fromHex, toHex } from '@polkadot-api/utils';
 import type { ResultAsync } from 'neverthrow';
 import { fromThrowable } from 'neverthrow';
 import type { CodecType } from 'scale-ts';
-import { Struct, str } from 'scale-ts';
+import { Bytes, Struct } from 'scale-ts';
 
 import type { EncrSecret, SsSecret } from '../crypto.js';
 import { BrandedBytesCodec, stringToBytes } from '../crypto.js';
@@ -15,7 +15,7 @@ type StoredUserSecrets = CodecType<typeof StoredUserSecretsCodec>;
 const StoredUserSecretsCodec = Struct({
   ssSecret: BrandedBytesCodec<SsSecret>(),
   encrSecret: BrandedBytesCodec<EncrSecret>(),
-  mnemonic: str,
+  entropy: Bytes(),
 });
 
 export type UserSecretRepository = ReturnType<typeof createUserSecretRepository>;

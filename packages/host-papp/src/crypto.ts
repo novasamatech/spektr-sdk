@@ -1,5 +1,5 @@
 import { p256 } from '@noble/curves/nist.js';
-import { mnemonicToEntropy, mnemonicToMiniSecret } from '@polkadot-labs/hdkd-helpers';
+import { entropyToMiniSecret, mnemonicToEntropy } from '@polkadot-labs/hdkd-helpers';
 import {
   HDKD as sr25519HDKD,
   getPublicKey as sr25519GetPublicKey,
@@ -65,8 +65,8 @@ function createChainCode(derivation: string) {
 
 // statement store key pair
 
-export function createSsSecret(mnemonic: string): SsSecret {
-  const miniSecret = mnemonicToMiniSecret(mnemonic);
+export function createSsSecret(entropy: Uint8Array): SsSecret {
+  const miniSecret = entropyToMiniSecret(entropy);
   return sr25519SecretFromSeed(miniSecret) as SsSecret;
 }
 
@@ -107,13 +107,14 @@ export type DerivedSr25519Account = {
 };
 
 export function deriveSr25519Account(mnemonic: string, derivation: string): DerivedSr25519Account {
-  const secret = createSsDerivation(createSsSecret(mnemonic), derivation);
+  const entropy = mnemonicToEntropy(mnemonic);
+  const secret = createSsDerivation(createSsSecret(entropy), derivation);
   const publicKey = getSsPub(secret);
 
   return {
     secret,
     publicKey,
-    entropy: mnemonicToEntropy(mnemonic),
+    entropy,
     sign: message => signWithSsSecret(secret, message),
     verify: (message, signature) => verifyWithSsSecret(message, signature, publicKey),
   };
@@ -121,8 +122,8 @@ export function deriveSr25519Account(mnemonic: string, derivation: string): Deri
 
 // encryption key pair
 
-export function createEncrSecret(mnemonic: string) {
-  const miniSecret = mnemonicToMiniSecret(mnemonic);
+export function createEncrSecret(entropy: Uint8Array) {
+  const miniSecret = entropyToMiniSecret(entropy);
   const seed = new Uint8Array(48);
   seed.set(miniSecret);
   const { secretKey } = p256.keygen(seed);
