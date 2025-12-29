@@ -1,3 +1,14 @@
+## 0.5.0-18 (2025-12-29)
+
+### 🚀 Features
+
+- papp integration ([#5](https://github.com/novasamatech/spektr-sdk/pull/5))
+- Implemented correct Polkadot app pairing ui ([e2e4eeb](https://github.com/novasamatech/spektr-sdk/commit/e2e4eeb))
+
+### ❤️ Thank You
+
+- Sergey Zhuravlev @johnthecat
+
 ## 0.4.1 (2025-11-26)
 
 ### 🩹 Fixes
