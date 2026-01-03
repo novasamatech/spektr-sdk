@@ -16,8 +16,8 @@ import type {
   MessageAction,
   PickMessagePayload,
   PickMessagePayloadValue,
-} from './interactions/message.js';
-import { Message } from './interactions/message.js';
+} from './protocol/messageCodec.js';
+import { Message } from './protocol/messageCodec.js';
 import type { ConnectionStatus, RequestHandler, SubscriptionHandler, Transport, TransportProvider } from './types.js';
 
 const isConnected = (status: ConnectionStatus) => status === 'connected';

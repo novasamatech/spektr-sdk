@@ -1,7 +1,9 @@
+import { fromHex as papiFromHex, toHex as papiToHex } from '@polkadot-api/utils';
 import { nanoid } from 'nanoid';
 import type { ResultPayload } from 'scale-ts';
 
-import type { ComposeMessageAction } from './interactions/message.js';
+import type { ComposeMessageAction } from './protocol/messageCodec.js';
+import type { HexString } from './protocol/types.js';
 
 export function delay(ttl: number) {
   return new Promise<void>(resolve => setTimeout(resolve, ttl));
@@ -45,11 +47,21 @@ export function enumValue<const Tag extends string, const Value>(tag: Tag, value
   return { tag, value };
 }
 
-export function isEnumVariant<const Tag extends string, const Enum extends { tag: string; value: unknown }>(
+export function isEnumVariant<const Enum extends { tag: string; value: unknown }, const Tag extends Enum['tag']>(
   v: Enum,
   tag: Tag,
 ): v is Extract<Enum, { tag: Tag }> {
   return v.tag === tag;
+}
+
+export function assertEnumVariant<const Enum extends { tag: string; value: unknown }, const Tag extends Enum['tag']>(
+  v: Enum,
+  tag: Tag,
+  message: string,
+): asserts v is Extract<Enum, { tag: Tag }> {
+  if (!isEnumVariant(v, tag)) {
+    throw new Error(message);
+  }
 }
 
 export function composeAction<const Method extends string, const Suffix extends string>(
@@ -61,4 +73,24 @@ export function composeAction<const Method extends string, const Suffix extends 
 
 export function createRequestId() {
   return nanoid(8);
+}
+
+export function extractErrorMessage(err: unknown) {
+  if (err instanceof Error) {
+    return err.toString();
+  }
+
+  if (err) {
+    return err.toString();
+  }
+
+  return 'Unknown error occurred.';
+}
+
+export function toHex(value: Uint8Array): HexString {
+  return papiToHex(value) as HexString;
+}
+
+export function fromHex(value: string): Uint8Array {
+  return papiFromHex(value);
 }

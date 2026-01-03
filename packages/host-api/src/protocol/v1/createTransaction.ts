@@ -3,12 +3,36 @@ import { Bytes, Enum, Result, Struct, Tuple, Vector, _void, str, u32, u8 } from 
 import { GenericErr, Hex, Nullable } from '../commonCodecs.js';
 import type { HexString } from '../types.js';
 
-import { AccountId, ProductAccountId } from './accounts.js';
+import { ProductAccountId } from './accounts.js';
 
 /**
  * createTransaction implementation
  * @see https://github.com/polkadot-js/api/issues/6213
  */
+
+export class CreateTransactionFailedToDecodeError extends Error {
+  constructor() {
+    super('Create transaction error: failed to decode.');
+  }
+}
+
+export class CreateTransactionRejectedError extends Error {
+  constructor() {
+    super('Create transaction error: rejected.');
+  }
+}
+
+export class CreateTransactionNotSupportedError extends Error {
+  constructor(reason: string) {
+    super(`Create transaction error: not supported - ${reason}`);
+  }
+}
+
+export class CreateTransactionUnknownError extends Error {
+  constructor(reason: string) {
+    super(`Create transaction error: ${reason}`);
+  }
+}
 
 export const CreateTransactionErr = Enum({
   FailedToDecode: _void,
@@ -49,7 +73,7 @@ export const VersionedTxPayload = Enum({
 export const CreateTransactionV1_request = Tuple(ProductAccountId, VersionedTxPayload);
 export const CreateTransactionV1_response = Result(Bytes(), CreateTransactionErr);
 
-export const CreateTransactionWithNonProductAccountV1_request = Tuple(AccountId, VersionedTxPayload);
+export const CreateTransactionWithNonProductAccountV1_request = VersionedTxPayload;
 export const CreateTransactionWithNonProductAccountV1_response = Result(Bytes(), CreateTransactionErr);
 
 // related types

@@ -4,7 +4,7 @@ import type {
   MessagePayloadSchema,
   PickMessagePayload,
   PickMessagePayloadValue,
-} from './interactions/message.js';
+} from './protocol/messageCodec.js';
 
 export type Logger = Record<'info' | 'warn' | 'error' | 'log', (...args: unknown[]) => void>;
 

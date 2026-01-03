@@ -42,12 +42,48 @@ export class RequestCredentialsNotConnectedError extends Error {
   }
 }
 
+export class RequestCredentialsRejectedError extends Error {
+  constructor() {
+    super('Request credentials error: rejected.');
+  }
+}
+
+export class RequestCredentialsDomainNotValidError extends Error {
+  constructor() {
+    super('Request credentials error: domain not valid.');
+  }
+}
+
+export class RequestCredentialsUnknownError extends Error {
+  constructor(reason: string) {
+    super(`Request credentials error: ${reason}`);
+  }
+}
+
 export const RequestCredentialsErr = Enum({
   NotConnected: _void,
   Rejected: _void,
   DomainNotValid: _void,
   Unknown: GenericErr,
 });
+
+export class CreateProofRingNotFoundError extends Error {
+  constructor() {
+    super('Create proof error: ring not found.');
+  }
+}
+
+export class CreateProofRejectedError extends Error {
+  constructor() {
+    super('Create proof error: rejected.');
+  }
+}
+
+export class CreateProofUnknownError extends Error {
+  constructor(reason: string) {
+    super(`Create proof error: ${reason}`);
+  }
+}
 
 export const CreateProofErr = Enum({
   RingNotFound: _void,

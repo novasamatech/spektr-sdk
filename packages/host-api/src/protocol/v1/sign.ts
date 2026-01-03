@@ -4,6 +4,24 @@ import { GenericErr, GenesisHash, Hex } from '../commonCodecs.js';
 
 // common structures
 
+export class SigningFailedToDecodeError extends Error {
+  constructor() {
+    super('Signing error: failed to decode.');
+  }
+}
+
+export class SigningRejectedError extends Error {
+  constructor() {
+    super('Signing error: rejected.');
+  }
+}
+
+export class SigningUnknownError extends Error {
+  constructor(reason: string) {
+    super(`Signing error: ${reason}`);
+  }
+}
+
 export const SigningErr = Enum({
   FailedToDecode: _void,
   Rejected: _void,
