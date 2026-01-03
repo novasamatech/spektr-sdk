@@ -14,7 +14,7 @@ type InternalParams = {
   transport?: Transport;
 };
 
-export function createSpektrPapiProvider(
+export function createPapiProvider(
   { chainId: genesisHash, fallback }: Params,
   internal?: InternalParams,
 ): JsonRpcProvider {

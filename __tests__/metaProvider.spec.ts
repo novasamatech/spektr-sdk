@@ -1,7 +1,7 @@
 import type { ConnectionStatus } from '@novasamatech/host-api';
 import { createTransport } from '@novasamatech/host-api';
 import { createContainer } from '@novasamatech/host-container';
-import { createSpektrMetaProvider } from '@novasamatech/product-sdk';
+import { createMetaProvider } from '@novasamatech/product-sdk';
 
 import { describe, expect, it } from 'vitest';
 
@@ -11,7 +11,7 @@ function setup() {
   const providers = createHostApiProviders();
   const container = createContainer(providers.host);
   const sdkTransport = createTransport(providers.sdk);
-  const metaProvider = createSpektrMetaProvider(sdkTransport);
+  const metaProvider = createMetaProvider(sdkTransport);
 
   return { container, sdkTransport, metaProvider };
 }

@@ -2,7 +2,7 @@ import type { ConnectionStatus, Transport } from '@novasamatech/host-api';
 
 import { defaultTransport } from './defaultTransport.js';
 
-export function createSpektrMetaProvider(transport: Transport = defaultTransport) {
+export function createMetaProvider(transport: Transport = defaultTransport) {
   // if (transport.isCorrectEnvironment() && typeof window !== 'undefined') {
   //   const getUrl = () => {
   //     return window.location.pathname + window.location.hash + window.location.search;
@@ -26,4 +26,4 @@ export function createSpektrMetaProvider(transport: Transport = defaultTransport
   };
 }
 
-export const spektrMetaProvider = createSpektrMetaProvider();
+export const spektrMetaProvider = createMetaProvider();

@@ -215,9 +215,9 @@ export function createContainer(provider: TransportProvider) {
     connectJsonRpcProvider(genesisHash: HexString, provider: JsonRpcProvider) {
       init();
 
-      return transport.handleSubscription('jsonrpc_message_subscribe', (request, send) => {
-        assertEnumVariant(request, 'v1', UNSUPPORTED_MESSAGE_FORMAT_ERROR);
-        if (request.value !== genesisHash) {
+      return transport.handleSubscription('jsonrpc_message_subscribe', (params, send) => {
+        assertEnumVariant(params, 'v1', UNSUPPORTED_MESSAGE_FORMAT_ERROR);
+        if (params.value !== genesisHash) {
           return () => {
             // empty subscription, we don't want to react to foreign chain subscription request
           };
@@ -225,7 +225,18 @@ export function createContainer(provider: TransportProvider) {
 
         const connection = provider(message => send(enumValue('v1', message)));
 
+        const unsubRequests = transport.handleRequest('jsonrpc_message_send', async message => {
+          assertEnumVariant(message, 'v1', UNSUPPORTED_MESSAGE_FORMAT_ERROR);
+          const [requestedGenesisHash, payload] = message.value;
+          if (requestedGenesisHash !== genesisHash) {
+            return enumValue('v1', okResult(undefined));
+          }
+          connection.send(payload);
+          return enumValue('v1', okResult(undefined));
+        });
+
         return () => {
+          unsubRequests();
           connection?.disconnect();
         };
       });
