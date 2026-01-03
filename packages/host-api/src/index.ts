@@ -1,17 +1,34 @@
-export { messageEncoder, unwrapResultOrThrow } from './messageEncoder.js';
+export type { ConnectionStatus, Logger, Transport, TransportProvider } from './types.js';
 export {
-  type MessagePayloadSchema,
-  type MessageType,
-  type PickMessagePayload,
-  type PickMessagePayloadValue,
-} from './messageEncoder.js';
+  assertEnumVariant,
+  createRequestId,
+  enumValue,
+  errResult,
+  fromHex,
+  isEnumVariant,
+  okResult,
+  toHex,
+  unwrapResultOrThrow,
+} from './helpers.js';
 
-export { createTransport } from './createTransport.js';
-export type { ConnectionStatus, HexString, Logger, Transport, TransportProvider } from './types.js';
+export type { HexString } from './protocol/types.js';
 
+export { createHostApi } from './hostApi.js';
+export { createTransport } from './transport.js';
 export { createDefaultLogger } from './logger.js';
 
-export { type InjectedAccountSchema } from './interactions/accounts.js';
-export { type SignPayloadRequest, type TxPayloadV1 } from './interactions/sign.js';
+export type { MessageAction, PickMessagePayload, PickMessagePayloadValue } from './protocol/messageCodec.js';
 
-export { signPayloadCodec } from './interactions/sign.js';
+// External reexports
+export type { CodecType } from 'scale-ts';
+
+// Codecs
+
+export type { TxPayloadV1Interface } from './protocol/v1/createTransaction.js';
+export {
+  CreateTransactionV1_request,
+  CreateTransactionV1_response,
+  CreateTransactionWithNonProductAccountV1_request,
+  CreateTransactionWithNonProductAccountV1_response,
+} from './protocol/v1/createTransaction.js';
+export { Account, AccountId, ProductAccountId } from './protocol/v1/accounts.js';

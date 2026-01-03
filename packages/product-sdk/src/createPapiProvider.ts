@@ -1,5 +1,5 @@
 import type { HexString, Transport } from '@novasamatech/host-api';
-import { unwrapResultOrThrow } from '@novasamatech/host-api';
+import { createHostApi, enumValue, unwrapResultOrThrow } from '@novasamatech/host-api';
 import type { JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
 import { getSyncProvider } from '@polkadot-api/json-rpc-provider-proxy';
 
@@ -14,24 +14,29 @@ type InternalParams = {
   transport?: Transport;
 };
 
-export function createSpektrPapiProvider(
+export function createPapiProvider(
   { chainId: genesisHash, fallback }: Params,
   internal?: InternalParams,
 ): JsonRpcProvider {
   const transport = internal?.transport ?? defaultTransport;
   if (!transport.isCorrectEnvironment()) return fallback;
 
+  const hostApi = createHostApi(transport);
+
   const spektrProvider: JsonRpcProvider = onMessage => {
-    const unsubscribe = transport.subscribe('papiProviderReceiveMessageV1', (_, payload) => {
-      const unwrapped = unwrapResultOrThrow(payload, e => new Error(e));
-      if (unwrapped.genesisHash === genesisHash) {
-        onMessage(unwrapped.message);
+    const unsubscribe = hostApi.jsonrpc_message_subscribe(enumValue('v1', genesisHash), payload => {
+      switch (payload.tag) {
+        case 'v1':
+          onMessage(payload.value);
+          break;
+        default:
+          transport.provider.logger.error('Unknown message version', payload.tag);
       }
     });
 
     return {
       send(message) {
-        transport.postMessage('_', { tag: 'papiProviderSendMessageV1', value: { genesisHash, message } });
+        hostApi.jsonrpc_message_send(enumValue('v1', [genesisHash, message]));
       },
       disconnect() {
         unsubscribe();
@@ -44,15 +49,14 @@ export function createSpektrPapiProvider(
       if (!ready) return false;
 
       return transport
-        .request(
-          { tag: 'supportFeatureRequestV1', value: { tag: 'chain', value: { genesisHash } } },
-          'supportFeatureResponseV1',
-        )
+        .request('feature', enumValue('v1', { tag: 'chain', value: genesisHash }))
         .then(payload => {
-          const result = unwrapResultOrThrow(payload, e => new Error(e));
-
-          if (result.tag === 'chain' && result.value.genesisHash === genesisHash) {
-            return result.value.result;
+          switch (payload.tag) {
+            case 'v1': {
+              return unwrapResultOrThrow(payload.value, e => new Error(e.reason));
+            }
+            default:
+              throw new Error(`Unknown message version ${payload.tag}`);
           }
         })
         .catch(e => {
