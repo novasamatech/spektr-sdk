@@ -1,7 +1,7 @@
 import type { HexString } from '@novasamatech/host-api';
 import { createTransport } from '@novasamatech/host-api';
 import { createContainer } from '@novasamatech/host-container';
-import { WellKnownChain, createSpektrPapiProvider } from '@novasamatech/product-sdk';
+import { WellKnownChain, createPapiProvider } from '@novasamatech/product-sdk';
 
 import { describe, expect, it } from 'vitest';
 
@@ -16,7 +16,7 @@ function setup(chainId: HexString) {
   const container = createContainer(providers.host);
   const sdkTransport = createTransport(providers.sdk);
 
-  const provider = createSpektrPapiProvider(
+  const provider = createPapiProvider(
     {
       chainId,
       fallback: () => {
@@ -74,7 +74,7 @@ describe('PAPI provider', () => {
 
     sdkConnection.send(JSON.stringify(inputMessage));
 
-    await delay(100);
+    await delay(50);
 
     expect(receivedByProvider).toEqual([JSON.stringify(inputMessage)]);
     expect(receivedBySDK).toEqual([JSON.stringify(outputMessage)]);
