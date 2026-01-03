@@ -1,5 +1,5 @@
 import type { HexString, Transport } from '@novasamatech/host-api';
-import { enumValue, unwrapResultOrThrow } from '@novasamatech/host-api';
+import { createHostApi, enumValue, unwrapResultOrThrow } from '@novasamatech/host-api';
 import type { JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
 import { getSyncProvider } from '@polkadot-api/json-rpc-provider-proxy';
 
@@ -21,8 +21,10 @@ export function createSpektrPapiProvider(
   const transport = internal?.transport ?? defaultTransport;
   if (!transport.isCorrectEnvironment()) return fallback;
 
+  const hostApi = createHostApi(transport);
+
   const spektrProvider: JsonRpcProvider = onMessage => {
-    const unsubscribe = transport.subscribe('jsonrpc_message_subscribe', enumValue('v1', genesisHash), payload => {
+    const unsubscribe = hostApi.jsonrpc_message_subscribe(enumValue('v1', genesisHash), payload => {
       switch (payload.tag) {
         case 'v1':
           onMessage(payload.value);
@@ -34,7 +36,7 @@ export function createSpektrPapiProvider(
 
     return {
       send(message) {
-        transport.request('jsonrpc_message_send', enumValue('v1', [genesisHash, message]));
+        hostApi.jsonrpc_message_send(enumValue('v1', [genesisHash, message]));
       },
       disconnect() {
         unsubscribe();

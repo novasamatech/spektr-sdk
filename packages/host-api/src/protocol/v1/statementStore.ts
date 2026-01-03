@@ -50,6 +50,24 @@ export const Statement = Struct({
 
 // creating proof
 
+export class StatementProofUnableToSignError extends Error {
+  constructor() {
+    super('Statement proof error: unable to sign.');
+  }
+}
+
+export class StatementProofUnknownAccountError extends Error {
+  constructor() {
+    super('Statement proof error: unknown account.');
+  }
+}
+
+export class StatementProofUnknownError extends Error {
+  constructor(reason: string) {
+    super(`Statement proof error: ${reason}`);
+  }
+}
+
 export const StatementProofErr = Enum({
   UnableToSign: _void,
   UnknownAccount: _void,

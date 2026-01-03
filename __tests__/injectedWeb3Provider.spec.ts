@@ -1,10 +1,10 @@
-import type { HexString, InjectedAccountSchema, TxPayloadV1 } from '@novasamatech/host-api';
+import type { HexString, TxPayloadV1Interface } from '@novasamatech/host-api';
 import { createTransport } from '@novasamatech/host-api';
 import { createContainer } from '@novasamatech/host-container';
 import { createExtensionEnableFactory } from '@novasamatech/product-sdk';
 
 import type { SignerResult } from '@polkadot/types/types';
-import { createNanoEvents } from 'nanoevents';
+import { AccountId } from '@polkadot-api/substrate-bindings';
 import { assert, describe, expect, it, vitest } from 'vitest';
 
 import { createHostApiProviders } from './__mocks__/hostApiProviders.js';
@@ -22,59 +22,23 @@ async function setup() {
   return { container, injected };
 }
 
-async function notImplemented(_: unknown): Promise<never> {
-  throw new Error('Not implemented');
-}
-
 describe('injected web3 provider', () => {
   it('should provide accounts', async () => {
-    const mockAccounts: InjectedAccountSchema[] = [{ name: 'test', address: '0x00', type: 'sr25519' }];
+    const accountId = AccountId();
+    const mockAccounts = [{ publicKey: new Uint8Array(32), name: 'test' }];
 
     const { container, injected } = await setup();
 
-    container.handleAccounts({
-      async get() {
-        return mockAccounts;
-      },
-      subscribe() {
-        return () => {
-          /* empty */
-        };
-      },
-    });
+    container.handleNonProductAccounts(async () => mockAccounts);
 
     const injectedAccounts = await injected.accounts.get();
 
-    expect(injectedAccounts).toEqual(mockAccounts);
-  });
-
-  it('should subscribe accounts', async () => {
-    const mockAccounts: InjectedAccountSchema[] = [{ name: 'test', address: '0x00', type: 'sr25519' }];
-    const accountsBus = createNanoEvents<{ accounts: (a: InjectedAccountSchema[]) => void }>();
-
-    const { container, injected } = await setup();
-
-    container.handleAccounts({
-      async get() {
-        return [];
+    expect(injectedAccounts).toEqual([
+      {
+        name: 'test',
+        address: accountId.dec(new Uint8Array(32)),
       },
-      subscribe(callback) {
-        return accountsBus.on('accounts', callback);
-      },
-    });
-
-    let result: InjectedAccountSchema[] = [];
-
-    const unsubscribe = injected.accounts.subscribe(accounts => {
-      // TODO type miss match - type field also includes "ethereum" that is not defined in polkadot-api library.
-      result = accounts as InjectedAccountSchema[];
-    });
-
-    accountsBus.emit('accounts', mockAccounts);
-    unsubscribe();
-    accountsBus.emit('accounts', []);
-
-    expect(result).toEqual(mockAccounts);
+    ]);
   });
 
   it('should handle signPayload request', async () => {
@@ -86,12 +50,8 @@ describe('injected web3 provider', () => {
       signature: '0x0001',
     };
 
-    container.handleSignRequest({
-      async signPayload(payload) {
-        return { ...signerResult, signedTransaction: payload.method as HexString };
-      },
-      signRaw: notImplemented,
-      createTransaction: notImplemented,
+    container.handleSignPayloadRequest(async payload => {
+      return { ...signerResult, signedTransaction: payload.method as HexString };
     });
 
     const result = await injected.signer.signPayload?.({
@@ -121,12 +81,8 @@ describe('injected web3 provider', () => {
       signature: '0x0001',
     };
 
-    container.handleSignRequest({
-      async signRaw(raw) {
-        return { ...signerResult, signedTransaction: raw.data as HexString };
-      },
-      signPayload: notImplemented,
-      createTransaction: notImplemented,
+    container.handleSignRawRequest(async raw => {
+      return { ...signerResult, signedTransaction: raw.data as HexString };
     });
 
     const result = await injected.signer.signRaw?.({
@@ -142,7 +98,7 @@ describe('injected web3 provider', () => {
     const { container, injected } = await setup();
 
     const response: HexString = '0x0001';
-    const payload: TxPayloadV1 = {
+    const payload: TxPayloadV1Interface = {
       version: 1,
       signer: 'test',
       callData: '0x0002',
@@ -164,11 +120,7 @@ describe('injected web3 provider', () => {
 
     const createTransaction = vitest.fn(async () => response);
 
-    container.handleSignRequest({
-      createTransaction,
-      signPayload: notImplemented,
-      signRaw: notImplemented,
-    });
+    container.handleCreateTransactionWithNonProductAccount(createTransaction);
 
     const result = await injected.signer.createTransaction?.(payload);
 

@@ -1,6 +1,5 @@
 import type {
   Account,
-  AccountId,
   CodecType,
   ConnectionStatus,
   HexString,
@@ -8,10 +7,20 @@ import type {
   TransportProvider,
   TxPayloadV1Interface,
 } from '@novasamatech/host-api';
-import { createTransport, errResult, okResult } from '@novasamatech/host-api';
+import {
+  assertEnumVariant,
+  createTransport,
+  enumValue,
+  errResult,
+  fromHex,
+  isEnumVariant,
+  okResult,
+  toHex,
+} from '@novasamatech/host-api';
 import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types';
 import type { JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
-import { toHex } from '@polkadot-api/utils';
+
+const UNSUPPORTED_MESSAGE_FORMAT_ERROR = 'Unsupported message format';
 
 function errorToString(e: unknown) {
   return e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';
@@ -19,15 +28,10 @@ function errorToString(e: unknown) {
 
 type ContainerHandlers = {
   nonProductAccounts(): Promise<CodecType<typeof Account>[]>;
-  sign: {
-    signRaw(raw: SignerPayloadRaw): Promise<SignerResult>;
-    signPayload(payload: SignerPayloadJSON): Promise<SignerResult>;
-  };
+  signRaw(raw: SignerPayloadRaw): Promise<SignerResult>;
+  signPayload(payload: SignerPayloadJSON): Promise<SignerResult>;
   createTransaction(account: CodecType<typeof ProductAccountId>, payload: TxPayloadV1Interface): Promise<HexString>;
-  createTransactionWithNonProductAccount(
-    account: CodecType<typeof AccountId>,
-    payload: TxPayloadV1Interface,
-  ): Promise<HexString>;
+  createTransactionWithNonProductAccount(payload: TxPayloadV1Interface): Promise<HexString>;
   chainSupport(genesisHash: HexString): Promise<boolean>;
 };
 
@@ -35,11 +39,12 @@ export type Container = ReturnType<typeof createContainer>;
 
 const defaultHandlers: ContainerHandlers = {
   nonProductAccounts: async () => [],
-  sign: {
-    signRaw: () => Promise.reject(new Error('signRaw is not implemented')),
-    signPayload: () => Promise.reject(new Error('signPayload is not implemented')),
+  signRaw: () => Promise.reject(new Error('signRaw is not implemented')),
+  signPayload: () => Promise.reject(new Error('signPayload is not implemented')),
+  createTransaction() {
+    return Promise.reject('Not implemented');
   },
-  createTransaction(): Promise<HexString> {
+  createTransactionWithNonProductAccount() {
     return Promise.reject('Not implemented');
   },
   chainSupport: async () => false,
@@ -55,95 +60,148 @@ export function createContainer(provider: TransportProvider) {
 
   // account subscription
 
-  transport.handleRequest('v1', 'get_non_product_accounts', async () => {
+  transport.handleRequest('get_non_product_accounts', async payload => {
+    assertEnumVariant(payload, 'v1', UNSUPPORTED_MESSAGE_FORMAT_ERROR);
+
     try {
       const nonProductAccounts = externalHandlers.nonProductAccounts ?? defaultHandlers.nonProductAccounts;
       const accounts = await nonProductAccounts();
 
-      return okResult(accounts);
+      return enumValue('v1', okResult(accounts));
     } catch (e) {
-      return errResult(errorToString(e));
+      return enumValue('v1', errResult(enumValue('Unknown', { reason: errorToString(e) })));
     }
   });
 
   // sign subscription
 
-  transport.handleRequest('v1', 'sign_raw', async message => {
+  transport.handleRequest('sign_raw', async message => {
     try {
-      const signRaw = externalHandlers.sign?.signRaw ?? defaultHandlers.sign.signRaw;
+      assertEnumVariant(message, 'v1', UNSUPPORTED_MESSAGE_FORMAT_ERROR);
+
+      const signRaw = externalHandlers.signRaw ?? defaultHandlers.signRaw;
       let payload: SignerPayloadRaw;
 
-      switch (message.data.tag) {
+      const value = message.value;
+
+      switch (value.data.tag) {
         case 'Bytes':
           payload = {
-            address: message.address,
-            data: toHex(message.data.value),
+            address: value.address,
+            data: toHex(value.data.value),
             type: 'bytes',
           };
           break;
         case 'Payload':
           payload = {
-            address: message.address,
-            data: message.data.value,
+            address: value.address,
+            data: value.data.value,
             type: 'payload',
           };
           break;
       }
 
       const result = await signRaw(payload);
-      return okResult(result);
+
+      const response = {
+        signature: result.signature,
+        signedTransaction: result.signedTransaction
+          ? typeof result.signedTransaction === 'string'
+            ? result.signedTransaction
+            : toHex(result.signedTransaction)
+          : undefined,
+      };
+
+      return enumValue('v1', okResult(response));
     } catch (e) {
-      return errResult(errorToString(e));
+      return enumValue('v1', errResult(enumValue('Unknown', { reason: errorToString(e) })));
     }
   });
 
-  transport.handleRequest('v1', 'sign_payload', async payload => {
+  transport.handleRequest('sign_payload', async message => {
     try {
-      const signPayload = externalHandlers.sign?.signPayload ?? defaultHandlers.sign.signPayload;
+      assertEnumVariant(message, 'v1', UNSUPPORTED_MESSAGE_FORMAT_ERROR);
 
-      const result = await signPayload(payload);
-      return okResult(result);
+      const signPayload = externalHandlers.signPayload ?? defaultHandlers.signPayload;
+
+      const result = await signPayload(message.value);
+
+      const response = {
+        signature: result.signature,
+        signedTransaction: result.signedTransaction
+          ? typeof result.signedTransaction === 'string'
+            ? result.signedTransaction
+            : toHex(result.signedTransaction)
+          : undefined,
+      };
+
+      return enumValue('v1', okResult(response));
     } catch (e) {
-      return errResult(errorToString(e));
+      return enumValue('v1', errResult(enumValue('Unknown', { reason: errorToString(e) })));
     }
   });
 
-  transport.handleRequest('v1', 'create_transaction', async ([productAccounId, payload]) => {
+  transport.handleRequest('create_transaction', async message => {
     try {
+      assertEnumVariant(message, 'v1', UNSUPPORTED_MESSAGE_FORMAT_ERROR);
+
       const createTransaction = externalHandlers.createTransaction ?? defaultHandlers.createTransaction;
-      const result = await createTransaction(productAccounId, payload);
-      return {
-        tag: 'createTransactionResponseV1',
-        value: okResult(result),
-      };
+      const [productAccountId, payload] = message.value;
+      assertEnumVariant(payload, 'v1', 'Unsupported transaction version');
+
+      const transaction = {
+        version: 1,
+        ...payload.value,
+      } as const;
+      const result = await createTransaction(productAccountId, transaction);
+
+      return enumValue('v1', okResult(fromHex(result)));
     } catch (e) {
-      return {
-        tag: 'createTransactionResponseV1',
-        value: errResult(errorToString(e)),
-      };
+      return enumValue('v1', errResult(enumValue('Unknown', { reason: errorToString(e) })));
+    }
+  });
+
+  transport.handleRequest('create_transaction_with_non_product_account', async message => {
+    try {
+      assertEnumVariant(message, 'v1', UNSUPPORTED_MESSAGE_FORMAT_ERROR);
+
+      const createTransactionWithNonProductAccount =
+        externalHandlers.createTransactionWithNonProductAccount ??
+        defaultHandlers.createTransactionWithNonProductAccount;
+      const payload = message.value;
+      assertEnumVariant(payload, 'v1', 'Unsupported transaction version');
+
+      const transaction = {
+        version: 1,
+        ...payload.value,
+      } as const;
+      const result = await createTransactionWithNonProductAccount(transaction);
+
+      return enumValue('v1', okResult(fromHex(result)));
+    } catch (e) {
+      return enumValue('v1', errResult(enumValue('Unknown', { reason: errorToString(e) })));
     }
   });
 
   // feature support handling
 
-  transport.handleRequest('v1', 'feature', async message => {
-    switch (message.tag) {
+  transport.handleRequest('feature', async message => {
+    if (!isEnumVariant(message, 'v1')) {
+      return enumValue('v1', errResult({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR }));
+    }
+
+    switch (message.value.tag) {
       case 'chain': {
         try {
           const checkChainSupport = externalHandlers.chainSupport ?? defaultHandlers.chainSupport;
-          const result = await checkChainSupport(message.value);
-          return {
-            tag: 'supportFeatureResponseV1',
-            value: okResult({ tag: 'chain', value: { genesisHash: message.value, result } }),
-          };
+          const result = await checkChainSupport(message.value.value);
+          return enumValue('v1', okResult(result));
         } catch (e) {
-          return {
-            tag: 'supportFeatureResponseV1',
-            value: errResult(errorToString(e)),
-          };
+          return enumValue('v1', errResult({ reason: errorToString(e) }));
         }
       }
       default: {
+        return enumValue('v1', errResult({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR }));
       }
     }
   });
@@ -157,14 +215,15 @@ export function createContainer(provider: TransportProvider) {
     connectJsonRpcProvider(genesisHash: HexString, provider: JsonRpcProvider) {
       init();
 
-      return transport.handleSubscription('v1', 'jsonrpc_message_subscribe', (requestedGenesisHash, send) => {
-        if (requestedGenesisHash !== genesisHash) {
+      return transport.handleSubscription('jsonrpc_message_subscribe', (request, send) => {
+        assertEnumVariant(request, 'v1', UNSUPPORTED_MESSAGE_FORMAT_ERROR);
+        if (request.value !== genesisHash) {
           return () => {
             // empty subscription, we don't want to react to foreign chain subscription request
           };
         }
 
-        const connection = provider(send);
+        const connection = provider(message => send(enumValue('v1', message)));
 
         return () => {
           connection?.disconnect();
@@ -172,15 +231,19 @@ export function createContainer(provider: TransportProvider) {
       });
     },
 
-    handleAccounts(handler: ContainerHandlers['accounts']) {
+    handleNonProductAccounts(handler: ContainerHandlers['nonProductAccounts']) {
       init();
-      externalHandlers.accounts = handler;
-      accountSubscriber?.replaceSubscriber();
+      externalHandlers.nonProductAccounts = handler;
     },
 
-    handleSignRequest(handler: ContainerHandlers['sign']) {
+    handleSignRawRequest(handler: ContainerHandlers['signRaw']) {
       init();
-      externalHandlers.sign = handler;
+      externalHandlers.signRaw = handler;
+    },
+
+    handleSignPayloadRequest(handler: ContainerHandlers['signPayload']) {
+      init();
+      externalHandlers.signPayload = handler;
     },
 
     handleChainSupportCheck(handler: ContainerHandlers['chainSupport']) {
@@ -188,15 +251,18 @@ export function createContainer(provider: TransportProvider) {
       externalHandlers.chainSupport = handler;
     },
 
-    isReady() {
-      return transport.isReady();
+    handleCreateTransaction(handler: ContainerHandlers['createTransaction']) {
+      init();
+      externalHandlers.createTransaction = handler;
     },
 
-    subscribeLocationChange(callback: (location: string) => void) {
+    handleCreateTransactionWithNonProductAccount(handler: ContainerHandlers['createTransactionWithNonProductAccount']) {
       init();
-      return transport.subscribe('locationChangedV1', async location => {
-        callback(location);
-      });
+      externalHandlers.createTransactionWithNonProductAccount = handler;
+    },
+
+    isReady() {
+      return transport.isReady();
     },
 
     subscribeConnectionStatus(callback: (connectionStatus: ConnectionStatus) => void) {

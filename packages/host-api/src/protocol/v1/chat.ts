@@ -4,6 +4,12 @@ import { GenericErr } from '../commonCodecs.js';
 
 // contact
 
+export class ChatContactRegistrationUnknownError extends Error {
+  constructor(reason: string) {
+    super(`Chat contact registration error: ${reason}`);
+  }
+}
+
 export const ChatContactRegistrationErr = Enum({
   Unknown: GenericErr,
 });
@@ -66,6 +72,18 @@ export const ChatMessage = Enum({
 });
 
 // sending message
+
+export class ChatMessagePostingOverflowMessageSizeError extends Error {
+  constructor() {
+    super('Chat message posting error: overflow message size.');
+  }
+}
+
+export class ChatMessagePostingUnknownError extends Error {
+  constructor(reason: string) {
+    super(`Chat message posting error: ${reason}`);
+  }
+}
 
 export const ChatMessagePostingErr = Enum({
   OverflowMessageSize: _void,

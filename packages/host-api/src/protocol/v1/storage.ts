@@ -4,6 +4,18 @@ import { GenericErr, Hex } from '../commonCodecs.js';
 
 // common structures
 
+export class StorageFullError extends Error {
+  constructor() {
+    super('Storage error: full.');
+  }
+}
+
+export class StorageUnknownError extends Error {
+  constructor(reason: string) {
+    super(`Storage error: ${reason}`);
+  }
+}
+
 export const StorageErr = Enum({
   Full: _void,
   Unknown: GenericErr,
