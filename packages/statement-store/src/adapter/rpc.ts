@@ -3,12 +3,21 @@ import { createStatementSdk } from '@polkadot-api/sdk-statement';
 import { Binary } from '@polkadot-api/substrate-bindings';
 import { toHex } from '@polkadot-api/utils';
 import type { ResultAsync } from 'neverthrow';
-import { fromPromise } from 'neverthrow';
+import { errAsync, fromPromise, okAsync } from 'neverthrow';
 
 import { toError } from '../helpers.js';
 
 import type { LazyClient } from './lazyClient.js';
 import type { StatementStoreAdapter } from './types.js';
+import {
+  AccountFullError,
+  BadProofError,
+  DataTooLargeError,
+  EncodingTooLargeError,
+  NoProofError,
+  PriorityTooLowError,
+  StorageFullError,
+} from './types.js';
 
 const POLLING_INTERVAL = 1500;
 
@@ -90,7 +99,39 @@ export function createPapiStatementStoreAdapter(lazyClient: LazyClient): Stateme
       };
     },
     submitStatement(statement) {
-      return fromPromise(sdk.submit(statement), toError);
+      return fromPromise(sdk.submit(statement), toError).andThen(result => {
+        switch (result.status) {
+          case 'new':
+          case 'known':
+            return okAsync(undefined);
+          case 'rejected':
+            switch (result.reason) {
+              case 'dataTooLarge':
+                return errAsync(new DataTooLargeError(result.submitted_size, result.available_size));
+              case 'channelPriorityTooLow':
+                return errAsync(new PriorityTooLowError(result.submitted_priority, result.min_priority));
+              case 'accountFull':
+                return errAsync(new AccountFullError());
+              case 'storeFull':
+                return errAsync(new StorageFullError());
+              default:
+                return errAsync(new Error('Unknown rejection reason'));
+            }
+          case 'invalid':
+            switch (result.reason) {
+              case 'noProof':
+                return errAsync(new NoProofError());
+              case 'badProof':
+                return errAsync(new BadProofError());
+              case 'encodingTooLarge':
+                return errAsync(new EncodingTooLargeError(result.submitted_size, result.max_size));
+              default:
+                return errAsync(new Error('Unknown rejection reason: invalid'));
+            }
+          default:
+            return okAsync(undefined);
+        }
+      });
     },
   };
 

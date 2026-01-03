@@ -24,13 +24,13 @@
     "README.md"
   ],
   "dependencies": {
-    "@polkadot-api/sdk-statement": "^0.2.0",
+    "@polkadot-api/sdk-statement": "^0.3.0",
     "@polkadot-api/substrate-bindings": "^0.16.5",
     "@noble/hashes": "2.0.1",
     "@noble/ciphers": "2.1.1",
     "polkadot-api": "^1.23.1",
     "neverthrow": "^8.2.0",
-    "scale-ts": "^1.6.1"
+    "scale-ts": "1.6.1"
   },
   "publishConfig": {
     "access": "public"
