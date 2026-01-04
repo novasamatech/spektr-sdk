@@ -1,4 +1,4 @@
-import type { TransportProvider } from '@novasamatech/host-api';
+import type { Provider } from '@novasamatech/host-api';
 import { createDefaultLogger, createTransport } from '@novasamatech/host-api';
 
 function getParentWindow() {
@@ -25,7 +25,7 @@ function isValidMessage(event: MessageEvent, sourceEnv: MessageEventSource, curr
   );
 }
 
-function createDefaultSdkProvider(): TransportProvider {
+function createDefaultSdkProvider(): Provider {
   const subscribers = new Set<(message: Uint8Array) => void>();
 
   const handleMessage = (event: MessageEvent) => {

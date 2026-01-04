@@ -1,4 +1,4 @@
-import type { Logger, TransportProvider } from '@novasamatech/host-api';
+import type { Logger, Provider } from '@novasamatech/host-api';
 import { createDefaultLogger } from '@novasamatech/host-api';
 
 function hasWindow() {
@@ -24,7 +24,7 @@ type Params = {
   logger?: Logger;
 };
 
-export function createIframeProvider({ iframe, url, logger }: Params): TransportProvider {
+export function createIframeProvider({ iframe, url, logger }: Params): Provider {
   iframe.src = url;
 
   let disposed = false;

@@ -3,8 +3,8 @@ import { errAsync, fromPromise, okAsync } from 'neverthrow';
 import type { Codec, CodecType } from 'scale-ts';
 
 import { enumValue, extractErrorMessage } from './helpers.js';
-import type { HostApiProtocol, VersionedRequest, VersionedSubscription } from './protocol/api.js';
-import type { Transport } from './types.js';
+import type { HostApiProtocol, VersionedRequest, VersionedSubscription } from './protocol/impl.js';
+import type { Subscription, Transport } from './types.js';
 
 type Value<T extends Codec<any> | Codec<never>> = T extends Codec<any> ? CodecType<T> : unknown;
 
@@ -31,7 +31,7 @@ type InferRequestMethod<Method extends VersionedRequest> = (
 type InferSubscribeMethod<Method extends VersionedSubscription> = (
   args: Value<Method['start']>,
   callback: (payload: Value<Method['receive']>) => void,
-) => VoidFunction;
+) => Subscription;
 
 type InferMethod<Method extends VersionedRequest | VersionedSubscription> = Method extends VersionedRequest
   ? InferRequestMethod<Method>

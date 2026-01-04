@@ -24,7 +24,7 @@ export function createPapiProvider(
   const hostApi = createHostApi(transport);
 
   const spektrProvider: JsonRpcProvider = onMessage => {
-    const unsubscribe = hostApi.jsonrpc_message_subscribe(enumValue('v1', genesisHash), payload => {
+    const subscription = hostApi.jsonrpc_message_subscribe(enumValue('v1', genesisHash), payload => {
       switch (payload.tag) {
         case 'v1':
           onMessage(payload.value);
@@ -39,7 +39,7 @@ export function createPapiProvider(
         hostApi.jsonrpc_message_send(enumValue('v1', [genesisHash, message]));
       },
       disconnect() {
-        unsubscribe();
+        subscription.unsubscribe();
       },
     };
   };

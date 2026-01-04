@@ -73,9 +73,9 @@ export const ChatMessage = Enum({
 
 // sending message
 
-export class ChatMessagePostingOverflowMessageSizeError extends Error {
+export class ChatMessagePostingMessageTooLargeError extends Error {
   constructor() {
-    super('Chat message posting error: overflow message size.');
+    super('Chat message posting error: message too large.');
   }
 }
 
@@ -86,7 +86,7 @@ export class ChatMessagePostingUnknownError extends Error {
 }
 
 export const ChatMessagePostingErr = Enum({
-  OverflowMessageSize: _void,
+  MessageTooLarge: _void,
   Unknown: GenericErr,
 });
 
@@ -97,7 +97,7 @@ export const ChatPostMessageResult = Struct({
 export const ChatPostMessageV1_request = ChatMessage;
 export const ChatPostMessageV1_response = Result(ChatPostMessageResult, ChatMessagePostingErr);
 
-// receiving message
+// receiving a message
 
 export const ActionTrigger = Struct({
   messageId: str,

@@ -5,16 +5,9 @@ import type {
   PickMessagePayload,
   PickMessagePayloadValue,
 } from './protocol/messageCodec.js';
+import type { Provider } from './provider.js';
 
 export type Logger = Record<'info' | 'warn' | 'error' | 'log', (...args: unknown[]) => void>;
-
-export type TransportProvider = {
-  logger: Logger;
-  isCorrectEnvironment(): boolean;
-  postMessage(message: Uint8Array): void;
-  subscribe(callback: (message: Uint8Array) => void): () => void;
-  dispose(): void;
-};
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 
@@ -25,10 +18,16 @@ export type RequestHandler<Method extends string> = (
 export type SubscriptionHandler<Method extends string> = (
   params: PickMessagePayloadValue<ComposeMessageAction<Method, 'start'>>,
   send: (value: PickMessagePayloadValue<ComposeMessageAction<Method, 'receive'>>) => void,
+  interrupt: () => void,
 ) => VoidFunction;
 
+export type Subscription = {
+  unsubscribe: VoidFunction;
+  onInterrupt(callback: VoidFunction): VoidFunction;
+};
+
 export type Transport = {
-  readonly provider: TransportProvider;
+  readonly provider: Provider;
 
   isCorrectEnvironment(): boolean;
   isReady(): Promise<boolean>;
@@ -47,7 +46,7 @@ export type Transport = {
     method: Method,
     payload: PickMessagePayloadValue<ComposeMessageAction<Method, 'start'>>,
     callback: (payload: PickMessagePayloadValue<ComposeMessageAction<Method, 'receive'>>) => void,
-  ): VoidFunction;
+  ): Subscription;
 
   handleSubscription<const Method extends string>(method: Method, handler: SubscriptionHandler<Method>): VoidFunction;
 
@@ -58,5 +57,6 @@ export type Transport = {
   listenMessages<const Action extends MessageAction>(
     action: Action,
     callback: (requestId: string, data: PickMessagePayload<Action>) => void,
+    onError?: (error: unknown) => void,
   ): VoidFunction;
 };

@@ -17,6 +17,10 @@ export const Nullable = <T>(inner: Codec<T>) =>
     v => (v === undefined ? null : v),
   );
 
+/**
+ * Wrapper around Bytes codec. Every usage of Hex codec should be threaded as raw Bytes with mapping to hex string.
+ * @param [length] Optional, corresponds to byte array size, not the length of hex string.
+ */
 export const Hex = (length?: number) => enhanceCodec<Uint8Array, HexString>(Bytes(length), fromHex, toHex);
 
 export const GenesisHash = Hex();
@@ -24,9 +28,3 @@ export const GenesisHash = Hex();
 export const GenericErr = Struct({
   reason: str,
 });
-
-export class GenericError extends Error {
-  constructor(reason: string) {
-    super(reason);
-  }
-}

@@ -4,7 +4,7 @@ import type {
   ConnectionStatus,
   HexString,
   ProductAccountId,
-  TransportProvider,
+  Provider,
   TxPayloadV1Interface,
 } from '@novasamatech/host-api';
 import {
@@ -33,6 +33,16 @@ type ContainerHandlers = {
   createTransaction(account: CodecType<typeof ProductAccountId>, payload: TxPayloadV1Interface): Promise<HexString>;
   createTransactionWithNonProductAccount(payload: TxPayloadV1Interface): Promise<HexString>;
   chainSupport(genesisHash: HexString): Promise<boolean>;
+  storage: {
+    onRead(key: HexString): Promise<Uint8Array | null>;
+    onWrite(key: HexString, value: Uint8Array): Promise<void>;
+    onClear(key: HexString): Promise<void>;
+  };
+  chat: {
+    registration(): Promise<void>;
+    onMessage(callback: (message: string) => void): () => void;
+    sendAction(): Promise<void>;
+  };
 };
 
 export type Container = ReturnType<typeof createContainer>;
@@ -44,13 +54,37 @@ const defaultHandlers: ContainerHandlers = {
   createTransaction() {
     return Promise.reject('Not implemented');
   },
+  storage: {
+    onRead() {
+      return Promise.reject('Not implemented');
+    },
+    onWrite() {
+      return Promise.reject('Not implemented');
+    },
+    onClear() {
+      return Promise.reject('Not implemented');
+    },
+  },
+  chat: {
+    registration(): Promise<void> {
+      return Promise.reject('Not implemented');
+    },
+    onMessage() {
+      return () => {
+        /* empty */
+      };
+    },
+    sendAction() {
+      return Promise.reject('Not implemented');
+    },
+  },
   createTransactionWithNonProductAccount() {
     return Promise.reject('Not implemented');
   },
   chainSupport: async () => false,
 };
 
-export function createContainer(provider: TransportProvider) {
+export function createContainer(provider: Provider) {
   const transport = createTransport(provider);
   if (!transport.isCorrectEnvironment()) {
     throw new Error('Transport is not available: dapp provider has incorrect environment');
@@ -270,6 +304,11 @@ export function createContainer(provider: TransportProvider) {
     handleCreateTransactionWithNonProductAccount(handler: ContainerHandlers['createTransactionWithNonProductAccount']) {
       init();
       externalHandlers.createTransactionWithNonProductAccount = handler;
+    },
+
+    handleChat(handler: ContainerHandlers['chat']) {
+      init();
+      externalHandlers.chat = handler;
     },
 
     isReady() {

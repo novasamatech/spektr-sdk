@@ -1,9 +1,9 @@
 import { createNanoEvents } from 'nanoevents';
-import { nanoid } from 'nanoid';
 
 import { HANDSHAKE_INTERVAL, HANDSHAKE_TIMEOUT, JAM_CODEC_PROTOCOL_ID } from './constants.js';
 import {
   composeAction,
+  createRequestId,
   delay,
   enumValue,
   errResult,
@@ -18,11 +18,12 @@ import type {
   PickMessagePayloadValue,
 } from './protocol/messageCodec.js';
 import { Message } from './protocol/messageCodec.js';
-import type { ConnectionStatus, RequestHandler, SubscriptionHandler, Transport, TransportProvider } from './types.js';
+import type { Provider } from './provider.js';
+import type { ConnectionStatus, RequestHandler, SubscriptionHandler, Transport } from './types.js';
 
 const isConnected = (status: ConnectionStatus) => status === 'connected';
 
-export function createTransport(provider: TransportProvider): Transport {
+export function createTransport(provider: Provider): Transport {
   let codecVersion = JAM_CODEC_PROTOCOL_ID;
 
   const handshakeAbortController = new AbortController();
@@ -89,7 +90,7 @@ export function createTransport(provider: TransportProvider): Transport {
       changeConnectionStatus('connecting');
 
       const performHandshake = () => {
-        const id = nanoid();
+        const id = createRequestId();
         let resolved = false;
 
         const cleanup = (interval: NodeJS.Timeout, unsubscribe: VoidFunction) => {
@@ -151,7 +152,7 @@ export function createTransport(provider: TransportProvider): Transport {
 
       signal?.throwIfAborted();
 
-      const requestId = nanoid();
+      const requestId = createRequestId();
       const requestAction = composeAction(method, 'request');
       const responseAction = composeAction(method, 'response');
 
@@ -210,17 +211,33 @@ export function createTransport(provider: TransportProvider): Transport {
     ) {
       checks();
 
-      const requestId = nanoid();
+      const events = createNanoEvents<{ interrupt: VoidFunction }>();
+
+      const requestId = createRequestId();
 
       const startAction = composeAction(method, 'start');
       const stopAction = composeAction(method, 'stop');
+      const interruptAction = composeAction(method, 'interrupt');
       const receiveAction = composeAction(method, 'receive');
 
-      const unsubscribe = transport.listenMessages(receiveAction, (receivedId, data) => {
+      const unsubscribeReceive = transport.listenMessages(receiveAction, (receivedId, data) => {
         if (receivedId === requestId) {
           callback(data.value as PickMessagePayloadValue<ComposeMessageAction<Method, 'receive'>>);
         }
       });
+
+      const unsubscribeInterrupt = transport.listenMessages(interruptAction, receivedId => {
+        if (receivedId === requestId) {
+          events.emit('interrupt');
+          stopSubscription();
+        }
+      });
+
+      const stopSubscription = () => {
+        unsubscribeReceive();
+        unsubscribeInterrupt();
+        events.events = {};
+      };
 
       const startPayload = enumValue(startAction, payload) as never as PickMessagePayload<
         ComposeMessageAction<Method, 'start'>
@@ -228,14 +245,19 @@ export function createTransport(provider: TransportProvider): Transport {
 
       transport.postMessage(requestId, startPayload);
 
-      return () => {
-        unsubscribe();
+      return {
+        unsubscribe() {
+          stopSubscription();
 
-        const stopPayload = enumValue(stopAction, undefined) as PickMessagePayload<
-          ComposeMessageAction<Method, 'stop'>
-        >;
+          const stopPayload = enumValue(stopAction, undefined) as PickMessagePayload<
+            ComposeMessageAction<Method, 'stop'>
+          >;
 
-        transport.postMessage(requestId, stopPayload);
+          transport.postMessage(requestId, stopPayload);
+        },
+        onInterrupt(callback) {
+          return events.on('interrupt', callback);
+        },
       };
     },
 
@@ -244,6 +266,7 @@ export function createTransport(provider: TransportProvider): Transport {
 
       const startAction = composeAction(method, 'start');
       const stopAction = composeAction(method, 'stop');
+      const interruptAction = composeAction(method, 'interrupt');
       const receiveAction = composeAction(method, 'receive');
 
       const subscriptions: Map<string, VoidFunction> = new Map();
@@ -251,12 +274,23 @@ export function createTransport(provider: TransportProvider): Transport {
       const unsubStart = transport.listenMessages(startAction, (requestId, payload) => {
         if (subscriptions.has(requestId)) return;
 
-        const unsubscribe = handler(payload.value as never, value => {
-          const receivePayload = enumValue(receiveAction, value) as never as PickMessagePayload<
-            ComposeMessageAction<Method, 'receive'>
-          >;
-          transport.postMessage(requestId, receivePayload);
-        });
+        const unsubscribe = handler(
+          payload.value as never,
+          value => {
+            const receivePayload = enumValue(receiveAction, value) as never as PickMessagePayload<
+              ComposeMessageAction<Method, 'receive'>
+            >;
+            transport.postMessage(requestId, receivePayload);
+          },
+          () => {
+            transport.postMessage(
+              requestId,
+              enumValue(interruptAction, undefined) as never as PickMessagePayload<
+                ComposeMessageAction<Method, 'interrupt'>
+              >,
+            );
+          },
+        );
 
         subscriptions.set(requestId, unsubscribe);
       });
@@ -282,6 +316,7 @@ export function createTransport(provider: TransportProvider): Transport {
     listenMessages<const Action extends MessageAction>(
       action: Action,
       callback: (requestId: string, data: PickMessagePayload<Action>) => void,
+      onError?: (error: unknown) => void,
     ) {
       return provider.subscribe(message => {
         try {
@@ -290,8 +325,8 @@ export function createTransport(provider: TransportProvider): Transport {
           if (isEnumVariant(result.payload, action)) {
             callback(result.requestId, result.payload as PickMessagePayload<Action>);
           }
-        } catch {
-          // Invalid message, ignore
+        } catch (e) {
+          onError?.(e);
         }
       });
     },

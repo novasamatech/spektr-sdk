@@ -1,4 +1,5 @@
-export type { ConnectionStatus, Logger, Transport, TransportProvider } from './types.js';
+export type { ConnectionStatus, Logger, Transport } from './types.js';
+export type { Provider } from './provider.js';
 export {
   assertEnumVariant,
   createRequestId,

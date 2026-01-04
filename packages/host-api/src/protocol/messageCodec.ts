@@ -1,10 +1,10 @@
 import type { Codec, CodecType } from 'scale-ts';
 import { Struct, _void, str } from 'scale-ts';
 
-import type { HostApiProtocol, VersionedRequest, VersionedSubscription } from './api.js';
-import { hostApiProtocol } from './api.js';
 import type { EnumCodec } from './commonCodecs.js';
 import { Enum } from './commonCodecs.js';
+import type { HostApiProtocol, VersionedRequest, VersionedSubscription } from './impl.js';
+import { hostApiProtocol } from './impl.js';
 
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
 
@@ -15,6 +15,7 @@ type InferSubscription<Method extends string, R extends VersionedSubscription<an
   R['start']
 > &
   Record<`${Method}_receive`, R['receive']> &
+  Record<`${Method}_interrupt`, Codec<undefined>> &
   Record<`${Method}_stop`, Codec<undefined>>;
 
 type InferHostApiMethod<Method extends string, Payload> =
@@ -41,6 +42,7 @@ const createPayload = (hostApi: HostApiProtocol): EnumCodec<HostApiPayloadFields
     if (payload.type === 'subscription') {
       fields[`${method}_start`] = payload.start;
       fields[`${method}_stop`] = _void;
+      fields[`${method}_interrupt`] = _void;
       fields[`${method}_receive`] = payload.receive;
     }
   }
