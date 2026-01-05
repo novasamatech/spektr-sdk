@@ -1,4 +1,4 @@
-import type { HexString, Transport, TxPayloadV1Interface } from '@novasamatech/host-api';
+import type { CodecType, HexString, Transport, VersionedPublicTxPayload } from '@novasamatech/host-api';
 import { assertEnumVariant, createHostApi, enumValue, fromHex, toHex } from '@novasamatech/host-api';
 import { injectExtension } from '@polkadot/extension-inject';
 import type { InjectedAccounts } from '@polkadot/extension-inject/types';
@@ -22,7 +22,7 @@ interface Signer {
   /**
    * @description signs a transaction according to https://github.com/polkadot-js/api/issues/6213
    */
-  createTransaction?: (payload: TxPayloadV1Interface) => Promise<HexString>;
+  createTransaction?: (payload: CodecType<typeof VersionedPublicTxPayload>) => Promise<HexString>;
 }
 
 interface Injected {
@@ -131,11 +131,7 @@ export async function createExtensionEnableFactory(transport: Transport) {
           );
         },
         async createTransaction(payload) {
-          if (payload.version !== 1) throw new Error('Unsupported transaction version');
-
-          const response = await hostApi.create_transaction_with_non_product_account(
-            enumValue('v1', enumValue('v1', payload)),
-          );
+          const response = await hostApi.create_transaction_with_non_product_account(enumValue('v1', payload));
 
           return response.match<HexString, HexString>(
             response => {

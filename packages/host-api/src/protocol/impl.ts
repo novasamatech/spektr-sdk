@@ -54,13 +54,13 @@ type InferVersionedArgument<EnumValues extends VersionedArguments, N extends num
   [V in keyof EnumValues]: EnumValues[V][N];
 };
 
-export type VersionedRequest<T extends VersionedArguments = VersionedArguments> = {
+export type VersionedProtocolRequest<T extends VersionedArguments = VersionedArguments> = {
   type: 'request';
   request: EnumCodec<InferVersionedArgument<T, 0>>;
   response: EnumCodec<InferVersionedArgument<T, 1>>;
 };
 
-export type VersionedSubscription<T extends VersionedArguments = VersionedArguments> = {
+export type VersionedProtocolSubscription<T extends VersionedArguments = VersionedArguments> = {
   type: 'subscription';
   start: EnumCodec<InferVersionedArgument<T, 0>>;
   receive: EnumCodec<InferVersionedArgument<T, 1>>;
@@ -77,7 +77,7 @@ const enumFromArg = <const Values extends VersionedArguments, const N extends nu
 
 const versionedRequest = <const EnumValues extends VersionedArguments>(
   values: EnumValues,
-): VersionedRequest<EnumValues> => {
+): VersionedProtocolRequest<EnumValues> => {
   return {
     type: 'request',
     request: enumFromArg(values, 0),
@@ -87,7 +87,7 @@ const versionedRequest = <const EnumValues extends VersionedArguments>(
 
 const versionedSubscription = <const EnumValues extends VersionedArguments>(
   values: EnumValues,
-): VersionedSubscription<EnumValues> => {
+): VersionedProtocolSubscription<EnumValues> => {
   return {
     type: 'subscription',
     start: enumFromArg(values, 0),
@@ -100,98 +100,98 @@ const versionedSubscription = <const EnumValues extends VersionedArguments>(
 export type HostApiProtocol = {
   // host requests
 
-  handshake: VersionedRequest<{
+  handshake: VersionedProtocolRequest<{
     v1: [typeof HandshakeV1_request, typeof HandshakeV1_response];
   }>;
 
-  feature: VersionedRequest<{
+  feature: VersionedProtocolRequest<{
     v1: [typeof FeatureV1_request, typeof FeatureV1_response];
   }>;
 
-  permission_request: VersionedRequest<{
+  permission_request: VersionedProtocolRequest<{
     v1: [typeof PermissionRequestV1_request, typeof PermissionRequestV1_response];
   }>;
 
   // storage
 
-  storage_read: VersionedRequest<{
+  storage_read: VersionedProtocolRequest<{
     v1: [typeof StorageReadV1_request, typeof StorageReadV1_response];
   }>;
 
-  storage_write: VersionedRequest<{
+  storage_write: VersionedProtocolRequest<{
     v1: [typeof StorageWriteV1_request, typeof StorageWriteV1_response];
   }>;
 
-  storage_clear: VersionedRequest<{
+  storage_clear: VersionedProtocolRequest<{
     v1: [typeof StorageClearV1_request, typeof StorageClearV1_response];
   }>;
 
   // accounts
 
-  account_get: VersionedRequest<{
+  account_get: VersionedProtocolRequest<{
     v1: [typeof AccountGetV1_request, typeof AccountGetV1_response];
   }>;
 
-  account_get_alias: VersionedRequest<{
+  account_get_alias: VersionedProtocolRequest<{
     v1: [typeof AccountGetAliasV1_request, typeof AccountGetAliasV1_response];
   }>;
 
-  account_create_proof: VersionedRequest<{
+  account_create_proof: VersionedProtocolRequest<{
     v1: [typeof AccountCreateProofV1_request, typeof AccountCreateProofV1_response];
   }>;
 
-  get_non_product_accounts: VersionedRequest<{
+  get_non_product_accounts: VersionedProtocolRequest<{
     v1: [typeof GetNonProductAccountsV1_request, typeof GetNonProductAccountsV1_response];
   }>;
 
   // signing
 
-  create_transaction: VersionedRequest<{
+  create_transaction: VersionedProtocolRequest<{
     v1: [typeof CreateTransactionV1_request, typeof CreateTransactionV1_response];
   }>;
 
-  create_transaction_with_non_product_account: VersionedRequest<{
+  create_transaction_with_non_product_account: VersionedProtocolRequest<{
     v1: [
       typeof CreateTransactionWithNonProductAccountV1_request,
       typeof CreateTransactionWithNonProductAccountV1_response,
     ];
   }>;
 
-  sign_raw: VersionedRequest<{
+  sign_raw: VersionedProtocolRequest<{
     v1: [typeof SignRawV1_request, typeof SignRawV1_response];
   }>;
 
-  sign_payload: VersionedRequest<{
+  sign_payload: VersionedProtocolRequest<{
     v1: [typeof SignPayloadV1_request, typeof SignPayloadV1_response];
   }>;
 
   // chat
 
-  chat_create_contact: VersionedRequest<{
+  chat_create_contact: VersionedProtocolRequest<{
     v1: [typeof ChatCreateContactV1_request, typeof ChatCreateContactV1_response];
   }>;
 
-  chat_post_message: VersionedRequest<{
+  chat_post_message: VersionedProtocolRequest<{
     v1: [typeof ChatPostMessageV1_request, typeof ChatPostMessageV1_response];
   }>;
 
-  chat_action_subscribe: VersionedSubscription<{
+  chat_action_subscribe: VersionedProtocolSubscription<{
     v1: [typeof ChatActionSubscribeV1_start, typeof ChatActionSubscribeV1_receive];
   }>;
 
   // statement store
 
-  statement_store_create_proof: VersionedRequest<{
+  statement_store_create_proof: VersionedProtocolRequest<{
     v1: [typeof StatementStoreCreateProofV1_request, typeof StatementStoreCreateProofV1_response];
   }>;
 
   // json rpc
 
-  jsonrpc_message_send: VersionedRequest<{
+  jsonrpc_message_send: VersionedProtocolRequest<{
     v1: [typeof JsonRpcMessageSendV1_request, typeof JsonRpcMessageSendV1_response];
   }>;
 
-  jsonrpc_message_subscribe: VersionedSubscription<{
+  jsonrpc_message_subscribe: VersionedProtocolSubscription<{
     v1: [typeof JsonRpcMessageSubscribeV1_start, typeof JsonRpcMessageSubscribeV1_receive];
   }>;
 };

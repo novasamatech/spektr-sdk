@@ -1,5 +1,5 @@
-import type { HexString, TxPayloadV1Interface } from '@novasamatech/host-api';
-import { createTransport } from '@novasamatech/host-api';
+import type { HexString } from '@novasamatech/host-api';
+import { createTransport, toHex } from '@novasamatech/host-api';
 import { createContainer } from '@novasamatech/host-container';
 import { createExtensionEnableFactory } from '@novasamatech/product-sdk';
 
@@ -29,7 +29,7 @@ describe('injected web3 provider', () => {
 
     const { container, injected } = await setup();
 
-    container.handleNonProductAccounts(async () => mockAccounts);
+    container.handleGetNonProductAccounts((_, { ok }) => ok(mockAccounts));
 
     const injectedAccounts = await injected.accounts.get();
 
@@ -50,8 +50,8 @@ describe('injected web3 provider', () => {
       signature: '0x0001',
     };
 
-    container.handleSignPayloadRequest(async payload => {
-      return { ...signerResult, signedTransaction: payload.method as HexString };
+    container.handleSignPayload((params, { ok }) => {
+      return ok({ ...signerResult, signedTransaction: params.method });
     });
 
     const result = await injected.signer.signPayload?.({
@@ -81,8 +81,8 @@ describe('injected web3 provider', () => {
       signature: '0x0001',
     };
 
-    container.handleSignRawRequest(async raw => {
-      return { ...signerResult, signedTransaction: raw.data as HexString };
+    container.handleSignRaw((params, { ok }) => {
+      return ok({ ...signerResult, signedTransaction: params.data.value as HexString });
     });
 
     const result = await injected.signer.signRaw?.({
@@ -97,34 +97,36 @@ describe('injected web3 provider', () => {
   it('should handle createTransaction request', async () => {
     const { container, injected } = await setup();
 
-    const response: HexString = '0x0001';
-    const payload: TxPayloadV1Interface = {
-      version: 1,
+    const response = new Uint8Array([0, 0, 1, 1]);
+    const payload = {
+      version: 1 as const,
       signer: 'test',
-      callData: '0x0002',
+      callData: '0x0002' as const,
       extensions: [
         {
           id: 'test',
-          additionalSigned: '0x0000',
-          extra: '0x0000',
+          additionalSigned: '0x0000' as const,
+          extra: '0x0000' as const,
         },
       ],
       txExtVersion: 15,
       context: {
-        metadata: '0x0000',
+        metadata: '0x0000' as const,
         bestBlockHeight: 1,
         tokenSymbol: 'DOT',
         tokenDecimals: 10,
       },
     };
 
-    const createTransaction = vitest.fn(async () => response);
+    const createTransaction = vitest.fn<Parameters<typeof container.handleCreateTransactionWithNonProductAccount>[0]>(
+      (_, { ok }) => ok(response),
+    );
 
     container.handleCreateTransactionWithNonProductAccount(createTransaction);
 
     const result = await injected.signer.createTransaction?.(payload);
 
-    expect(createTransaction).toBeCalledWith(payload);
-    expect(result).toEqual(response);
+    expect(createTransaction).toBeCalledTimes(1);
+    expect(result).toEqual(toHex(response));
   });
 });

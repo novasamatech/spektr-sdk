@@ -4,7 +4,7 @@ import type { Codec, CodecType } from 'scale-ts';
 
 import { extractErrorMessage } from './helpers.js';
 import { GenericError } from './protocol/commonCodecs.js';
-import type { HostApiProtocol, VersionedRequest, VersionedSubscription } from './protocol/impl.js';
+import type { HostApiProtocol, VersionedProtocolRequest, VersionedProtocolSubscription } from './protocol/impl.js';
 import { CreateProofErr, RequestCredentialsErr } from './protocol/v1/accounts.js';
 import { ChatContactRegistrationErr, ChatMessagePostingErr } from './protocol/v1/chat.js';
 import { CreateTransactionErr } from './protocol/v1/createTransaction.js';
@@ -33,20 +33,21 @@ type UnwrapVersionedResult<T> = T extends { tag: infer Tag; value: infer Value }
 type SuccessResponse<T> = T extends { success: true; value: infer U } ? U : never;
 type ErrorResponse<T> = T extends { success: false; value: infer U } ? U : never;
 
-type InferRequestMethod<Method extends VersionedRequest> = (
+type InferRequestMethod<Method extends VersionedProtocolRequest> = (
   args: Value<Method['request']>,
 ) => UnwrapVersionedResult<Value<Method['response']>>;
 
-type InferSubscribeMethod<Method extends VersionedSubscription> = (
+type InferSubscribeMethod<Method extends VersionedProtocolSubscription> = (
   args: Value<Method['start']>,
   callback: (payload: Value<Method['receive']>) => void,
 ) => Subscription;
 
-type InferMethod<Method extends VersionedRequest | VersionedSubscription> = Method extends VersionedRequest
-  ? InferRequestMethod<Method>
-  : Method extends VersionedSubscription
-    ? InferSubscribeMethod<Method>
-    : never;
+type InferMethod<Method extends VersionedProtocolRequest | VersionedProtocolSubscription> =
+  Method extends VersionedProtocolRequest
+    ? InferRequestMethod<Method>
+    : Method extends VersionedProtocolSubscription
+      ? InferSubscribeMethod<Method>
+      : never;
 
 type HostApi = {
   [K in keyof HostApiProtocol]: InferMethod<HostApiProtocol[K]>;

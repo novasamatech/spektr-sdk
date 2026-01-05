@@ -57,8 +57,10 @@ describe('PAPI provider', () => {
     const receivedByProvider: string[] = [];
     const receivedBySDK: string[] = [];
 
-    container.handleChainSupportCheck(async chainId => chainId === WellKnownChain.polkadotRelay);
-    container.connectJsonRpcProvider(WellKnownChain.polkadotRelay, onMessage => {
+    container.handleFeature((params, { ok }) =>
+      ok(params.tag === 'chain' && params.value === WellKnownChain.polkadotRelay),
+    );
+    container.handleJsonRpcMessageSubscribe(WellKnownChain.polkadotRelay, onMessage => {
       return {
         send(message) {
           receivedByProvider.push(message);

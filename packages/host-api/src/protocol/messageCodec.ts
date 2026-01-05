@@ -3,14 +3,17 @@ import { Struct, _void, str } from 'scale-ts';
 
 import type { EnumCodec } from './commonCodecs.js';
 import { Enum } from './commonCodecs.js';
-import type { HostApiProtocol, VersionedRequest, VersionedSubscription } from './impl.js';
+import type { HostApiProtocol, VersionedProtocolRequest, VersionedProtocolSubscription } from './impl.js';
 import { hostApiProtocol } from './impl.js';
 
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
 
-type InferRequest<Method extends string, R extends VersionedRequest<any>> = Record<`${Method}_request`, R['request']> &
+type InferRequest<Method extends string, R extends VersionedProtocolRequest<any>> = Record<
+  `${Method}_request`,
+  R['request']
+> &
   Record<`${Method}_response`, R['response']>;
-type InferSubscription<Method extends string, R extends VersionedSubscription<any>> = Record<
+type InferSubscription<Method extends string, R extends VersionedProtocolSubscription<any>> = Record<
   `${Method}_start`,
   R['start']
 > &
@@ -19,9 +22,9 @@ type InferSubscription<Method extends string, R extends VersionedSubscription<an
   Record<`${Method}_stop`, Codec<undefined>>;
 
 type InferHostApiMethod<Method extends string, Payload> =
-  Payload extends VersionedRequest<any>
+  Payload extends VersionedProtocolRequest<any>
     ? InferRequest<Method, Payload>
-    : Payload extends VersionedSubscription<any>
+    : Payload extends VersionedProtocolSubscription<any>
       ? InferSubscription<Method, Payload>
       : Codec<undefined>;
 

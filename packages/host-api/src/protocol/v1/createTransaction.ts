@@ -1,4 +1,5 @@
-import { Bytes, Enum, Result, Struct, Tuple, Vector, _void, str, u32, u8 } from 'scale-ts';
+import type { CodecType } from 'scale-ts';
+import { Bytes, Enum, Result, Struct, Tuple, Vector, _void, enhanceCodec, str, u32, u8 } from 'scale-ts';
 
 import { ErrEnum, GenericErr, Hex, Nullable } from '../commonCodecs.js';
 import type { HexString } from '../types.js';
@@ -44,17 +45,41 @@ export const VersionedTxPayload = Enum({
   v1: TxPayloadV1,
 });
 
-// transaction in context of host api account model
+export const VersionedPublicTxPayload = enhanceCodec<CodecType<typeof VersionedTxPayload>, TxPayloadV1Public>(
+  VersionedTxPayload,
+  v => {
+    if (v.version !== 1) {
+      throw new Error(`Unsupported transaction version: ${v}`);
+    }
 
-export const CreateTransactionV1_request = Tuple(ProductAccountId, VersionedTxPayload);
+    return {
+      tag: 'v1',
+      value: v,
+    };
+  },
+  v => {
+    if (v.tag !== 'v1') {
+      throw new Error(`Unsupported transaction version: ${v}`);
+    }
+
+    return {
+      version: 1,
+      ...v.value,
+    };
+  },
+);
+
+// transaction in the context of a host api account model
+
+export const CreateTransactionV1_request = Tuple(ProductAccountId, VersionedPublicTxPayload);
 export const CreateTransactionV1_response = Result(Bytes(), CreateTransactionErr);
 
-export const CreateTransactionWithNonProductAccountV1_request = VersionedTxPayload;
+export const CreateTransactionWithNonProductAccountV1_request = VersionedPublicTxPayload;
 export const CreateTransactionWithNonProductAccountV1_response = Result(Bytes(), CreateTransactionErr);
 
 // related types
 
-export interface TxPayloadV1Interface {
+export interface TxPayloadV1Public {
   /** Payload version. MUST be 1. */
   version: 1;
 

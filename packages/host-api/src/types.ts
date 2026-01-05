@@ -13,7 +13,7 @@ export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 
 export type RequestHandler<Method extends string> = (
   message: PickMessagePayloadValue<ComposeMessageAction<Method, 'request'>>,
-) => Promise<PickMessagePayloadValue<ComposeMessageAction<Method, 'response'>>>;
+) => PromiseLike<PickMessagePayloadValue<ComposeMessageAction<Method, 'response'>>>;
 
 export type SubscriptionHandler<Method extends string> = (
   params: PickMessagePayloadValue<ComposeMessageAction<Method, 'start'>>,

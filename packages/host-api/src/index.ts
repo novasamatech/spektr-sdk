@@ -18,16 +18,16 @@ export { createHostApi } from './hostApi.js';
 export { createTransport } from './transport.js';
 export { createDefaultLogger } from './logger.js';
 
-export type { MessageAction, PickMessagePayload, PickMessagePayloadValue } from './protocol/messageCodec.js';
+export type { HostApiProtocol, VersionedProtocolRequest, VersionedProtocolSubscription } from './protocol/impl.js';
+export { hostApiProtocol } from './protocol/impl.js';
 
 // External reexports
-export type { CodecType } from 'scale-ts';
+export type { Codec, CodecType } from 'scale-ts';
 
 // Codecs
 
 export { GenericError } from './protocol/commonCodecs.js';
-export type { TxPayloadV1Interface } from './protocol/v1/createTransaction.js';
-export { CreateTransactionErr } from './protocol/v1/createTransaction.js';
+export { CreateTransactionErr, VersionedPublicTxPayload } from './protocol/v1/createTransaction.js';
 export { Account, AccountId, CreateProofErr, ProductAccountId, RequestCredentialsErr } from './protocol/v1/accounts.js';
 export { ChatContactRegistrationErr, ChatMessagePostingErr } from './protocol/v1/chat.js';
 export { HandshakeErr } from './protocol/v1/handshake.js';
