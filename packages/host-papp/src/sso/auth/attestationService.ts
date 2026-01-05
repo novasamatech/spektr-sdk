@@ -1,11 +1,11 @@
 import type { LazyClient } from '@novasamatech/statement-store';
 import { createAccountId } from '@novasamatech/statement-store';
-import { AccountId, Binary } from '@polkadot-api/substrate-bindings';
 import { mergeUint8 } from '@polkadot-api/utils';
 import { blake2b256 } from '@polkadot-labs/hdkd-helpers';
 import { customAlphabet } from 'nanoid';
 import type { ResultAsync } from 'neverthrow';
 import { errAsync, fromAsyncThrowable, fromPromise, okAsync } from 'neverthrow';
+import { AccountId, Binary, FixedSizeBinary } from 'polkadot-api';
 import type { PolkadotSigner } from 'polkadot-api/signer';
 import { getPolkadotSigner } from 'polkadot-api/signer';
 import { Bytes, Option, Tuple, str } from 'scale-ts';
@@ -128,7 +128,7 @@ export const createAttestationService = (lazyClient: LazyClient) => {
               type: 'Sr25519',
               value: Binary.fromBytes(params.candidateSignature),
             },
-            ring_vrf_key: Binary.fromBytes(params.ringVrfKey),
+            ring_vrf_key: FixedSizeBinary.fromBytes(params.ringVrfKey),
             proof_of_ownership: Binary.fromBytes(params.proofOfOwnership),
             consumer_registration: {
               signature: {
