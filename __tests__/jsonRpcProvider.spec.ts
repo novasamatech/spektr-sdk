@@ -36,7 +36,7 @@ function setup(chainId: HexString) {
   return { container, provider };
 }
 
-describe('PAPI provider', () => {
+describe('Host API: JSON RPC provider', () => {
   it('should send messages', async () => {
     const { container, provider } = setup(WellKnownChain.polkadotRelay);
 

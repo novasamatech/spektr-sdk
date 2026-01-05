@@ -29,7 +29,12 @@ export type { Codec, CodecType } from 'scale-ts';
 export { GenericError } from './protocol/commonCodecs.js';
 export { CreateTransactionErr, VersionedPublicTxPayload } from './protocol/v1/createTransaction.js';
 export { Account, AccountId, CreateProofErr, ProductAccountId, RequestCredentialsErr } from './protocol/v1/accounts.js';
-export { ChatContactRegistrationErr, ChatMessagePostingErr } from './protocol/v1/chat.js';
+export {
+  ChatContactRegistrationErr,
+  ChatMessage,
+  ChatMessagePostingErr,
+  ReceivedChatAction,
+} from './protocol/v1/chat.js';
 export { HandshakeErr } from './protocol/v1/handshake.js';
 export { PermissionErr } from './protocol/v1/permission.js';
 export { SigningErr } from './protocol/v1/sign.js';

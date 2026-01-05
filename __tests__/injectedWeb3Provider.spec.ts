@@ -22,7 +22,7 @@ async function setup() {
   return { container, injected };
 }
 
-describe('injected web3 provider', () => {
+describe('Host API: injected web3 provider', () => {
   it('should provide accounts', async () => {
     const accountId = AccountId();
     const mockAccounts = [{ publicKey: new Uint8Array(32), name: 'test' }];

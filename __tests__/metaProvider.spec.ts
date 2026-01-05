@@ -16,7 +16,7 @@ function setup() {
   return { container, sdkTransport, metaProvider };
 }
 
-describe('meta provider', () => {
+describe('Host API: meta provider', () => {
   it('should update connection status in container', async () => {
     const { container } = setup();
     const statuses: ConnectionStatus[] = [];
