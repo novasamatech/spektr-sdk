@@ -1,22 +1,10 @@
 import { Enum, Result, Struct, Vector, _void, str } from 'scale-ts';
 
-import { GenericErr, Hex } from '../commonCodecs.js';
+import { ErrEnum, GenericErr, Hex } from '../commonCodecs.js';
 
-export class PermissionRejectedError extends Error {
-  constructor() {
-    super('Permission error: rejected.');
-  }
-}
-
-export class PermissionUnknownError extends Error {
-  constructor(reason: string) {
-    super(`Permission error: ${reason}`);
-  }
-}
-
-export const PermissionErr = Enum({
-  Rejected: _void,
-  Unknown: GenericErr,
+export const PermissionErr = ErrEnum({
+  Rejected: [_void, 'Permission: rejected'],
+  Unknown: [GenericErr, 'Permission: unknown error'],
 });
 
 export const ChainConnectPermission = Struct({

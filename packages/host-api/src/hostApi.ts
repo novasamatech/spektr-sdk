@@ -2,8 +2,17 @@ import type { ResultAsync } from 'neverthrow';
 import { errAsync, fromPromise, okAsync } from 'neverthrow';
 import type { Codec, CodecType } from 'scale-ts';
 
-import { enumValue, extractErrorMessage } from './helpers.js';
+import { extractErrorMessage } from './helpers.js';
+import { GenericError } from './protocol/commonCodecs.js';
 import type { HostApiProtocol, VersionedRequest, VersionedSubscription } from './protocol/impl.js';
+import { CreateProofErr, RequestCredentialsErr } from './protocol/v1/accounts.js';
+import { ChatContactRegistrationErr, ChatMessagePostingErr } from './protocol/v1/chat.js';
+import { CreateTransactionErr } from './protocol/v1/createTransaction.js';
+import { HandshakeErr } from './protocol/v1/handshake.js';
+import { PermissionErr } from './protocol/v1/permission.js';
+import { SigningErr } from './protocol/v1/sign.js';
+import { StatementProofErr } from './protocol/v1/statementStore.js';
+import { StorageErr } from './protocol/v1/storage.js';
 import type { Subscription, Transport } from './types.js';
 
 type Value<T extends Codec<any> | Codec<never>> = T extends Codec<any> ? CodecType<T> : unknown;
@@ -48,9 +57,7 @@ export function createHostApi(transport: Transport): HostApi {
     handshake(payload) {
       const response = fromPromise(transport.request('handshake', payload), e => ({
         tag: payload.tag,
-        value: enumValue('Unknown', {
-          reason: extractErrorMessage(e),
-        }),
+        value: new HandshakeErr.Unknown({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {
@@ -70,9 +77,7 @@ export function createHostApi(transport: Transport): HostApi {
     feature(payload) {
       const response = fromPromise(transport.request('feature', payload), e => ({
         tag: payload.tag,
-        value: {
-          reason: extractErrorMessage(e),
-        },
+        value: new GenericError({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {
@@ -92,9 +97,7 @@ export function createHostApi(transport: Transport): HostApi {
     permission_request(payload) {
       const response = fromPromise(transport.request('permission_request', payload), e => ({
         tag: payload.tag,
-        value: enumValue('Unknown', {
-          reason: extractErrorMessage(e),
-        }),
+        value: new PermissionErr.Unknown({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {
@@ -115,9 +118,7 @@ export function createHostApi(transport: Transport): HostApi {
     storage_read(payload) {
       const response = fromPromise(transport.request('storage_read', payload), e => ({
         tag: payload.tag,
-        value: enumValue('Unknown', {
-          reason: extractErrorMessage(e),
-        }),
+        value: new StorageErr.Unknown({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {
@@ -138,9 +139,7 @@ export function createHostApi(transport: Transport): HostApi {
     storage_write(payload) {
       const response = fromPromise(transport.request('storage_write', payload), e => ({
         tag: payload.tag,
-        value: enumValue('Unknown', {
-          reason: extractErrorMessage(e),
-        }),
+        value: new StorageErr.Unknown({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {
@@ -161,9 +160,7 @@ export function createHostApi(transport: Transport): HostApi {
     storage_clear(payload) {
       const response = fromPromise(transport.request('storage_clear', payload), e => ({
         tag: payload.tag,
-        value: enumValue('Unknown', {
-          reason: extractErrorMessage(e),
-        }),
+        value: new StorageErr.Unknown({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {
@@ -184,9 +181,7 @@ export function createHostApi(transport: Transport): HostApi {
     account_get(payload) {
       const response = fromPromise(transport.request('account_get', payload), e => ({
         tag: payload.tag,
-        value: enumValue('Unknown', {
-          reason: extractErrorMessage(e),
-        }),
+        value: new RequestCredentialsErr.Unknown({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {
@@ -207,9 +202,7 @@ export function createHostApi(transport: Transport): HostApi {
     account_get_alias(payload) {
       const response = fromPromise(transport.request('account_get_alias', payload), e => ({
         tag: payload.tag,
-        value: enumValue('Unknown', {
-          reason: extractErrorMessage(e),
-        }),
+        value: new RequestCredentialsErr.Unknown({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {
@@ -230,9 +223,7 @@ export function createHostApi(transport: Transport): HostApi {
     account_create_proof(payload) {
       const response = fromPromise(transport.request('account_create_proof', payload), e => ({
         tag: payload.tag,
-        value: enumValue('Unknown', {
-          reason: extractErrorMessage(e),
-        }),
+        value: new CreateProofErr.Unknown({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {
@@ -253,9 +244,7 @@ export function createHostApi(transport: Transport): HostApi {
     get_non_product_accounts(payload) {
       const response = fromPromise(transport.request('get_non_product_accounts', payload), e => ({
         tag: payload.tag,
-        value: enumValue('Unknown', {
-          reason: extractErrorMessage(e),
-        }),
+        value: new RequestCredentialsErr.Unknown({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {
@@ -276,9 +265,7 @@ export function createHostApi(transport: Transport): HostApi {
     create_transaction(payload) {
       const response = fromPromise(transport.request('create_transaction', payload), e => ({
         tag: payload.tag,
-        value: enumValue('Unknown', {
-          reason: extractErrorMessage(e),
-        }),
+        value: new CreateTransactionErr.Unknown({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {
@@ -299,9 +286,7 @@ export function createHostApi(transport: Transport): HostApi {
     create_transaction_with_non_product_account(payload) {
       const response = fromPromise(transport.request('create_transaction_with_non_product_account', payload), e => ({
         tag: payload.tag,
-        value: enumValue('Unknown', {
-          reason: extractErrorMessage(e),
-        }),
+        value: new CreateTransactionErr.Unknown({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {
@@ -322,9 +307,7 @@ export function createHostApi(transport: Transport): HostApi {
     sign_raw(payload) {
       const response = fromPromise(transport.request('sign_raw', payload), e => ({
         tag: payload.tag,
-        value: enumValue('Unknown', {
-          reason: extractErrorMessage(e),
-        }),
+        value: new SigningErr.Unknown({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {
@@ -345,9 +328,7 @@ export function createHostApi(transport: Transport): HostApi {
     sign_payload(payload) {
       const response = fromPromise(transport.request('sign_payload', payload), e => ({
         tag: payload.tag,
-        value: enumValue('Unknown', {
-          reason: extractErrorMessage(e),
-        }),
+        value: new SigningErr.Unknown({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {
@@ -368,9 +349,7 @@ export function createHostApi(transport: Transport): HostApi {
     chat_create_contact(payload) {
       const response = fromPromise(transport.request('chat_create_contact', payload), e => ({
         tag: payload.tag,
-        value: enumValue('Unknown', {
-          reason: extractErrorMessage(e),
-        }),
+        value: new ChatContactRegistrationErr.Unknown({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {
@@ -391,9 +370,7 @@ export function createHostApi(transport: Transport): HostApi {
     chat_post_message(payload) {
       const response = fromPromise(transport.request('chat_post_message', payload), e => ({
         tag: payload.tag,
-        value: enumValue('Unknown', {
-          reason: extractErrorMessage(e),
-        }),
+        value: new ChatMessagePostingErr.Unknown({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {
@@ -418,9 +395,7 @@ export function createHostApi(transport: Transport): HostApi {
     statement_store_create_proof(payload) {
       const response = fromPromise(transport.request('statement_store_create_proof', payload), e => ({
         tag: payload.tag,
-        value: enumValue('Unknown', {
-          reason: extractErrorMessage(e),
-        }),
+        value: new StatementProofErr.Unknown({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {
@@ -441,9 +416,7 @@ export function createHostApi(transport: Transport): HostApi {
     jsonrpc_message_send(payload) {
       const response = fromPromise(transport.request('jsonrpc_message_send', payload), e => ({
         tag: payload.tag,
-        value: {
-          reason: extractErrorMessage(e),
-        },
+        value: new GenericError({ reason: extractErrorMessage(e) }),
       }));
 
       return response.andThen(response => {

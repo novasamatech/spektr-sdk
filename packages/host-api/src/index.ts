@@ -25,11 +25,13 @@ export type { CodecType } from 'scale-ts';
 
 // Codecs
 
+export { GenericError } from './protocol/commonCodecs.js';
 export type { TxPayloadV1Interface } from './protocol/v1/createTransaction.js';
-export {
-  CreateTransactionV1_request,
-  CreateTransactionV1_response,
-  CreateTransactionWithNonProductAccountV1_request,
-  CreateTransactionWithNonProductAccountV1_response,
-} from './protocol/v1/createTransaction.js';
-export { Account, AccountId, ProductAccountId } from './protocol/v1/accounts.js';
+export { CreateTransactionErr } from './protocol/v1/createTransaction.js';
+export { Account, AccountId, CreateProofErr, ProductAccountId, RequestCredentialsErr } from './protocol/v1/accounts.js';
+export { ChatContactRegistrationErr, ChatMessagePostingErr } from './protocol/v1/chat.js';
+export { HandshakeErr } from './protocol/v1/handshake.js';
+export { PermissionErr } from './protocol/v1/permission.js';
+export { SigningErr } from './protocol/v1/sign.js';
+export { StatementProofErr } from './protocol/v1/statementStore.js';
+export { StorageErr } from './protocol/v1/storage.js';

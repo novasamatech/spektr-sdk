@@ -1,24 +1,12 @@
-import { Bytes, Enum, Option, Result, Tuple, _void } from 'scale-ts';
+import { Bytes, Option, Result, Tuple, _void } from 'scale-ts';
 
-import { GenericErr, Hex } from '../commonCodecs.js';
+import { ErrEnum, GenericErr, Hex } from '../commonCodecs.js';
 
 // common structures
 
-export class StorageFullError extends Error {
-  constructor() {
-    super('Storage error: full.');
-  }
-}
-
-export class StorageUnknownError extends Error {
-  constructor(reason: string) {
-    super(`Storage error: ${reason}`);
-  }
-}
-
-export const StorageErr = Enum({
-  Full: _void,
-  Unknown: GenericErr,
+export const StorageErr = ErrEnum({
+  Full: [_void, 'Storage: full'],
+  Unknown: [GenericErr, 'Storage: unknown error'],
 });
 
 export const StorageKey = Hex();

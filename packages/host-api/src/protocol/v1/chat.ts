@@ -1,17 +1,11 @@
 import { Enum, Option, Result, Struct, Vector, _void, str, u64 } from 'scale-ts';
 
-import { GenericErr } from '../commonCodecs.js';
+import { ErrEnum, GenericErr } from '../commonCodecs.js';
 
 // contact
 
-export class ChatContactRegistrationUnknownError extends Error {
-  constructor(reason: string) {
-    super(`Chat contact registration error: ${reason}`);
-  }
-}
-
-export const ChatContactRegistrationErr = Enum({
-  Unknown: GenericErr,
+export const ChatContactRegistrationErr = ErrEnum({
+  Unknown: [GenericErr, 'Unknown error while chat registration'],
 });
 
 export const ChatContact = Struct({
@@ -64,8 +58,8 @@ export const ChatReaction = Struct({
 
 export const ChatMessage = Enum({
   Text: str,
+  RichText: ChatRichText,
   Actions: ChatActions,
-  RichText: ChatMedia,
   File: ChatFile,
   Reaction: ChatReaction,
   ReactionRemoved: ChatReaction,
@@ -73,21 +67,9 @@ export const ChatMessage = Enum({
 
 // sending message
 
-export class ChatMessagePostingMessageTooLargeError extends Error {
-  constructor() {
-    super('Chat message posting error: message too large.');
-  }
-}
-
-export class ChatMessagePostingUnknownError extends Error {
-  constructor(reason: string) {
-    super(`Chat message posting error: ${reason}`);
-  }
-}
-
-export const ChatMessagePostingErr = Enum({
-  MessageTooLarge: _void,
-  Unknown: GenericErr,
+export const ChatMessagePostingErr = ErrEnum({
+  MessageTooLarge: [_void, 'ChatMessagePosting: message too large'],
+  Unknown: [GenericErr, 'ChatMessagePosting: unknown error'],
 });
 
 export const ChatPostMessageResult = Struct({

@@ -1,6 +1,6 @@
 import { Bytes, Enum, Result, Struct, Tuple, Vector, _void, str, u32, u8 } from 'scale-ts';
 
-import { GenericErr, Hex, Nullable } from '../commonCodecs.js';
+import { ErrEnum, GenericErr, Hex, Nullable } from '../commonCodecs.js';
 import type { HexString } from '../types.js';
 
 import { ProductAccountId } from './accounts.js';
@@ -10,37 +10,13 @@ import { ProductAccountId } from './accounts.js';
  * @see https://github.com/polkadot-js/api/issues/6213
  */
 
-export class CreateTransactionFailedToDecodeError extends Error {
-  constructor() {
-    super('Create transaction error: failed to decode.');
-  }
-}
-
-export class CreateTransactionRejectedError extends Error {
-  constructor() {
-    super('Create transaction error: rejected.');
-  }
-}
-
-export class CreateTransactionNotSupportedError extends Error {
-  constructor(reason: string) {
-    super(`Create transaction error: not supported - ${reason}`);
-  }
-}
-
-export class CreateTransactionUnknownError extends Error {
-  constructor(reason: string) {
-    super(`Create transaction error: ${reason}`);
-  }
-}
-
-export const CreateTransactionErr = Enum({
-  FailedToDecode: _void,
-  Rejected: _void,
+export const CreateTransactionErr = ErrEnum({
+  FailedToDecode: [_void, 'CreateTransaction: failed to decode'],
+  Rejected: [_void, 'CreateTransaction: rejected'],
   // Unsupported payload version
   // Failed to infer missing extensions, some extension is unsupported, etc.
-  NotSupported: str,
-  Unknown: GenericErr,
+  NotSupported: [str, 'CreateTransaction: not supported'],
+  Unknown: [GenericErr, 'CreateTransaction: unknown error'],
 });
 
 export const TxPayloadExtensionV1 = Struct({

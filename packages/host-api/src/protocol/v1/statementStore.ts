@@ -1,6 +1,6 @@
 import { Bytes, Enum, Option, Result, Struct, Tuple, Vector, _void, u32, u64 } from 'scale-ts';
 
-import { GenericErr } from '../commonCodecs.js';
+import { ErrEnum, GenericErr } from '../commonCodecs.js';
 
 import { ProductAccountId } from './accounts.js';
 
@@ -50,28 +50,10 @@ export const Statement = Struct({
 
 // creating proof
 
-export class StatementProofUnableToSignError extends Error {
-  constructor() {
-    super('Statement proof error: unable to sign.');
-  }
-}
-
-export class StatementProofUnknownAccountError extends Error {
-  constructor() {
-    super('Statement proof error: unknown account.');
-  }
-}
-
-export class StatementProofUnknownError extends Error {
-  constructor(reason: string) {
-    super(`Statement proof error: ${reason}`);
-  }
-}
-
-export const StatementProofErr = Enum({
-  UnableToSign: _void,
-  UnknownAccount: _void,
-  Unknown: GenericErr,
+export const StatementProofErr = ErrEnum({
+  UnableToSign: [_void, 'StatementProof: unable to sign'],
+  UnknownAccount: [_void, 'StatementProof: unknown account'],
+  Unknown: [GenericErr, 'StatementProof: unknown error'],
 });
 
 export const StatementStoreCreateProofV1_request = Tuple(ProductAccountId, Statement);

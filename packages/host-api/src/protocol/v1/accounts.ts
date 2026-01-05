@@ -1,6 +1,6 @@
-import { Bytes, Enum, Option, Result, Struct, Tuple, Vector, _void, str, u32 } from 'scale-ts';
+import { Bytes, Option, Result, Struct, Tuple, Vector, _void, str, u32 } from 'scale-ts';
 
-import { GenericErr, GenesisHash, Hex } from '../commonCodecs.js';
+import { ErrEnum, GenericErr, GenesisHash, Hex } from '../commonCodecs.js';
 
 // common types
 
@@ -36,59 +36,17 @@ export const RingLocation = Struct({
 
 // errors
 
-export class RequestCredentialsNotConnectedError extends Error {
-  constructor() {
-    super('Request credentials error: not connected.');
-  }
-}
-
-export class RequestCredentialsRejectedError extends Error {
-  constructor() {
-    super('Request credentials error: rejected.');
-  }
-}
-
-export class RequestCredentialsDomainNotValidError extends Error {
-  constructor() {
-    super('Request credentials error: domain not valid.');
-  }
-}
-
-export class RequestCredentialsUnknownError extends Error {
-  constructor(reason: string) {
-    super(`Request credentials error: ${reason}`);
-  }
-}
-
-export const RequestCredentialsErr = Enum({
-  NotConnected: _void,
-  Rejected: _void,
-  DomainNotValid: _void,
-  Unknown: GenericErr,
+export const RequestCredentialsErr = ErrEnum({
+  NotConnected: [_void, 'RequestCredentials: not connected'],
+  Rejected: [_void, 'RequestCredentials: rejected'],
+  DomainNotValid: [_void, 'RequestCredentials: domain not valid'],
+  Unknown: [GenericErr, 'RequestCredentials: unknown error'],
 });
 
-export class CreateProofRingNotFoundError extends Error {
-  constructor() {
-    super('Create proof error: ring not found.');
-  }
-}
-
-export class CreateProofRejectedError extends Error {
-  constructor() {
-    super('Create proof error: rejected.');
-  }
-}
-
-export class CreateProofUnknownError extends Error {
-  constructor(reason: string) {
-    super(`Create proof error: ${reason}`);
-  }
-}
-
-export const CreateProofErr = Enum({
-  RingNotFound: _void,
-  Rejected: _void,
-  Unknown: GenericErr,
+export const CreateProofErr = ErrEnum({
+  RingNotFound: [_void, 'CreateProof: ring not found'],
+  Rejected: [_void, 'CreateProof: rejected'],
+  Unknown: [GenericErr, 'CreateProof: unknown error'],
 });
 
 // account_get

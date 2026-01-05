@@ -52,17 +52,7 @@ export async function createExtensionEnableFactory(transport: Transport) {
         },
         err => {
           assertEnumVariant(err, 'v1', UNSUPPORTED_VERSION_ERROR);
-
-          switch (err.value.tag) {
-            case 'DomainNotValid':
-              throw new Error('Domain is not valid');
-            case 'NotConnected':
-              throw new Error('Not connected');
-            case 'Rejected':
-              throw new Error('Rejected');
-            case 'Unknown':
-              throw new Error('Unknown error');
-          }
+          throw err.value;
         },
       );
     }
@@ -109,15 +99,7 @@ export async function createExtensionEnableFactory(transport: Transport) {
             },
             err => {
               assertEnumVariant(err, 'v1', UNSUPPORTED_VERSION_ERROR);
-
-              switch (err.value.tag) {
-                case 'Rejected':
-                  throw new Error('Rejected');
-                case 'FailedToDecode':
-                  throw new Error('Failed to decode');
-                case 'Unknown':
-                  throw new Error(err.value.value.reason);
-              }
+              throw err.value;
             },
           );
         },
@@ -144,15 +126,7 @@ export async function createExtensionEnableFactory(transport: Transport) {
             },
             err => {
               assertEnumVariant(err, 'v1', UNSUPPORTED_VERSION_ERROR);
-
-              switch (err.value.tag) {
-                case 'Rejected':
-                  throw new Error('Rejected');
-                case 'FailedToDecode':
-                  throw new Error('Failed to decode');
-                case 'Unknown':
-                  throw new Error(err.value.value.reason);
-              }
+              throw err.value;
             },
           );
         },
@@ -170,17 +144,7 @@ export async function createExtensionEnableFactory(transport: Transport) {
             },
             err => {
               assertEnumVariant(err, 'v1', UNSUPPORTED_VERSION_ERROR);
-
-              switch (err.value.tag) {
-                case 'Rejected':
-                  throw new Error('Rejected');
-                case 'FailedToDecode':
-                  throw new Error('Failed to decode');
-                case 'Unknown':
-                  throw new Error(err.value.value.reason);
-                default:
-                  throw new Error(`Unknown error: ${err.value.tag}`);
-              }
+              throw err.value;
             },
           );
         },

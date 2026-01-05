@@ -1,29 +1,11 @@
-import { Enum, Result, _void, u8 } from 'scale-ts';
+import { Result, _void, u8 } from 'scale-ts';
 
-import { GenericErr } from '../commonCodecs.js';
+import { ErrEnum, GenericErr } from '../commonCodecs.js';
 
-export class HandshakeTimeoutError extends Error {
-  constructor() {
-    super('Handshake error: timeout.');
-  }
-}
-
-export class HandshakeUnsupportedProtocolVersionError extends Error {
-  constructor() {
-    super('Handshake error: unsupported protocol version.');
-  }
-}
-
-export class HandshakeUnknownError extends Error {
-  constructor(reason: string) {
-    super(`Handshake error: ${reason}`);
-  }
-}
-
-export const HandshakeErr = Enum({
-  Timeout: _void,
-  UnsupportedProtocolVersion: _void,
-  Unknown: GenericErr,
+export const HandshakeErr = ErrEnum({
+  Timeout: [_void, 'Handshake: timeout'],
+  UnsupportedProtocolVersion: [_void, 'Handshake: unsupported protocol version'],
+  Unknown: [GenericErr, 'Handshake: unknown error'],
 });
 
 /**

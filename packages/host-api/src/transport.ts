@@ -18,6 +18,7 @@ import type {
   PickMessagePayloadValue,
 } from './protocol/messageCodec.js';
 import { Message } from './protocol/messageCodec.js';
+import { HandshakeErr } from './protocol/v1/handshake.js';
 import type { Provider } from './provider.js';
 import type { ConnectionStatus, RequestHandler, SubscriptionHandler, Transport } from './types.js';
 
@@ -356,11 +357,11 @@ export function createTransport(provider: Provider): Transport {
             case JAM_CODEC_PROTOCOL_ID:
               return enumValue(version.tag, okResult(undefined));
             default:
-              return enumValue(version.tag, errResult(enumValue('UnsupportedProtocolVersion', undefined)));
+              return enumValue(version.tag, errResult(new HandshakeErr.UnsupportedProtocolVersion(undefined)));
           }
         }
         default:
-          return enumValue(version.tag, errResult(enumValue('UnsupportedProtocolVersion', undefined)));
+          return enumValue(version.tag, errResult(new HandshakeErr.UnsupportedProtocolVersion(undefined)));
       }
     });
   }

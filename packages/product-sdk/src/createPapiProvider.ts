@@ -53,7 +53,7 @@ export function createPapiProvider(
         .then(payload => {
           switch (payload.tag) {
             case 'v1': {
-              return unwrapResultOrThrow(payload.value, e => new Error(e.reason));
+              return unwrapResultOrThrow(payload.value, e => new Error(e.payload.reason));
             }
             default:
               throw new Error(`Unknown message version ${payload.tag}`);
