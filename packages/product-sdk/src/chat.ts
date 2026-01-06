@@ -32,7 +32,7 @@ export const createChat = (transport: Transport = defaultTransport) => {
         return registrationStatus;
       }
 
-      const result = await hostApi.chat_create_contact({ tag: 'v1', value: params });
+      const result = await hostApi.chat_create_contact(enumValue('v1', params));
 
       return result.match(
         payload => {

@@ -1,9 +1,9 @@
 import { Result, bool } from 'scale-ts';
 
-import { Enum, GenericError, Hex } from '../commonCodecs.js';
+import { Enum, GenericError, GenesisHash } from '../commonCodecs.js';
 
 export const Feature = Enum({
-  chain: Hex(),
+  Chain: GenesisHash,
 });
 
 export const FeatureV1_request = Feature;

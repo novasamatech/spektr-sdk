@@ -35,10 +35,10 @@ document.body.appendChild(iframe);
 
 ```ts
 container.handleFeature((params, { ok, err }) => {
-  if (params.tag === 'chat') {
-    return ok({ supported: true });
+  if (params.tag === 'Chat') {
+    return ok(supportedChains.has(params.value));
   }
-  return ok({ supported: false });
+  return ok(false);
 });
 ```
 
@@ -272,7 +272,7 @@ To support this feature you should add two additional handlers to container:
 const genesisHash = '0x...';
 
 container.handleFeature(async (feature) => {
-  return feature.tag === 'chain' && feature.value === genesisHash;
+  return feature.tag === 'Chain' && feature.value === genesisHash;
 });
 ```
 

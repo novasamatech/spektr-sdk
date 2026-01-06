@@ -58,7 +58,7 @@ describe('Host API: JSON RPC provider', () => {
     const receivedBySDK: string[] = [];
 
     container.handleFeature((params, { ok }) =>
-      ok(params.tag === 'chain' && params.value === WellKnownChain.polkadotRelay),
+      ok(params.tag === 'Chain' && params.value === WellKnownChain.polkadotRelay),
     );
     container.handleJsonRpcMessageSubscribe(WellKnownChain.polkadotRelay, onMessage => {
       return {
