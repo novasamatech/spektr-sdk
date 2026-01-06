@@ -231,7 +231,7 @@ container.handleStatementStoreCreateProof(async ([[dotnsId, derivationIndex], st
 import { getWsProvider } from 'polkadot-api/ws-provider';
 
 const provider = getWsProvider('wss://rpc.polkadot.io');
-const unsubscribe = container.handleJsonRpcMessageSubscribe(
+container.handleJsonRpcMessageSubscribe(
   { genesisHash: '0x...' },
   provider
 );
@@ -262,10 +262,10 @@ const unsubscribe = container.subscribeConnectionStatus((status) => {
 
 ## PAPI provider support
 
-Host container supports [PAPI](https://papi.how/) requests redirecting from product to host container.
+Host container supports [PAPI](https://papi.how/) request redirection from product to host container.
 It can be useful to deduplicate socket connections or light client instances between multiple dapps.
 
-To support this feature you should add two additional handlers to container:
+To support this feature, you should add two additional handlers to the container:
 
 ### Chain support check
 ```ts
@@ -290,7 +290,7 @@ container.connectToPapiProvider(genesisHash, provider);
 ## Known pitfalls
 
 ### CSP error on iframe loading
-If dapp is hosted on different domain than container and uses https, you should add this meta tag to your host application html:
+If a dapp is hosted on a different domain than the container and uses HTTPS, you should add this meta tag to your host application HTML:
 
 ```html
 <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">

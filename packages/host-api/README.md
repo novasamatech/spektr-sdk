@@ -1,6 +1,6 @@
 # @novasamatech/host-api
 
-Protocol designed to connect Products and Host applications by providing a set of methods for communication.
+A protocol designed to connect Products and Host applications by providing a set of methods for communication.
 
 ## Installation
 
@@ -10,18 +10,18 @@ npm install @novasamatech/host-api --save -E
 
 ## Usage
 
-Host API package is composed of four main parts:
+The Host API package is composed of four main parts:
 * **Protocol** — JAM codecs according to [proposal](https://hackmd.io/@zhuravlev-novasama-1337/B1kW0RWmbg);
-* **Provider** — IPC interface, depends on environment.
+* **Provider** — IPC interface, depends on environment;
 * **Transport** — wrapper around protocol for making actual calls;
-* **Host API** — wrapper around transport for direct usage of business methods;
+* **Host API** — wrapper around transport for direct usage of business methods.
 
 ### Provider
 
 Provider is an interface for IPC communication.
 You can find the definition [here](./src/provider.ts).
 The main goal is to abstract actual message send/receive logic from API.
-Products should not implement their own providers, it should be done inside SDK side.
+Products should not implement their own providers, it should be done inside SDKs.
 
 ### Transport
 
@@ -79,7 +79,7 @@ transport.handleSubscription('chat_action_subscribe', (params, send, interrupt) 
 ### Host API
 
 Host API is a wrapper around transport that provides convenient methods for calling methods and subscribing to events.
-It can be used by products directly or indirectly via SDK. All requests returns `ResultAsync` struct from [neverthrow](https://github.com/Microsoft/neverthrow) library.
+It can be used by products directly or indirectly via SDK. All requests return a `ResultAsync` struct from the [neverthrow](https://github.com/Microsoft/neverthrow) library.
 
 ```typescript
 import { createHostApi, createTransport } from '@novasamatech/host-api';

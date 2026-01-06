@@ -1,5 +1,5 @@
 {
-  "name": "@novasamatech/host-papp-ui",
+  "name": "@novasamatech/host-papp-react-ui",
   "type": "module",
   "version": "0.5.0-18",
   "description": "Polkadot app UI Flow",

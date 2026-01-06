@@ -7,8 +7,7 @@ please [file an issue](https://github.com/novasamatech/spektr-sdk/issues/new/cho
 
 ## Suggesting new features
 
-If you are here to suggest a feature, first create an issue if it does not already exist. From there, we will discuss
-use-cases for the feature and then finally discuss how it could be implemented.
+If you are here to suggest a feature, first create an issue if it does not already exist. From there, we will discuss use cases for the feature and then finally discuss how it could be implemented.
 
 ## Development
 
@@ -40,7 +39,7 @@ If you have been assigned to fix an issue or develop a new feature, please follo
   npm run build:watch
   ```
 
-- Implement your changes and tests to files in the `packages/` and `__tests__` directories.
+- Implement your changes and tests in files in the `packages/` and `__tests__` directories.
 - Document your changes in the appropriate doc page.
 - Git stage your required changes and commit (see below commit guidelines).
 - Submit PR for review.

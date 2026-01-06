@@ -3,7 +3,7 @@
 ### 🚀 Features
 
 - papp integration ([#5](https://github.com/novasamatech/spektr-sdk/pull/5))
-- Implemented correct Polkadot app pairing ui ([e2e4eeb](https://github.com/novasamatech/spektr-sdk/commit/e2e4eeb))
+- Implemented correct Polkadot app pairing UI ([e2e4eeb](https://github.com/novasamatech/spektr-sdk/commit/e2e4eeb))
 
 ### ❤️ Thank You
 
@@ -60,8 +60,8 @@
 
 ### ⚠️  Breaking Changes
 
-- `container.handleSignRequest` now have required createTransaction method.
-- `createIframeProvider` now accepts params object instead of separated arguments.
+- `container.handleSignRequest` now has a required createTransaction method.
+- `createIframeProvider` now accepts a params object instead of separate arguments.
 
 ### ❤️ Thank You
 
