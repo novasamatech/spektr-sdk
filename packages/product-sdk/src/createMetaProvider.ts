@@ -26,4 +26,4 @@ export function createMetaProvider(transport: Transport = defaultTransport) {
   };
 }
 
-export const spektrMetaProvider = createMetaProvider();
+export const metaProvider = createMetaProvider();

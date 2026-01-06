@@ -1,10 +1,10 @@
-import { Bytes, Enum, Option, Result, Struct, Vector, _void, bool, str, u32 } from 'scale-ts';
+import { Bytes, Option, Result, Struct, Vector, _void, bool, str, u32 } from 'scale-ts';
 
-import { ErrEnum, GenericErr, GenesisHash, Hex } from '../commonCodecs.js';
+import { Enum, ErrEnum, GenericErr, GenesisHash, Hex } from '../commonCodecs.js';
 
 // common structures
 
-export const SigningErr = ErrEnum({
+export const SigningErr = ErrEnum('SigningErr', {
   FailedToDecode: [_void, 'Signing: failed to decode'],
   Rejected: [_void, 'Signing: rejected'],
   Unknown: [GenericErr, 'Signing: unknown error'],

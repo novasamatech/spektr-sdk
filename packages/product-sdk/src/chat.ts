@@ -1,4 +1,5 @@
 import type {
+  ChatContactRegistrationStatus as ChatContactRegistrationStatusCodec,
   ChatMessage as ChatMessageCodec,
   CodecType,
   ReceivedChatAction as ReceivedChatActionCodec,
@@ -13,10 +14,11 @@ promiseWithResolvers();
 
 export type ChatMessage = CodecType<typeof ChatMessageCodec>;
 export type ReceivedChatAction = CodecType<typeof ReceivedChatActionCodec>;
+export type ChatContactRegistrationStatus = CodecType<typeof ChatContactRegistrationStatusCodec>;
 
 export const createChat = (transport: Transport = defaultTransport) => {
   const hostApi = createHostApi(transport);
-  let registered = false;
+  let registrationStatus: ChatContactRegistrationStatus | null = null;
 
   const messageQueue: {
     message: ChatMessage;
@@ -26,30 +28,36 @@ export const createChat = (transport: Transport = defaultTransport) => {
 
   const chat = {
     async register(params: { name: string; icon: string }) {
-      if (registered) {
-        return;
+      if (registrationStatus) {
+        return registrationStatus;
       }
 
       const result = await hostApi.chat_create_contact({ tag: 'v1', value: params });
 
-      return result
-        .andTee(() => (registered = true))
-        .match(
-          () => {
+      return result.match(
+        payload => {
+          if (payload.tag === 'v1') {
+            registrationStatus = payload.value;
+
             if (messageQueue.length > 0) {
               messageQueue.forEach(({ message, resolve, reject }) => {
                 chat.sendMessage(message).then(resolve, reject);
               });
               messageQueue.length = 0;
             }
-          },
-          err => {
-            throw err.value;
-          },
-        );
+
+            return registrationStatus;
+          } else {
+            throw new Error(`Unknown message version ${payload.tag}`);
+          }
+        },
+        err => {
+          throw err.value;
+        },
+      );
     },
     async sendMessage(message: ChatMessage) {
-      if (registered) {
+      if (registrationStatus) {
         const result = await hostApi.chat_post_message(enumValue('v1', message));
 
         return result.match(

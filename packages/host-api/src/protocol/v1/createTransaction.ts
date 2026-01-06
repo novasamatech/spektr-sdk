@@ -1,7 +1,7 @@
 import type { CodecType } from 'scale-ts';
-import { Bytes, Enum, Result, Struct, Tuple, Vector, _void, enhanceCodec, str, u32, u8 } from 'scale-ts';
+import { Bytes, Result, Struct, Tuple, Vector, _void, enhanceCodec, str, u32, u8 } from 'scale-ts';
 
-import { ErrEnum, GenericErr, Hex, Nullable } from '../commonCodecs.js';
+import { Enum, ErrEnum, GenericErr, Hex, Nullable } from '../commonCodecs.js';
 import type { HexString } from '../types.js';
 
 import { ProductAccountId } from './accounts.js';
@@ -11,7 +11,7 @@ import { ProductAccountId } from './accounts.js';
  * @see https://github.com/polkadot-js/api/issues/6213
  */
 
-export const CreateTransactionErr = ErrEnum({
+export const CreateTransactionErr = ErrEnum('CreateTransactionErr', {
   FailedToDecode: [_void, 'CreateTransaction: failed to decode'],
   Rejected: [_void, 'CreateTransaction: rejected'],
   // Unsupported payload version

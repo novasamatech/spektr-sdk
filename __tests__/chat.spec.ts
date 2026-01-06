@@ -21,7 +21,7 @@ describe('Host API: Chat', () => {
     const { container, chat } = setup();
     const registrationInfo = { name: 'test chat', icon: 'http://product.com/icon.png' };
 
-    const handler = vi.fn<Parameters<typeof container.handleChatCreateContact>[0]>((_, { ok }) => ok(undefined));
+    const handler = vi.fn<Parameters<typeof container.handleChatCreateContact>[0]>((_, { ok }) => ok('New'));
     container.handleChatCreateContact(handler);
 
     await chat.register(registrationInfo);
@@ -38,7 +38,7 @@ describe('Host API: Chat', () => {
     };
     const response = { messageId: 'hello' };
 
-    container.handleChatCreateContact((_, { ok }) => ok(undefined));
+    container.handleChatCreateContact((_, { ok }) => ok('New'));
     const handler = vi.fn<Parameters<typeof container.handleChatPostMessage>[0]>((_, { ok }) => ok(response));
     container.handleChatPostMessage(handler);
 
@@ -57,7 +57,7 @@ describe('Host API: Chat', () => {
       value: 'test message',
     };
 
-    container.handleChatCreateContact((_, { ok }) => ok(undefined));
+    container.handleChatCreateContact((_, { ok }) => ok('New'));
     container.handleChatActionSubscribe((_, send) => {
       // sending back and forth
       return container.handleChatPostMessage((message, { ok }) => {

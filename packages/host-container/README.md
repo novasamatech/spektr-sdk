@@ -29,103 +29,267 @@ const container = createContainer(provider);
 document.body.appendChild(iframe);
 ```
 
-### Accounts handling
+## API reference
 
-To handle account requests and subscriptions you can call `handleAccounts` method:
+### handleFeature
 
 ```ts
-container.handleAccounts({
-  async get() {
-    // return injected accounts
-    return [];
-  },
-  subscribe(callback) {
-    // subscribe to account changes
-    
-    callback([]);
-    return () => {
-      // unsubscribe
-    };
-  },
+container.handleFeature((params, { ok, err }) => {
+  if (params.tag === 'chat') {
+    return ok({ supported: true });
+  }
+  return ok({ supported: false });
 });
 ```
 
-In this case you also should handle sign requests:
+### handlePermissionRequest
 
 ```ts
-container.handleSignRequest({
-  signRaw(raw) {
-    // return signed payload based on raw data
-    return {
-      id: 0,
-      signature: '0x...',
-      signedTransaction: '0x...',
-    }
-  },
-  signPayload(payload) {
-    // return signed payload based on sign payload
-    return {
-      id: 0,
-      signature: '0x...',
-      signedTransaction: '0x...',
-    }
-  },
-  createTransaction(payload) {
-    // return full signed transaction
-    return '0x0000'
+container.handlePermissionRequest(async (params, { ok, err }) => {
+  if (params.tag === 'ChainConnect') {
+    // Show permission dialog to user
+    const approved = await showPermissionDialog(params.value);
+    return approved ? ok(undefined) : err({ tag: 'Rejected' });
+  }
+  return err({ tag: 'Unknown', value: { reason: 'Unsupported permission type' } });
+});
+```
+
+### handleStorageRead
+
+```ts
+container.handleStorageRead(async (key, { ok, err }) => {
+  const value = await storage.get(key);
+  return ok(value ?? null);
+});
+```
+
+### handleStorageWrite
+
+```ts
+container.handleStorageWrite(async ([key, value], { ok, err }) => {
+  try {
+    await storage.set(key, value);
+    return ok(undefined);
+  } catch (e) {
+    return err({ tag: 'Full' });
   }
 });
 ```
 
-### PAPI provider support
+### handleStorageClear
+
+```ts
+container.handleStorageClear(async (key, { ok, err }) => {
+  await storage.delete(key);
+  return ok(undefined);
+});
+```
+
+### handleAccountGet
+
+```ts
+container.handleAccountGet(async ([dotnsId, derivationIndex], { ok, err }) => {
+  const account = await getProductAccount(dotnsId, derivationIndex);
+  if (account) {
+    return ok({ publicKey: account.publicKey, name: account.name ?? null });
+  }
+  return err({ tag: 'NotConnected' });
+});
+```
+
+### handleAccountGetAlias
+
+```ts
+container.handleAccountGetAlias(async ([dotnsId, derivationIndex], { ok, err }) => {
+  const alias = await getAccountAlias(dotnsId, derivationIndex);
+  if (alias) {
+    return ok({ context: alias.context, alias: alias.alias });
+  }
+  return err(new RequestCredentialsErr.NotConnected());
+});
+```
+
+### handleAccountCreateProof
+
+```ts
+container.handleAccountCreateProof(async ([[dotnsId, derivationIndex], ringLocation, message], { ok, err }) => {
+  try {
+    const proof = await createRingProof(dotnsId, derivationIndex, ringLocation, message);
+    return ok(proof);
+  } catch (e) {
+    return err({ tag: 'RingNotFound' });
+  }
+});
+```
+
+### handleGetNonProductAccounts
+
+```ts
+container.handleGetNonProductAccounts(async (_, { ok, err }) => {
+  const accounts = await getNonProductAccounts();
+  return ok(accounts);
+});
+```
+
+### handleCreateTransaction
+
+```ts
+container.handleCreateTransaction(async ([productAccountId, payload], { ok, err }) => {
+  try {
+    const signedTx = await createTransaction(productAccountId, payload);
+    return ok(signedTx);
+  } catch (e) {
+    return err({ tag: 'Rejected' });
+  }
+});
+```
+
+### handleCreateTransactionWithNonProductAccount
+
+```ts
+container.handleCreateTransactionWithNonProductAccount(async (payload, { ok, err }) => {
+  try {
+    const signedTx = await createTransactionWithNonProductAccount(payload);
+    return ok(signedTx);
+  } catch (e) {
+    return err({ tag: 'Rejected' });
+  }
+});
+```
+
+### handleSignRaw
+
+```ts
+container.handleSignRaw(async (payload, { ok, err }) => {
+  try {
+    const result = await signRaw(payload);
+    return ok({ signature: result.signature, signedTransaction: result.signedTransaction });
+  } catch (e) {
+    return err({ tag: 'Rejected' });
+  }
+});
+```
+
+### handleSignPayload
+
+```ts
+container.handleSignPayload(async (payload, { ok, err }) => {
+  try {
+    const result = await signPayload(payload);
+    return ok({ signature: result.signature, signedTransaction: result.signedTransaction ?? null });
+  } catch (e) {
+    return err({ tag: 'Rejected' });
+  }
+});
+```
+
+### handleChatCreateContact
+
+```ts
+container.handleChatCreateContact(async (contact, { ok, err }) => {
+  await chatService.registerContact(contact);
+  return ok(undefined);
+});
+```
+
+### handleChatPostMessage
+
+```ts
+container.handleChatPostMessage(async (message, { ok, err }) => {
+  const messageId = await chatService.postMessage(message);
+  return ok({ messageId });
+});
+```
+
+### handleChatActionSubscribe
+
+```ts
+container.handleChatActionSubscribe((_, send, interrupt) => {
+  const listener = (action) => send(action);
+  chatService.on('action', listener);
+  return () => chatService.off('action', listener);
+});
+```
+
+### handleStatementStoreCreateProof
+
+```ts
+container.handleStatementStoreCreateProof(async ([[dotnsId, derivationIndex], statement], { ok, err }) => {
+  try {
+    const proof = await createStatementProof(dotnsId, derivationIndex, statement);
+    return ok(proof);
+  } catch (e) {
+    return err({ tag: 'UnableToSign' });
+  }
+});
+```
+
+### handleJsonRpcMessageSubscribe
+
+```ts
+import { getWsProvider } from 'polkadot-api/ws-provider';
+
+const provider = getWsProvider('wss://rpc.polkadot.io');
+const unsubscribe = container.handleJsonRpcMessageSubscribe(
+  { genesisHash: '0x...' },
+  provider
+);
+```
+
+### isReady
+
+```ts
+const ready = await container.isReady();
+if (ready) {
+  console.log('Container is ready');
+}
+```
+
+### dispose
+
+```ts
+container.dispose();
+```
+
+### subscribeConnectionStatus
+
+```ts
+const unsubscribe = container.subscribeConnectionStatus((status) => {
+  console.log('Connection status:', status);
+});
+```
+
+## PAPI provider support
 
 Host container supports [PAPI](https://papi.how/) requests redirecting from product to host container.
 It can be useful to deduplicate socket connections or light client instances between multiple dapps.
 
 To support this feature you should add two additional handlers to container:
 
-#### Chain support check
+### Chain support check
 ```ts
-const polkadotGenesisHash = '0x...';
+const genesisHash = '0x...';
 
-container.handleChainSupportCheck(async (genesisHash) => {
-  return genesisHash === polkadotGenesisHash;
+container.handleFeature(async (feature) => {
+  return feature.tag === 'chain' && feature.value === genesisHash;
 });
 ```
 
-#### Provider implementation
+### Provider implementation
 
 ```ts
 import { getWsProvider } from 'polkadot-api/ws-provider';
 
-const polkadotGenesisHash = '0x...';
-const endpoint = 'wss://...';
-const provider = getWsProvider(endpoint);
+const genesisHash = '0x...';
+const provider = getWsProvider('wss://...');
 
-container.connectToPapiProvider(polkadotGenesisHash, provider);
+container.connectToPapiProvider(genesisHash, provider);
 ```
 
-### Additional metadata sync
+## Known pitfalls
 
-#### Receiving connection status
-
-```ts
-const unsubscribe = container.subscribeConnectionStatus((status) => {
-  console.log('connection status changed', status);
-});
-```
-
-#### Receiving dapp location change
-
-```ts
-const unsubscribe = container.subscribeLocationChange((location) => {
-  console.log('dapp location changed:', location);
-});
-```
-
-### Known pitfalls
-
-#### CSP error on iframe loading
+### CSP error on iframe loading
 If dapp is hosted on different domain than container and uses https, you should add this meta tag to your host application html:
 
 ```html

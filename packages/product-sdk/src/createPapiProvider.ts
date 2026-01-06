@@ -18,15 +18,16 @@ export function createPapiProvider(
   { chainId: genesisHash, fallback }: Params,
   internal?: InternalParams,
 ): JsonRpcProvider {
+  const version = 'v1';
   const transport = internal?.transport ?? defaultTransport;
   if (!transport.isCorrectEnvironment()) return fallback;
 
   const hostApi = createHostApi(transport);
 
   const spektrProvider: JsonRpcProvider = onMessage => {
-    const subscription = hostApi.jsonrpc_message_subscribe(enumValue('v1', genesisHash), payload => {
+    const subscription = hostApi.jsonrpc_message_subscribe(enumValue(version, genesisHash), payload => {
       switch (payload.tag) {
-        case 'v1':
+        case version:
           onMessage(payload.value);
           break;
         default:
@@ -36,7 +37,7 @@ export function createPapiProvider(
 
     return {
       send(message) {
-        hostApi.jsonrpc_message_send(enumValue('v1', [genesisHash, message]));
+        hostApi.jsonrpc_message_send(enumValue(version, [genesisHash, message]));
       },
       disconnect() {
         subscription.unsubscribe();

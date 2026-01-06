@@ -36,14 +36,14 @@ export const RingLocation = Struct({
 
 // errors
 
-export const RequestCredentialsErr = ErrEnum({
+export const RequestCredentialsErr = ErrEnum('RequestCredentialsErr', {
   NotConnected: [_void, 'RequestCredentials: not connected'],
   Rejected: [_void, 'RequestCredentials: rejected'],
   DomainNotValid: [_void, 'RequestCredentials: domain not valid'],
   Unknown: [GenericErr, 'RequestCredentials: unknown error'],
 });
 
-export const CreateProofErr = ErrEnum({
+export const CreateProofErr = ErrEnum('CreateProofErr', {
   RingNotFound: [_void, 'CreateProof: ring not found'],
   Rejected: [_void, 'CreateProof: rejected'],
   Unknown: [GenericErr, 'CreateProof: unknown error'],

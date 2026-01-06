@@ -2,7 +2,7 @@ import { Result, _void, u8 } from 'scale-ts';
 
 import { ErrEnum, GenericErr } from '../commonCodecs.js';
 
-export const HandshakeErr = ErrEnum({
+export const HandshakeErr = ErrEnum('HandshakeErr', {
   Timeout: [_void, 'Handshake: timeout'],
   UnsupportedProtocolVersion: [_void, 'Handshake: unsupported protocol version'],
   Unknown: [GenericErr, 'Handshake: unknown error'],

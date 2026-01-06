@@ -31,6 +31,7 @@ export { CreateTransactionErr, VersionedPublicTxPayload } from './protocol/v1/cr
 export { Account, AccountId, CreateProofErr, ProductAccountId, RequestCredentialsErr } from './protocol/v1/accounts.js';
 export {
   ChatContactRegistrationErr,
+  ChatContactRegistrationStatus,
   ChatMessage,
   ChatMessagePostingErr,
   ReceivedChatAction,

@@ -1,6 +1,6 @@
-import { Bytes, Enum, Option, Result, Struct, Tuple, Vector, _void, u32, u64 } from 'scale-ts';
+import { Bytes, Option, Result, Struct, Tuple, Vector, _void, u32, u64 } from 'scale-ts';
 
-import { ErrEnum, GenericErr } from '../commonCodecs.js';
+import { Enum, ErrEnum, GenericErr } from '../commonCodecs.js';
 
 import { ProductAccountId } from './accounts.js';
 
@@ -50,7 +50,7 @@ export const Statement = Struct({
 
 // creating proof
 
-export const StatementProofErr = ErrEnum({
+export const StatementProofErr = ErrEnum('StatementProofErr', {
   UnableToSign: [_void, 'StatementProof: unable to sign'],
   UnknownAccount: [_void, 'StatementProof: unknown account'],
   Unknown: [GenericErr, 'StatementProof: unknown error'],

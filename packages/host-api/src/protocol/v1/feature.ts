@@ -1,6 +1,6 @@
-import { Enum, Result, bool } from 'scale-ts';
+import { Result, bool } from 'scale-ts';
 
-import { GenericError, Hex } from '../commonCodecs.js';
+import { Enum, GenericError, Hex } from '../commonCodecs.js';
 
 export const Feature = Enum({
   chain: Hex(),

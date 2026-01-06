@@ -1,8 +1,8 @@
-import { Enum, Result, Struct, Vector, _void, str } from 'scale-ts';
+import { Result, Struct, Vector, _void, str } from 'scale-ts';
 
-import { ErrEnum, GenericErr, Hex } from '../commonCodecs.js';
+import { Enum, ErrEnum, GenericErr, Hex } from '../commonCodecs.js';
 
-export const PermissionErr = ErrEnum({
+export const PermissionErr = ErrEnum('PermissionErr', {
   Rejected: [_void, 'Permission: rejected'],
   Unknown: [GenericErr, 'Permission: unknown error'],
 });

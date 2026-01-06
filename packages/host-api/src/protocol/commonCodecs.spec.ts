@@ -1,7 +1,7 @@
 import { Struct, _void, bool } from 'scale-ts';
 import { describe, expect, it } from 'vitest';
 
-import { Err, ErrEnum, Hex } from './commonCodecs.js';
+import { Err, ErrEnum, Hex, Status } from './commonCodecs.js';
 
 describe('Common codecs', () => {
   describe('Hex', () => {
@@ -20,6 +20,23 @@ describe('Common codecs', () => {
       expect(codec.dec(codec.enc(hex))).toEqual(hex);
     });
   });
+
+  describe('Status', () => {
+    it('should correctly encode/decode Status', () => {
+      const codec = Status('New', 'Used');
+
+      expect(codec.enc('New')).toEqual(new Uint8Array([0]));
+      expect(codec.enc('Used')).toEqual(new Uint8Array([1]));
+
+      expect(codec.dec('0x00')).toEqual('New');
+      expect(codec.dec('0x01')).toEqual('Used');
+
+      // @ts-expect-error for test
+      expect(() => codec.enc('Unknown')).toThrowErrorMatchingInlineSnapshot(`[Error: Unknown status value: Unknown]`);
+      expect(() => codec.dec('0x03')).toThrowErrorMatchingInlineSnapshot(`[Error: Unknown status index: 3]`);
+    });
+  });
+
   describe('Err', () => {
     it('should correctly construct Error', () => {
       const ErrorCodec = Err('TestError', _void, 'Test message');
@@ -39,20 +56,22 @@ describe('Common codecs', () => {
       expect(ErrorCodec.dec(ErrorCodec.enc(error))).toEqual(new ErrorCodec({ enable: true }));
     });
   });
+
   describe('ErrEnum', () => {
     it('should correctly construct ErrorEnum field', () => {
-      const ErrorCodec = ErrEnum({
+      const ErrorCodec = ErrEnum('ErrorCodec', {
         TestError: [_void, 'Test message'],
       });
 
       const error = new ErrorCodec.TestError(undefined);
 
       expect(error).toBeInstanceOf(ErrorCodec.TestError);
-      expect(error.name).toBe('TestError');
+      expect(error.name).toBe('ErrorCodec::TestError');
       expect(error.message).toBe('Test message');
     });
+
     it('should correctly serialize/deserialize', () => {
-      const ErrorCodec = ErrEnum({
+      const ErrorCodec = ErrEnum('ErrorCodec', {
         First: [_void, 'First'],
         Second: [_void, 'Second'],
       });

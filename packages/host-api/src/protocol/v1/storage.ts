@@ -4,8 +4,8 @@ import { ErrEnum, GenericErr, Hex } from '../commonCodecs.js';
 
 // common structures
 
-export const StorageErr = ErrEnum({
-  Full: [_void, 'Storage: full'],
+export const StorageErr = ErrEnum('StorageErr', {
+  Full: [_void, 'Storage is full'],
   Unknown: [GenericErr, 'Storage: unknown error'],
 });
 

@@ -1,12 +1,14 @@
-import { Enum, Option, Result, Struct, Vector, _void, str, u64 } from 'scale-ts';
+import { Option, Result, Struct, Vector, _void, str, u64 } from 'scale-ts';
 
-import { ErrEnum, GenericErr } from '../commonCodecs.js';
+import { Enum, ErrEnum, GenericErr, Status } from '../commonCodecs.js';
 
 // contact
 
-export const ChatContactRegistrationErr = ErrEnum({
+export const ChatContactRegistrationErr = ErrEnum('ChatContactRegistrationErr', {
   Unknown: [GenericErr, 'Unknown error while chat registration'],
 });
+
+export const ChatContactRegistrationStatus = Status('New', 'Exists');
 
 export const ChatContact = Struct({
   name: str,
@@ -14,7 +16,7 @@ export const ChatContact = Struct({
 });
 
 export const ChatCreateContactV1_request = ChatContact;
-export const ChatCreateContactV1_response = Result(_void, ChatContactRegistrationErr);
+export const ChatCreateContactV1_response = Result(ChatContactRegistrationStatus, ChatContactRegistrationErr);
 
 // message format
 
@@ -23,10 +25,7 @@ export const ChatAction = Struct({
   title: str,
 });
 
-export const ChatActionLayout = Enum({
-  Column: _void,
-  Grid: _void,
-});
+export const ChatActionLayout = Status('Column', 'Grid');
 
 export const ChatActions = Struct({
   text: Option(str),
@@ -67,7 +66,7 @@ export const ChatMessage = Enum({
 
 // sending message
 
-export const ChatMessagePostingErr = ErrEnum({
+export const ChatMessagePostingErr = ErrEnum('ChatMessagePostingErr', {
   MessageTooLarge: [_void, 'ChatMessagePosting: message too large'],
   Unknown: [GenericErr, 'ChatMessagePosting: unknown error'],
 });
