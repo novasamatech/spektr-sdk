@@ -1,7 +1,7 @@
 import type { HexString } from '@novasamatech/host-api';
 import { createTransport } from '@novasamatech/host-api';
 import { createContainer } from '@novasamatech/host-container';
-import { WellKnownChain, createSpektrPapiProvider } from '@novasamatech/product-sdk';
+import { WellKnownChain, createPapiProvider } from '@novasamatech/product-sdk';
 
 import { describe, expect, it } from 'vitest';
 
@@ -16,7 +16,7 @@ function setup(chainId: HexString) {
   const container = createContainer(providers.host);
   const sdkTransport = createTransport(providers.sdk);
 
-  const provider = createSpektrPapiProvider(
+  const provider = createPapiProvider(
     {
       chainId,
       fallback: () => {
@@ -36,7 +36,7 @@ function setup(chainId: HexString) {
   return { container, provider };
 }
 
-describe('PAPI provider', () => {
+describe('Host API: JSON RPC provider', () => {
   it('should send messages', async () => {
     const { container, provider } = setup(WellKnownChain.polkadotRelay);
 
@@ -57,8 +57,10 @@ describe('PAPI provider', () => {
     const receivedByProvider: string[] = [];
     const receivedBySDK: string[] = [];
 
-    container.handleChainSupportCheck(async chainId => chainId === WellKnownChain.polkadotRelay);
-    container.connectToPapiProvider(WellKnownChain.polkadotRelay, onMessage => {
+    container.handleFeature((params, { ok }) =>
+      ok(params.tag === 'Chain' && params.value === WellKnownChain.polkadotRelay),
+    );
+    container.handleJsonRpcMessageSubscribe(WellKnownChain.polkadotRelay, onMessage => {
       return {
         send(message) {
           receivedByProvider.push(message);
@@ -74,7 +76,7 @@ describe('PAPI provider', () => {
 
     sdkConnection.send(JSON.stringify(inputMessage));
 
-    await delay(100);
+    await delay(50);
 
     expect(receivedByProvider).toEqual([JSON.stringify(inputMessage)]);
     expect(receivedBySDK).toEqual([JSON.stringify(outputMessage)]);

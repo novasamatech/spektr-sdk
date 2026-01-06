@@ -1,4 +1,4 @@
-import type { TransportProvider } from '@novasamatech/host-api';
+import type { Provider } from '@novasamatech/host-api';
 import { createDefaultLogger } from '@novasamatech/host-api';
 
 import { createNanoEvents } from 'nanoevents';
@@ -7,7 +7,7 @@ export function createHostApiProviders() {
   type Events = 'toHost' | 'toSdk';
   const bus = createNanoEvents<Record<Events, (v: Uint8Array) => void>>();
 
-  function createProvider(listenTo: Events, postTo: Events): TransportProvider {
+  function createProvider(listenTo: Events, postTo: Events): Provider {
     return {
       logger: createDefaultLogger(),
       isCorrectEnvironment: () => true,

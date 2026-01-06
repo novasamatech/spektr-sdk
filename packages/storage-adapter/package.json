@@ -1,7 +1,7 @@
 {
   "name": "@novasamatech/storage-adapter",
   "type": "module",
-  "version": "0.5.0-18",
+  "version": "0.5.0-19",
   "description": "Statement store integration",
   "license": "Apache-2.0",
   "repository": {

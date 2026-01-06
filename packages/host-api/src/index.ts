@@ -1,17 +1,43 @@
-export { messageEncoder, unwrapResultOrThrow } from './messageEncoder.js';
+export type { ConnectionStatus, Logger, Transport } from './types.js';
+export type { Provider } from './provider.js';
 export {
-  type MessagePayloadSchema,
-  type MessageType,
-  type PickMessagePayload,
-  type PickMessagePayloadValue,
-} from './messageEncoder.js';
+  assertEnumVariant,
+  createRequestId,
+  enumValue,
+  errResult,
+  fromHex,
+  isEnumVariant,
+  okResult,
+  toHex,
+  unwrapResultOrThrow,
+} from './helpers.js';
 
-export { createTransport } from './createTransport.js';
-export type { ConnectionStatus, HexString, Logger, Transport, TransportProvider } from './types.js';
+export type { HexString } from './protocol/types.js';
 
+export { createHostApi } from './hostApi.js';
+export { createTransport } from './transport.js';
 export { createDefaultLogger } from './logger.js';
 
-export { type InjectedAccountSchema } from './interactions/accounts.js';
-export { type SignPayloadRequest, type TxPayloadV1 } from './interactions/sign.js';
+export type { HostApiProtocol, VersionedProtocolRequest, VersionedProtocolSubscription } from './protocol/impl.js';
+export { hostApiProtocol } from './protocol/impl.js';
 
-export { signPayloadCodec } from './interactions/sign.js';
+// External reexports
+export type { Codec, CodecType } from 'scale-ts';
+
+// Codecs
+
+export { GenericError } from './protocol/commonCodecs.js';
+export { CreateTransactionErr, VersionedPublicTxPayload } from './protocol/v1/createTransaction.js';
+export { Account, AccountId, CreateProofErr, ProductAccountId, RequestCredentialsErr } from './protocol/v1/accounts.js';
+export {
+  ChatContactRegistrationErr,
+  ChatContactRegistrationStatus,
+  ChatMessage,
+  ChatMessagePostingErr,
+  ReceivedChatAction,
+} from './protocol/v1/chat.js';
+export { HandshakeErr } from './protocol/v1/handshake.js';
+export { PermissionErr } from './protocol/v1/permission.js';
+export { SigningErr } from './protocol/v1/sign.js';
+export { StatementProofErr } from './protocol/v1/statementStore.js';
+export { StorageErr } from './protocol/v1/storage.js';

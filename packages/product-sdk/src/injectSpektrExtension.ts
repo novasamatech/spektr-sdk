@@ -1,11 +1,14 @@
-import type { HexString, SignPayloadRequest, Transport, TxPayloadV1 } from '@novasamatech/host-api';
-import { unwrapResultOrThrow } from '@novasamatech/host-api';
+import type { CodecType, HexString, Transport, VersionedPublicTxPayload } from '@novasamatech/host-api';
+import { assertEnumVariant, createHostApi, enumValue, fromHex, toHex } from '@novasamatech/host-api';
 import { injectExtension } from '@polkadot/extension-inject';
 import type { InjectedAccounts } from '@polkadot/extension-inject/types';
 import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types/extrinsic';
+import { AccountId } from '@polkadot-api/substrate-bindings';
 
 import { SpektrExtensionName, Version } from './constants.js';
 import { defaultTransport } from './defaultTransport.js';
+
+const UNSUPPORTED_VERSION_ERROR = 'Unsupported message version';
 
 interface Signer {
   /**
@@ -19,7 +22,7 @@ interface Signer {
   /**
    * @description signs a transaction according to https://github.com/polkadot-js/api/issues/6213
    */
-  createTransaction?: (payload: TxPayloadV1) => Promise<HexString>;
+  createTransaction?: (payload: CodecType<typeof VersionedPublicTxPayload>) => Promise<HexString>;
 }
 
 interface Injected {
@@ -31,41 +34,77 @@ export async function createExtensionEnableFactory(transport: Transport) {
   const ready = await transport.isReady();
   if (!ready) return null;
 
+  const hostApi = createHostApi(transport);
+  const accountId = AccountId();
+
   async function enable(): Promise<Injected> {
+    async function getAccounts() {
+      const response = await hostApi.get_non_product_accounts(enumValue('v1', undefined));
+
+      return response.match(
+        response => {
+          assertEnumVariant(response, 'v1', UNSUPPORTED_VERSION_ERROR);
+
+          return response.value.map(account => ({
+            name: account.name,
+            address: accountId.dec(account.publicKey),
+          }));
+        },
+        err => {
+          assertEnumVariant(err, 'v1', UNSUPPORTED_VERSION_ERROR);
+          throw err.value;
+        },
+      );
+    }
+
     return {
       accounts: {
-        get() {
-          return transport
-            .request({ tag: 'getAccountsRequestV1', value: undefined }, 'getAccountsResponseV1')
-            .then(v => unwrapResultOrThrow(v, e => new Error(e)));
+        async get() {
+          return getAccounts();
         },
         subscribe(callback) {
-          const unsubscribe = transport.subscribe('getAccountsResponseV1', (_, payload) => {
-            try {
-              const accounts = unwrapResultOrThrow(payload, e => new Error(e));
-              callback(accounts);
-            } catch {
-              transport.provider.logger.error('Failed response on account subscription', payload.value);
-            }
-          });
-
-          transport.postMessage('_', { tag: 'accountSubscriptionV1', value: undefined });
-
+          getAccounts().then(callback);
           return () => {
-            transport.postMessage('_', { tag: 'accountUnsubscriptionV1', value: undefined });
-            unsubscribe();
+            // empty
           };
         },
       },
 
       signer: {
-        signRaw(raw) {
-          return transport
-            .request({ tag: 'signRawRequestV1', value: raw }, 'signResponseV1')
-            .then(v => unwrapResultOrThrow(v, e => new Error(e)));
+        async signRaw(raw) {
+          const payload = {
+            address: raw.address,
+            data:
+              raw.type === 'bytes'
+                ? {
+                    tag: 'Bytes' as const,
+                    value: fromHex(raw.data),
+                  }
+                : {
+                    tag: 'Payload' as const,
+                    value: raw.data,
+                  },
+          };
+
+          const response = await hostApi.sign_raw(enumValue('v1', payload));
+
+          return response.match(
+            response => {
+              assertEnumVariant(response, 'v1', UNSUPPORTED_VERSION_ERROR);
+              return {
+                id: 0,
+                signature: response.value.signature,
+                signedTransaction: response.value.signedTransaction,
+              };
+            },
+            err => {
+              assertEnumVariant(err, 'v1', UNSUPPORTED_VERSION_ERROR);
+              throw err.value;
+            },
+          );
         },
-        signPayload(payload) {
-          const codecPayload: SignPayloadRequest = {
+        async signPayload(payload) {
+          const codecPayload = {
             ...payload,
             method: payload.method as HexString,
             assetId: payload.assetId,
@@ -74,14 +113,36 @@ export async function createExtensionEnableFactory(transport: Transport) {
             metadataHash: payload.metadataHash,
           };
 
-          return transport
-            .request({ tag: 'signPayloadRequestV1', value: codecPayload }, 'signResponseV1')
-            .then(v => unwrapResultOrThrow(v, e => new Error(e)));
+          const response = await hostApi.sign_payload(enumValue('v1', codecPayload));
+
+          return response.match(
+            response => {
+              assertEnumVariant(response, 'v1', UNSUPPORTED_VERSION_ERROR);
+              return {
+                id: 0,
+                signature: response.value.signature,
+                signedTransaction: response.value.signedTransaction,
+              };
+            },
+            err => {
+              assertEnumVariant(err, 'v1', UNSUPPORTED_VERSION_ERROR);
+              throw err.value;
+            },
+          );
         },
-        createTransaction(payload) {
-          return transport
-            .request({ tag: 'createTransactionRequestV1', value: payload }, 'createTransactionResponseV1')
-            .then(v => unwrapResultOrThrow(v, e => new Error(e)));
+        async createTransaction(payload) {
+          const response = await hostApi.create_transaction_with_non_product_account(enumValue('v1', payload));
+
+          return response.match<HexString, HexString>(
+            response => {
+              assertEnumVariant(response, 'v1', UNSUPPORTED_VERSION_ERROR);
+              return toHex(response.value);
+            },
+            err => {
+              assertEnumVariant(err, 'v1', UNSUPPORTED_VERSION_ERROR);
+              throw err.value;
+            },
+          );
         },
       },
     };

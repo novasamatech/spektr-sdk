@@ -21,7 +21,7 @@ export default defineConfig({
       },
     },
     lib: {
-      name: 'host-papp-ui',
+      name: 'host-papp-react-ui',
       entry: ['src/index.ts'],
       formats: ['es'],
       fileName: (_, entryName) => `${entryName}.js`,

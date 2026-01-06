@@ -1,0 +1,60 @@
+import { Bytes, Option, Result, Struct, Tuple, Vector, _void, u32, u64 } from 'scale-ts';
+
+import { Enum, ErrEnum, GenericErr } from '../commonCodecs.js';
+
+import { ProductAccountId } from './accounts.js';
+
+// structs definition
+
+export const Topic = Bytes(32);
+export const Channel = Bytes(32);
+export const DecryptionKey = Bytes(32);
+
+// Proof structures
+const Sr25519StatementProof = Struct({
+  signature: Bytes(64),
+  signer: Bytes(32),
+});
+
+const Ed25519StatementProof = Struct({
+  signature: Bytes(64),
+  signer: Bytes(32),
+});
+
+const EcdsaStatementProof = Struct({
+  signature: Bytes(65),
+  signer: Bytes(33),
+});
+
+const OnChainStatementProof = Struct({
+  who: Bytes(32),
+  blockHash: Bytes(32),
+  event: u64,
+});
+
+const StatementProof = Enum({
+  Sr25519: Sr25519StatementProof,
+  Ed25519: Ed25519StatementProof,
+  Ecdsa: EcdsaStatementProof,
+  OnChain: OnChainStatementProof,
+});
+
+export const Statement = Struct({
+  proof: Option(StatementProof),
+  decryptionKey: Option(DecryptionKey),
+  priority: Option(u32),
+  channel: Option(Channel),
+  topics: Vector(Topic),
+  data: Option(Bytes()),
+});
+
+// creating proof
+
+export const StatementProofErr = ErrEnum('StatementProofErr', {
+  UnableToSign: [_void, 'StatementProof: unable to sign'],
+  UnknownAccount: [_void, 'StatementProof: unknown account'],
+  Unknown: [GenericErr, 'StatementProof: unknown error'],
+});
+
+export const StatementStoreCreateProofV1_request = Tuple(ProductAccountId, Statement);
+export const StatementStoreCreateProofV1_response = Result(StatementProof, StatementProofErr);

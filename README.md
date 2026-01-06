@@ -1,6 +1,4 @@
-# Novasama dapp SDK and execution container
-
-A robust solution for hosting and managing decentralized applications (dapps) within the Polkadot ecosystem.
+# Collection of SDKs for developing Polkadot applications
 
 > [!WARNING]
 > **🔬 Proof of Concept**
@@ -9,28 +7,14 @@ A robust solution for hosting and managing decentralized applications (dapps) wi
 
 ## Docs
 
-* [Product SDK README](packages/product-sdk/README.md) (for dapp developers)
-* [Host Container README](./packages/host-container/README.md) (for host application developers)
-* [Host API README](./packages/host-api/README.md) (for host application developers)
+### For Product developers
+* [Product SDK](packages/product-sdk/README.md)
 
-
-## Architecture
-
-```mermaid
-flowchart TB
-  host["Host Application (Trusted)"]
-
-  subgraph Product
-    subgraph sdk["Product SDK"]
-      injectedWeb3["injectedWeb3 accounts and signer"]
-      papi["PAPI provider"]
-      meta["metadata provider"]
-    end
-  end
-  
-  host <--->|"Message Bridge (IPC)"| sdk
-  
-```
+### For Host developers
+* [Host API](./packages/host-api/README.md)
+* [Host Container](./packages/host-container/README.md)
+* [Host Polkadot App Integration](./packages/host-papp/README.md)
+* [Host Polkadot App Integration (react UI)](./packages/host-papp-react-ui/README.md)
 
 ## Contribution
 

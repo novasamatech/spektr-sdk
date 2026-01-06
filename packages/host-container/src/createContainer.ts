@@ -1,184 +1,45 @@
-import type {
-  ConnectionStatus,
-  HexString,
-  InjectedAccountSchema,
-  TransportProvider,
-  TxPayloadV1,
+import type { ConnectionStatus, Provider } from '@novasamatech/host-api';
+import {
+  ChatContactRegistrationErr,
+  ChatMessagePostingErr,
+  CreateProofErr,
+  CreateTransactionErr,
+  GenericError,
+  PermissionErr,
+  RequestCredentialsErr,
+  SigningErr,
+  StatementProofErr,
+  StorageErr,
+  assertEnumVariant,
+  createTransport,
+  enumValue,
+  errResult,
+  isEnumVariant,
+  okResult,
 } from '@novasamatech/host-api';
-import { createTransport } from '@novasamatech/host-api';
-import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types';
-import type { JsonRpcConnection, JsonRpcProvider } from '@polkadot-api/json-rpc-provider';
+import type { Result } from 'neverthrow';
+import { err, errAsync, ok, okAsync } from 'neverthrow';
 
-import { createComplexSubscriber } from './createComplexSubscriber.js';
+import type { Container } from './types.js';
 
-function errorToString(e: unknown) {
-  return e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';
+const UNSUPPORTED_MESSAGE_FORMAT_ERROR = 'Unsupported message format';
+
+function guardVersion<const Enum extends { tag: string; value: unknown }, const Tag extends Enum['tag'], const Err>(
+  value: Enum,
+  tag: Tag,
+  error: Err,
+): Result<Enum['value'], Err> {
+  if (isEnumVariant(value, tag)) {
+    return ok(value.value);
+  }
+  return err(error);
 }
 
-function formatOk<const T>(value: T) {
-  return { success: true as const, value };
-}
-
-function formatErr<const T>(e: T) {
-  return { success: false as const, value: e };
-}
-
-type ContainerHandlers = {
-  accounts: {
-    get(): Promise<InjectedAccountSchema[]>;
-    subscribe(callback: (accounts: InjectedAccountSchema[]) => void): VoidFunction;
-  };
-  sign: {
-    signRaw(raw: SignerPayloadRaw): Promise<SignerResult>;
-    signPayload(payload: SignerPayloadJSON): Promise<SignerResult>;
-    createTransaction(payload: TxPayloadV1): Promise<HexString>;
-  };
-  chainSupport(genesisHash: HexString): Promise<boolean>;
-};
-
-type Params = {
-  handshakeTimeout: number;
-};
-
-export type Container = ReturnType<typeof createContainer>;
-
-const defaultHandlers: ContainerHandlers = {
-  accounts: {
-    get: async () => [],
-    subscribe: () => () => {
-      /* empty */
-    },
-  },
-  sign: {
-    signRaw: () => Promise.reject(new Error('signRaw is not implemented')),
-    signPayload: () => Promise.reject(new Error('signPayload is not implemented')),
-    createTransaction: () => Promise.reject(new Error('createTransaction is not implemented')),
-  },
-  chainSupport: async () => false,
-};
-
-export function createContainer(provider: TransportProvider, params?: Params) {
-  const transport = createTransport(provider, { handshakeTimeout: params?.handshakeTimeout });
+export function createContainer(provider: Provider): Container {
+  const transport = createTransport(provider);
   if (!transport.isCorrectEnvironment()) {
     throw new Error('Transport is not available: dapp provider has incorrect environment');
   }
-
-  const externalHandlers: Partial<ContainerHandlers> = {};
-
-  // account subscription
-
-  transport.handleMessage<'getAccountsRequestV1', 'getAccountsResponseV1'>('getAccountsRequestV1', async () => {
-    try {
-      const handler = externalHandlers.accounts ?? defaultHandlers.accounts;
-      const accounts = await handler.get();
-
-      return {
-        tag: 'getAccountsResponseV1',
-        value: formatOk(accounts),
-      };
-    } catch (e) {
-      return {
-        tag: 'getAccountsResponseV1',
-        value: formatErr(errorToString(e)),
-      };
-    }
-  });
-
-  const accountSubscriber = transport
-    ? createComplexSubscriber<'accountSubscriptionV1', 'getAccountsResponseV1'>({
-        transport,
-        subscribeRequest: 'accountSubscriptionV1',
-        unsubscribeRequest: 'accountUnsubscriptionV1',
-        getSubscriber() {
-          return callback => {
-            const subscriber = externalHandlers.accounts?.subscribe ?? defaultHandlers.accounts.subscribe;
-
-            return subscriber(accounts => {
-              callback({
-                tag: 'getAccountsResponseV1',
-                value: formatOk(accounts),
-              });
-            });
-          };
-        },
-      })
-    : null;
-
-  // sign subscription
-
-  transport.handleMessage<'signRawRequestV1', 'signResponseV1'>('signRawRequestV1', async message => {
-    try {
-      const signRaw = externalHandlers.sign?.signRaw ?? defaultHandlers.sign.signRaw;
-      const result = await signRaw(message);
-      return {
-        tag: 'signResponseV1',
-        value: formatOk(result),
-      };
-    } catch (e) {
-      return {
-        tag: 'signResponseV1',
-        value: formatErr(errorToString(e)),
-      };
-    }
-  });
-
-  transport.handleMessage<'signPayloadRequestV1', 'signResponseV1'>('signPayloadRequestV1', async message => {
-    try {
-      const signPayload = externalHandlers.sign?.signPayload ?? defaultHandlers.sign.signPayload;
-      const result = await signPayload(message);
-      return {
-        tag: 'signResponseV1',
-        value: formatOk(result),
-      };
-    } catch (e) {
-      return {
-        tag: 'signResponseV1',
-        value: formatErr(errorToString(e)),
-      };
-    }
-  });
-
-  transport.handleMessage<'createTransactionRequestV1', 'createTransactionResponseV1'>(
-    'createTransactionRequestV1',
-    async message => {
-      try {
-        const createTransaction = externalHandlers.sign?.createTransaction ?? defaultHandlers.sign.createTransaction;
-        const result = await createTransaction(message);
-        return {
-          tag: 'createTransactionResponseV1',
-          value: formatOk(result),
-        };
-      } catch (e) {
-        return {
-          tag: 'createTransactionResponseV1',
-          value: formatErr(errorToString(e)),
-        };
-      }
-    },
-  );
-
-  // chain support subscription
-
-  transport.handleMessage<'supportFeatureRequestV1', 'supportFeatureResponseV1'>(
-    'supportFeatureRequestV1',
-    async message => {
-      if (message.tag === 'chain') {
-        try {
-          const checkChainSupport = externalHandlers.chainSupport ?? defaultHandlers.chainSupport;
-          const result = await checkChainSupport(message.value.genesisHash);
-          return {
-            tag: 'supportFeatureResponseV1',
-            value: formatOk({ tag: 'chain', value: { genesisHash: message.value.genesisHash, result } }),
-          };
-        } catch (e) {
-          return {
-            tag: 'supportFeatureResponseV1',
-            value: formatErr(errorToString(e)),
-          };
-        }
-      }
-    },
-  );
 
   function init() {
     // init status subscription
@@ -186,52 +47,259 @@ export function createContainer(provider: TransportProvider, params?: Params) {
   }
 
   return {
-    connectToPapiProvider(genesisHash: HexString, provider: JsonRpcProvider) {
-      init();
+    handleFeature(handler) {
+      return transport.handleRequest('feature', async message => {
+        const version = 'v1';
+        const error = new GenericError({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR });
 
-      let connection: JsonRpcConnection | null = null;
-
-      return transport.handleMessage('papiProviderSendMessageV1', async message => {
-        if (!connection) {
-          connection = provider(message => {
-            transport.postMessage('_', {
-              tag: 'papiProviderReceiveMessageV1',
-              value: formatOk({ genesisHash, message }),
-            });
-          });
-        }
-
-        if (message.genesisHash === genesisHash) {
-          connection.send(message.message);
-        }
+        return guardVersion(message, version, error)
+          .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
+          .andThen(r => r.map(r => enumValue(version, okResult(r))))
+          .orElse(r => ok(enumValue(version, errResult(r))))
+          .unwrapOr(enumValue(version, errResult(error)));
       });
     },
 
-    handleAccounts(handler: ContainerHandlers['accounts']) {
-      init();
-      externalHandlers.accounts = handler;
-      accountSubscriber?.replaceSubscriber();
+    handlePermissionRequest(handler) {
+      return transport.handleRequest('permission_request', async message => {
+        const version = 'v1';
+        const error = new PermissionErr.Unknown({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR });
+
+        return guardVersion(message, version, error)
+          .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
+          .andThen(r => r.map(r => enumValue(version, okResult(r))))
+          .orElse(r => ok(enumValue(version, errResult(r))))
+          .unwrapOr(enumValue(version, errResult(error)));
+      });
     },
 
-    handleSignRequest(handler: ContainerHandlers['sign']) {
-      init();
-      externalHandlers.sign = handler;
+    handleStorageRead(handler) {
+      return transport.handleRequest('storage_read', async message => {
+        const version = 'v1';
+        const error = new StorageErr.Unknown({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR });
+
+        return guardVersion(message, version, error)
+          .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
+          .andThen(r => r.map(r => enumValue(version, okResult(r))))
+          .orElse(r => ok(enumValue(version, errResult(r))))
+          .unwrapOr(enumValue(version, errResult(error)));
+      });
     },
 
-    handleChainSupportCheck(handler: ContainerHandlers['chainSupport']) {
+    handleStorageWrite(handler) {
+      return transport.handleRequest('storage_write', async message => {
+        const version = 'v1';
+        const error = new StorageErr.Unknown({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR });
+
+        return guardVersion(message, version, error)
+          .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
+          .andThen(r => r.map(r => enumValue(version, okResult(r))))
+          .orElse(r => ok(enumValue(version, errResult(r))))
+          .unwrapOr(enumValue(version, errResult(error)));
+      });
+    },
+
+    handleStorageClear(handler) {
+      return transport.handleRequest('storage_clear', async params => {
+        const version = 'v1';
+        const error = new StorageErr.Unknown({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR });
+
+        return guardVersion(params, version, error)
+          .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
+          .andThen(r => r.map(r => enumValue(version, okResult(r))))
+          .orElse(r => ok(enumValue(version, errResult(r))))
+          .unwrapOr(enumValue(version, errResult(error)));
+      });
+    },
+
+    handleAccountGet(handler) {
+      return transport.handleRequest('account_get', async params => {
+        const version = 'v1';
+        const error = new RequestCredentialsErr.Unknown({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR });
+
+        return guardVersion(params, version, error)
+          .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
+          .andThen(r => r.map(r => enumValue(version, okResult(r))))
+          .orElse(r => ok(enumValue(version, errResult(r))))
+          .unwrapOr(enumValue(version, errResult(error)));
+      });
+    },
+
+    handleAccountGetAlias(handler) {
+      return transport.handleRequest('account_get_alias', async params => {
+        const version = 'v1';
+        const error = new RequestCredentialsErr.Unknown({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR });
+
+        return guardVersion(params, version, error)
+          .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
+          .andThen(r => r.map(r => enumValue(version, okResult(r))))
+          .orElse(r => ok(enumValue(version, errResult(r))))
+          .unwrapOr(enumValue(version, errResult(error)));
+      });
+    },
+
+    handleAccountCreateProof(handler) {
+      return transport.handleRequest('account_create_proof', async params => {
+        const version = 'v1';
+        const error = new CreateProofErr.Unknown({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR });
+
+        return guardVersion(params, version, error)
+          .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
+          .andThen(r => r.map(r => enumValue(version, okResult(r))))
+          .orElse(r => ok(enumValue(version, errResult(r))))
+          .unwrapOr(enumValue(version, errResult(error)));
+      });
+    },
+
+    handleGetNonProductAccounts(handler) {
+      return transport.handleRequest('get_non_product_accounts', async params => {
+        const version = 'v1';
+        const error = new RequestCredentialsErr.Unknown({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR });
+
+        return guardVersion(params, version, error)
+          .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
+          .andThen(r => r.map(r => enumValue(version, okResult(r))))
+          .orElse(r => ok(enumValue(version, errResult(r))))
+          .unwrapOr(enumValue(version, errResult(error)));
+      });
+    },
+
+    handleCreateTransaction(handler) {
+      return transport.handleRequest('create_transaction', async params => {
+        const version = 'v1';
+        const error = new CreateTransactionErr.Unknown({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR });
+
+        return guardVersion(params, version, error)
+          .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
+          .andThen(r => r.map(r => enumValue(version, okResult(r))))
+          .orElse(r => ok(enumValue(version, errResult(r))))
+          .unwrapOr(enumValue(version, errResult(error)));
+      });
+    },
+
+    handleCreateTransactionWithNonProductAccount(handler) {
+      return transport.handleRequest('create_transaction_with_non_product_account', async params => {
+        const version = 'v1';
+        const error = new CreateTransactionErr.Unknown({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR });
+
+        return guardVersion(params, version, error)
+          .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
+          .andThen(r => r.map(r => enumValue(version, okResult(r))))
+          .orElse(r => ok(enumValue(version, errResult(r))))
+          .unwrapOr(enumValue(version, errResult(error)));
+      });
+    },
+
+    handleSignRaw(handler) {
+      return transport.handleRequest('sign_raw', async params => {
+        const version = 'v1';
+        const error = new SigningErr.Unknown({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR });
+
+        return guardVersion(params, version, error)
+          .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
+          .andThen(r => r.map(r => enumValue(version, okResult(r))))
+          .orElse(r => ok(enumValue(version, errResult(r))))
+          .unwrapOr(enumValue(version, errResult(error)));
+      });
+    },
+
+    handleSignPayload(handler) {
+      return transport.handleRequest('sign_payload', async params => {
+        const version = 'v1';
+        const error = new SigningErr.Unknown({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR });
+
+        return guardVersion(params, version, error)
+          .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
+          .andThen(r => r.map(r => enumValue(version, okResult(r))))
+          .orElse(r => ok(enumValue(version, errResult(r))))
+          .unwrapOr(enumValue(version, errResult(error)));
+      });
+    },
+
+    handleChatCreateContact(handler) {
+      return transport.handleRequest('chat_create_contact', async params => {
+        const version = 'v1';
+        const error = new ChatContactRegistrationErr.Unknown({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR });
+
+        return guardVersion(params, version, error)
+          .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
+          .andThen(r => r.map(r => enumValue(version, okResult(r))))
+          .orElse(r => ok(enumValue(version, errResult(r))))
+          .unwrapOr(enumValue(version, errResult(error)));
+      });
+    },
+
+    handleChatPostMessage(handler) {
+      return transport.handleRequest('chat_post_message', async params => {
+        const version = 'v1';
+        const error = new ChatMessagePostingErr.Unknown({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR });
+
+        return guardVersion(params, version, error)
+          .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
+          .andThen(r => r.map(r => enumValue(version, okResult(r))))
+          .orElse(r => ok(enumValue(version, errResult(r))))
+          .unwrapOr(enumValue(version, errResult(error)));
+      });
+    },
+
+    handleChatActionSubscribe(handler) {
+      return transport.handleSubscription('chat_action_subscribe', (params, send, interrupt) => {
+        const version = 'v1';
+
+        return guardVersion(params, version, null)
+          .map(params => handler(params, payload => send(enumValue(version, payload)), interrupt))
+          .orTee(interrupt)
+          .unwrapOr(() => {
+            /* empty */
+          });
+      });
+    },
+
+    handleStatementStoreCreateProof(handler) {
+      return transport.handleRequest('statement_store_create_proof', async params => {
+        const version = 'v1';
+        const error = new StatementProofErr.Unknown({ reason: UNSUPPORTED_MESSAGE_FORMAT_ERROR });
+
+        return guardVersion(params, version, error)
+          .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
+          .andThen(r => r.map(r => enumValue(version, okResult(r))))
+          .orElse(r => ok(enumValue(version, errResult(r))))
+          .unwrapOr(enumValue(version, errResult(error)));
+      });
+    },
+
+    handleJsonRpcMessageSubscribe(genesisHash, provider) {
       init();
-      externalHandlers.chainSupport = handler;
+
+      return transport.handleSubscription('jsonrpc_message_subscribe', (params, send) => {
+        assertEnumVariant(params, 'v1', UNSUPPORTED_MESSAGE_FORMAT_ERROR);
+        if (params.value !== genesisHash) {
+          return () => {
+            // empty subscription, we don't want to react to foreign chain subscription request
+          };
+        }
+
+        const connection = provider(message => send(enumValue('v1', message)));
+
+        const unsubRequests = transport.handleRequest('jsonrpc_message_send', async message => {
+          assertEnumVariant(message, 'v1', UNSUPPORTED_MESSAGE_FORMAT_ERROR);
+          const [requestedGenesisHash, payload] = message.value;
+          if (requestedGenesisHash !== genesisHash) {
+            return enumValue('v1', okResult(undefined));
+          }
+          connection.send(payload);
+          return enumValue('v1', okResult(undefined));
+        });
+
+        return () => {
+          unsubRequests();
+          connection?.disconnect();
+        };
+      });
     },
 
     isReady() {
       return transport.isReady();
-    },
-
-    subscribeLocationChange(callback: (location: string) => void) {
-      init();
-      return transport.subscribe('locationChangedV1', async location => {
-        callback(location);
-      });
     },
 
     subscribeConnectionStatus(callback: (connectionStatus: ConnectionStatus) => void) {
