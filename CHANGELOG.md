@@ -1,3 +1,32 @@
+## 0.5.0-19 (2026-01-06)
+
+### 🚀 Features
+
+- papp integration ([#5](https://github.com/novasamatech/spektr-sdk/pull/5))
+- Implemented correct Polkadot app pairing ui ([#6](https://github.com/novasamatech/spektr-sdk/pull/6))
+- Support new statement store errors while submitting statements ([#8](https://github.com/novasamatech/spektr-sdk/pull/8))
+- WIP changed contract on host API according the new spec ([4fd3425](https://github.com/novasamatech/spektr-sdk/commit/4fd3425))
+- WIP changed contract on host API according the new spec ([a55d657](https://github.com/novasamatech/spektr-sdk/commit/a55d657))
+- WIP changed contract on host API according the new spec ([fb0f7b6](https://github.com/novasamatech/spektr-sdk/commit/fb0f7b6))
+- WIP changed contract on host API according the new spec ([645b524](https://github.com/novasamatech/spektr-sdk/commit/645b524))
+- implemented interrupt action in host api ([edfab2a](https://github.com/novasamatech/spektr-sdk/commit/edfab2a))
+- new container sdk api ([569d375](https://github.com/novasamatech/spektr-sdk/commit/569d375))
+- chat sdk in product api ([98ff569](https://github.com/novasamatech/spektr-sdk/commit/98ff569))
+- readme ([9792401](https://github.com/novasamatech/spektr-sdk/commit/9792401))
+
+### 🩹 Fixes
+
+- update qs version, high severity vulnerability ([5408dfd](https://github.com/novasamatech/spektr-sdk/commit/5408dfd))
+- papp types ([7d8efa6](https://github.com/novasamatech/spektr-sdk/commit/7d8efa6))
+- Feature request codec ([91886c3](https://github.com/novasamatech/spektr-sdk/commit/91886c3))
+- Permission request codec ([453ce4b](https://github.com/novasamatech/spektr-sdk/commit/453ce4b))
+- Rename papp-ui package ([e0e0be9](https://github.com/novasamatech/spektr-sdk/commit/e0e0be9))
+- package.json ([892a687](https://github.com/novasamatech/spektr-sdk/commit/892a687))
+
+### ❤️ Thank You
+
+- Sergey Zhuravlev @johnthecat
+
 ## 0.5.0-18 (2025-12-29)
 
 ### 🚀 Features
