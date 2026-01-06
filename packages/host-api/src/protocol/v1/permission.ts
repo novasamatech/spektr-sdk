@@ -1,6 +1,6 @@
 import { Result, Struct, Vector, _void, str } from 'scale-ts';
 
-import { Enum, ErrEnum, GenericErr, Hex } from '../commonCodecs.js';
+import { Enum, ErrEnum, GenericErr, GenesisHash } from '../commonCodecs.js';
 
 export const PermissionErr = ErrEnum('PermissionErr', {
   Rejected: [_void, 'Permission: rejected'],
@@ -8,12 +8,12 @@ export const PermissionErr = ErrEnum('PermissionErr', {
 });
 
 export const ChainConnectPermission = Struct({
-  genesisHash: Hex(),
+  genesisHash: GenesisHash,
   name: str,
 });
 
 export const Permission = Enum({
-  ChainSubmit: Hex(),
+  ChainSubmit: GenesisHash,
   ChainConnect: ChainConnectPermission,
   NetworkRequest: Vector(str),
   // TBD
