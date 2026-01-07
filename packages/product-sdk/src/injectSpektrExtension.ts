@@ -1,7 +1,7 @@
 import type { CodecType, HexString, Transport, VersionedPublicTxPayload } from '@novasamatech/host-api';
 import { assertEnumVariant, createHostApi, enumValue, fromHex, toHex } from '@novasamatech/host-api';
 import { injectExtension } from '@polkadot/extension-inject';
-import type { InjectedAccounts } from '@polkadot/extension-inject/types';
+import type { InjectedAccount, InjectedAccounts } from '@polkadot/extension-inject/types';
 import type { SignerPayloadJSON, SignerPayloadRaw, SignerResult } from '@polkadot/types/types/extrinsic';
 import { AccountId } from '@polkadot-api/substrate-bindings';
 
@@ -45,9 +45,10 @@ export async function createExtensionEnableFactory(transport: Transport) {
         response => {
           assertEnumVariant(response, 'v1', UNSUPPORTED_VERSION_ERROR);
 
-          return response.value.map(account => ({
+          return response.value.map<InjectedAccount>(account => ({
             name: account.name,
             address: accountId.dec(account.publicKey),
+            type: 'sr25519',
           }));
         },
         err => {
