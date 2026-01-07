@@ -56,13 +56,13 @@ You can wrap your PAPI provider with Spektr provider to support redirecting requ
 ```diff
 import { createClient, type PolkadotClient } from 'polkadot-api';
 import { getWsProvider } from 'polkadot-api/ws-provider';
-import { createSpektrPapiProvider, WellKnownChain } from '@novasamatech/product-sdk';
+import { createPapiProvider, WellKnownChain } from '@novasamatech/product-sdk';
 
 function createPapiClient(): PolkadotClient {
   const polkadotEndpoint = 'wss://...';
 
 -  const provider = getWsProvider(polkadotEndpoint);
-+  const provider = createSpektrPapiProvider({
++  const provider = createPapiProvider({
 +    chainId: WellKnownChain.polkadotRelay,
 +    fallback: getWsProvider(polkadotEndpoint),
 +  });
@@ -71,12 +71,12 @@ function createPapiClient(): PolkadotClient {
 }
 ```
 
-### Subscribing metadata and statuses
+### Subscribing connection status
 
 ```ts
-import { spektrMetaProvider } from '@novasamatech/product-sdk';
+import { metaProvider } from '@novasamatech/product-sdk';
 
-const unsubscribe = spektrMetaProvider.subscribeConnectionStatus((status) => {
+const unsubscribe = metaProvider.subscribeConnectionStatus((status) => {
   console.log('connection status changed', status);
 });
 ```
