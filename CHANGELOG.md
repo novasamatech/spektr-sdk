@@ -1,11 +1,29 @@
+## 0.5.1 (2026-01-06)
+
+### 🩹 Fixes
+
+- Explicitly set account type to sr25519 in extension injector ([c942974](https://github.com/novasamatech/spektr-sdk/commit/c942974))
+
+### ❤️ Thank You
+
+- Sergey Zhuravlev @johnthecat
+
 ## 0.5.0 (2026-01-06)
 
 ### 🚀 Features
 
 - Polkadot app integration ([#5](https://github.com/novasamatech/spektr-sdk/pull/5))
-- Implemented correct Polkadot app pairing ui ([#6](https://github.com/novasamatech/spektr-sdk/pull/6))
-- Host Api spec ([#7](https://github.com/novasamatech/spektr-sdk/pull/7))
 - Support new statement store errors while submitting statements ([#8](https://github.com/novasamatech/spektr-sdk/pull/8))
+- Implemented Polkadot app pairing ui ([#6](https://github.com/novasamatech/spektr-sdk/pull/6))
+- Host API according proposal ([#7](https://github.com/novasamatech/spektr-sdk/pull/7))
+  - Chat integration API
+  - Local Storage API
+
+### ⚠️  Breaking Changes
+
+- Completely new Host API spec that is not compatible with previous versions;
+- New API of container from `host-container` package;
+- `createSpektrPapiProvider` renamed to `createPapiProvider` in `product-sdk` package.
 
 ### ❤️ Thank You
 
