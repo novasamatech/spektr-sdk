@@ -37,6 +37,7 @@ describe('Host API: injected web3 provider', () => {
       {
         name: 'test',
         address: accountId.dec(new Uint8Array(32)),
+        type: 'sr25519',
       },
     ]);
   });
