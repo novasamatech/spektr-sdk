@@ -1,3 +1,13 @@
+## 0.5.2 (2026-01-08)
+
+### 🩹 Fixes
+
+- pairing ui logos and texts ([d99f67d](https://github.com/novasamatech/spektr-sdk/commit/d99f67d))
+
+### ❤️ Thank You
+
+- Sergey Zhuravlev @johnthecat
+
 ## 0.5.1 (2026-01-06)
 
 ### 🩹 Fixes

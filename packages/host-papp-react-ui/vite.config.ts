@@ -31,7 +31,11 @@ export default defineConfig({
 
   plugins: [
     externalizeDeps(),
-    react(),
+    react({
+      babel: {
+        plugins: ['babel-plugin-react-compiler'],
+      },
+    }),
     dts({}),
     // @ts-expect-error wasm module types are broken in our setup
     wasm(),
