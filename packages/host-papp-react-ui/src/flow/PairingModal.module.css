@@ -59,19 +59,22 @@
 
 /* loader */
 
-@keyframes spin {
+@keyframes loader {
   from {
-    transform: rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
   }
   to {
-    transform: rotate(-360deg);
+    opacity: 1;
   }
 }
 
-.spinner {
+.loaderLogo {
   width: fit-content;
   height: fit-content;
-  animation: spin 10s linear infinite;
+  animation: loader 3s linear infinite;
 }
 
 .loaderContainer {
@@ -108,16 +111,23 @@
 
 .finishedLogo {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   gap: 12px;
+}
+
+.finishedLogoSeparator {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .finishedLogoTitle {
   color: #fff;
   text-align: center;
   font-family: Inter, sans-serif;
-  font-size: 16.441px;
+  font-size: 16px;
+  white-space: nowrap;
   font-style: normal;
   font-weight: 600;
   line-height: 140%; /* 23.017px */

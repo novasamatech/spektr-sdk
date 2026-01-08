@@ -7,6 +7,7 @@ import { useAuthentication } from '../providers/AuthProvider.js';
 import { useTranslations } from '../providers/TranslationProvider.js';
 import { Button } from '../ui/Button.js';
 import { Logo } from '../ui/Logo.js';
+import { LogoSmall } from '../ui/LogoSmall.js';
 import { Modal } from '../ui/Modal.js';
 import { QrCode } from '../ui/QrCode.js';
 import type { ThemeVariant } from '../ui/Theme.js';
@@ -63,8 +64,8 @@ const LoadingStep = () => {
 
   return (
     <div className={styles.loaderContainer}>
-      <div className={styles.spinner}>
-        <Logo />
+      <div className={styles.loaderLogo}>
+        <LogoSmall size={100} />
       </div>
       <span className={styles.loaderText}>{translation.pairingLoader}</span>
     </div>
@@ -79,8 +80,9 @@ const FinishedStep = ({ accountId }: { accountId: AccountId }) => {
   return (
     <div className={styles.finishedContainer}>
       <div className={styles.finishedLogo}>
-        <Logo size={52} />
-        <div className={styles.finishedLogoTitle}>Polkadot</div>
+        <Logo size={30} />
+        <div className={styles.finishedLogoSeparator} />
+        <div className={styles.finishedLogoTitle}>Products for People</div>
       </div>
       <div className={styles.finishedWelcome}>Welcome to Polkadot</div>
       <div className={styles.finishedUsername}>

@@ -34,6 +34,7 @@
     "@types/node": "24.10.1",
     "@vitejs/plugin-react": "5.1.2",
     "@vitest/ui": "4.0.16",
+    "babel-plugin-react-compiler": "1.0.0",
     "eslint": "9.39.2",
     "eslint-config-prettier": "10.1.8",
     "eslint-import-resolver-typescript": "4.4.4",
