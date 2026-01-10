@@ -36,7 +36,7 @@
   "devDependencies": {
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
-    "@polkadot-api/substrate-bindings": "^0.16.6",
+    "@polkadot-api/substrate-bindings": "^0.16.5",
     "typescript-plugin-css-modules": "5.2.0",
     "vite-plugin-wasm": "3.5.0"
   },

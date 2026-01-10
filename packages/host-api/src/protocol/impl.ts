@@ -1,7 +1,7 @@
+import type { EnumCodec } from '@novasamatech/scale';
+import { Enum } from '@novasamatech/scale';
 import type { Codec } from 'scale-ts';
 
-import type { EnumCodec } from './commonCodecs.js';
-import { Enum } from './commonCodecs.js';
 import {
   AccountCreateProofV1_request,
   AccountCreateProofV1_response,
@@ -55,13 +55,13 @@ type InferVersionedArgument<EnumValues extends VersionedArguments, N extends num
 };
 
 export type VersionedProtocolRequest<T extends VersionedArguments = VersionedArguments> = {
-  type: 'request';
+  method: 'request';
   request: EnumCodec<InferVersionedArgument<T, 0>>;
   response: EnumCodec<InferVersionedArgument<T, 1>>;
 };
 
 export type VersionedProtocolSubscription<T extends VersionedArguments = VersionedArguments> = {
-  type: 'subscription';
+  method: 'subscribe';
   start: EnumCodec<InferVersionedArgument<T, 0>>;
   receive: EnumCodec<InferVersionedArgument<T, 1>>;
 };
@@ -79,7 +79,7 @@ const versionedRequest = <const EnumValues extends VersionedArguments>(
   values: EnumValues,
 ): VersionedProtocolRequest<EnumValues> => {
   return {
-    type: 'request',
+    method: 'request',
     request: enumFromArg(values, 0),
     response: enumFromArg(values, 1),
   };
@@ -89,7 +89,7 @@ const versionedSubscription = <const EnumValues extends VersionedArguments>(
   values: EnumValues,
 ): VersionedProtocolSubscription<EnumValues> => {
   return {
-    type: 'subscription',
+    method: 'subscribe',
     start: enumFromArg(values, 0),
     receive: enumFromArg(values, 1),
   };

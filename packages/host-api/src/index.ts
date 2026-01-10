@@ -1,18 +1,6 @@
 export type { ConnectionStatus, Logger, Transport } from './types.js';
 export type { Provider } from './provider.js';
-export {
-  assertEnumVariant,
-  createRequestId,
-  enumValue,
-  errResult,
-  fromHex,
-  isEnumVariant,
-  okResult,
-  toHex,
-  unwrapResultOrThrow,
-} from './helpers.js';
-
-export type { HexString } from './protocol/types.js';
+export { createRequestId } from './helpers.js';
 
 export { createHostApi } from './hostApi.js';
 export { createTransport } from './transport.js';
@@ -23,6 +11,18 @@ export { hostApiProtocol } from './protocol/impl.js';
 
 // External reexports
 export type { Codec, CodecType } from 'scale-ts';
+
+export type { HexString } from '@novasamatech/scale';
+export {
+  assertEnumVariant,
+  enumValue,
+  fromHex,
+  isEnumVariant,
+  resultErr,
+  resultOk,
+  toHex,
+  unwrapResultOrThrow,
+} from '@novasamatech/scale';
 
 // Codecs
 

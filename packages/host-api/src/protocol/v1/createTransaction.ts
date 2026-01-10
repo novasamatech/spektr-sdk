@@ -1,8 +1,9 @@
+import type { HexString } from '@novasamatech/scale';
+import { Enum, ErrEnum, Hex, Nullable } from '@novasamatech/scale';
 import type { CodecType } from 'scale-ts';
 import { Bytes, Result, Struct, Tuple, Vector, _void, enhanceCodec, str, u32, u8 } from 'scale-ts';
 
-import { Enum, ErrEnum, GenericErr, Hex, Nullable } from '../commonCodecs.js';
-import type { HexString } from '../types.js';
+import { GenericErr } from '../commonCodecs.js';
 
 import { ProductAccountId } from './accounts.js';
 

@@ -1,6 +1,7 @@
+import { Enum, ErrEnum, Hex } from '@novasamatech/scale';
 import { Bytes, Option, Result, Struct, Vector, _void, bool, str, u32 } from 'scale-ts';
 
-import { Enum, ErrEnum, GenericErr, GenesisHash, Hex } from '../commonCodecs.js';
+import { GenericErr, GenesisHash } from '../commonCodecs.js';
 
 // common structures
 

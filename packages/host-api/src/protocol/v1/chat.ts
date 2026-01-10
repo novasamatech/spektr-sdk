@@ -1,6 +1,7 @@
+import { Enum, ErrEnum, Status } from '@novasamatech/scale';
 import { Option, Result, Struct, Vector, _void, str, u64 } from 'scale-ts';
 
-import { Enum, ErrEnum, GenericErr, Status } from '../commonCodecs.js';
+import { GenericErr } from '../commonCodecs.js';
 
 // contact
 

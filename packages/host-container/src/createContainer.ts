@@ -13,9 +13,9 @@ import {
   assertEnumVariant,
   createTransport,
   enumValue,
-  errResult,
   isEnumVariant,
-  okResult,
+  resultErr,
+  resultOk,
 } from '@novasamatech/host-api';
 import type { Result } from 'neverthrow';
 import { err, errAsync, ok, okAsync } from 'neverthrow';
@@ -54,9 +54,9 @@ export function createContainer(provider: Provider): Container {
 
         return guardVersion(message, version, error)
           .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
-          .andThen(r => r.map(r => enumValue(version, okResult(r))))
-          .orElse(r => ok(enumValue(version, errResult(r))))
-          .unwrapOr(enumValue(version, errResult(error)));
+          .andThen(r => r.map(r => enumValue(version, resultOk(r))))
+          .orElse(r => ok(enumValue(version, resultErr(r))))
+          .unwrapOr(enumValue(version, resultErr(error)));
       });
     },
 
@@ -67,9 +67,9 @@ export function createContainer(provider: Provider): Container {
 
         return guardVersion(message, version, error)
           .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
-          .andThen(r => r.map(r => enumValue(version, okResult(r))))
-          .orElse(r => ok(enumValue(version, errResult(r))))
-          .unwrapOr(enumValue(version, errResult(error)));
+          .andThen(r => r.map(r => enumValue(version, resultOk(r))))
+          .orElse(r => ok(enumValue(version, resultErr(r))))
+          .unwrapOr(enumValue(version, resultErr(error)));
       });
     },
 
@@ -80,9 +80,9 @@ export function createContainer(provider: Provider): Container {
 
         return guardVersion(message, version, error)
           .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
-          .andThen(r => r.map(r => enumValue(version, okResult(r))))
-          .orElse(r => ok(enumValue(version, errResult(r))))
-          .unwrapOr(enumValue(version, errResult(error)));
+          .andThen(r => r.map(r => enumValue(version, resultOk(r))))
+          .orElse(r => ok(enumValue(version, resultErr(r))))
+          .unwrapOr(enumValue(version, resultErr(error)));
       });
     },
 
@@ -93,9 +93,9 @@ export function createContainer(provider: Provider): Container {
 
         return guardVersion(message, version, error)
           .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
-          .andThen(r => r.map(r => enumValue(version, okResult(r))))
-          .orElse(r => ok(enumValue(version, errResult(r))))
-          .unwrapOr(enumValue(version, errResult(error)));
+          .andThen(r => r.map(r => enumValue(version, resultOk(r))))
+          .orElse(r => ok(enumValue(version, resultErr(r))))
+          .unwrapOr(enumValue(version, resultErr(error)));
       });
     },
 
@@ -106,9 +106,9 @@ export function createContainer(provider: Provider): Container {
 
         return guardVersion(params, version, error)
           .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
-          .andThen(r => r.map(r => enumValue(version, okResult(r))))
-          .orElse(r => ok(enumValue(version, errResult(r))))
-          .unwrapOr(enumValue(version, errResult(error)));
+          .andThen(r => r.map(r => enumValue(version, resultOk(r))))
+          .orElse(r => ok(enumValue(version, resultErr(r))))
+          .unwrapOr(enumValue(version, resultErr(error)));
       });
     },
 
@@ -119,9 +119,9 @@ export function createContainer(provider: Provider): Container {
 
         return guardVersion(params, version, error)
           .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
-          .andThen(r => r.map(r => enumValue(version, okResult(r))))
-          .orElse(r => ok(enumValue(version, errResult(r))))
-          .unwrapOr(enumValue(version, errResult(error)));
+          .andThen(r => r.map(r => enumValue(version, resultOk(r))))
+          .orElse(r => ok(enumValue(version, resultErr(r))))
+          .unwrapOr(enumValue(version, resultErr(error)));
       });
     },
 
@@ -132,9 +132,9 @@ export function createContainer(provider: Provider): Container {
 
         return guardVersion(params, version, error)
           .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
-          .andThen(r => r.map(r => enumValue(version, okResult(r))))
-          .orElse(r => ok(enumValue(version, errResult(r))))
-          .unwrapOr(enumValue(version, errResult(error)));
+          .andThen(r => r.map(r => enumValue(version, resultOk(r))))
+          .orElse(r => ok(enumValue(version, resultErr(r))))
+          .unwrapOr(enumValue(version, resultErr(error)));
       });
     },
 
@@ -145,9 +145,9 @@ export function createContainer(provider: Provider): Container {
 
         return guardVersion(params, version, error)
           .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
-          .andThen(r => r.map(r => enumValue(version, okResult(r))))
-          .orElse(r => ok(enumValue(version, errResult(r))))
-          .unwrapOr(enumValue(version, errResult(error)));
+          .andThen(r => r.map(r => enumValue(version, resultOk(r))))
+          .orElse(r => ok(enumValue(version, resultErr(r))))
+          .unwrapOr(enumValue(version, resultErr(error)));
       });
     },
 
@@ -158,9 +158,9 @@ export function createContainer(provider: Provider): Container {
 
         return guardVersion(params, version, error)
           .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
-          .andThen(r => r.map(r => enumValue(version, okResult(r))))
-          .orElse(r => ok(enumValue(version, errResult(r))))
-          .unwrapOr(enumValue(version, errResult(error)));
+          .andThen(r => r.map(r => enumValue(version, resultOk(r))))
+          .orElse(r => ok(enumValue(version, resultErr(r))))
+          .unwrapOr(enumValue(version, resultErr(error)));
       });
     },
 
@@ -171,9 +171,9 @@ export function createContainer(provider: Provider): Container {
 
         return guardVersion(params, version, error)
           .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
-          .andThen(r => r.map(r => enumValue(version, okResult(r))))
-          .orElse(r => ok(enumValue(version, errResult(r))))
-          .unwrapOr(enumValue(version, errResult(error)));
+          .andThen(r => r.map(r => enumValue(version, resultOk(r))))
+          .orElse(r => ok(enumValue(version, resultErr(r))))
+          .unwrapOr(enumValue(version, resultErr(error)));
       });
     },
 
@@ -184,9 +184,9 @@ export function createContainer(provider: Provider): Container {
 
         return guardVersion(params, version, error)
           .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
-          .andThen(r => r.map(r => enumValue(version, okResult(r))))
-          .orElse(r => ok(enumValue(version, errResult(r))))
-          .unwrapOr(enumValue(version, errResult(error)));
+          .andThen(r => r.map(r => enumValue(version, resultOk(r))))
+          .orElse(r => ok(enumValue(version, resultErr(r))))
+          .unwrapOr(enumValue(version, resultErr(error)));
       });
     },
 
@@ -197,9 +197,9 @@ export function createContainer(provider: Provider): Container {
 
         return guardVersion(params, version, error)
           .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
-          .andThen(r => r.map(r => enumValue(version, okResult(r))))
-          .orElse(r => ok(enumValue(version, errResult(r))))
-          .unwrapOr(enumValue(version, errResult(error)));
+          .andThen(r => r.map(r => enumValue(version, resultOk(r))))
+          .orElse(r => ok(enumValue(version, resultErr(r))))
+          .unwrapOr(enumValue(version, resultErr(error)));
       });
     },
 
@@ -210,9 +210,9 @@ export function createContainer(provider: Provider): Container {
 
         return guardVersion(params, version, error)
           .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
-          .andThen(r => r.map(r => enumValue(version, okResult(r))))
-          .orElse(r => ok(enumValue(version, errResult(r))))
-          .unwrapOr(enumValue(version, errResult(error)));
+          .andThen(r => r.map(r => enumValue(version, resultOk(r))))
+          .orElse(r => ok(enumValue(version, resultErr(r))))
+          .unwrapOr(enumValue(version, resultErr(error)));
       });
     },
 
@@ -223,9 +223,9 @@ export function createContainer(provider: Provider): Container {
 
         return guardVersion(params, version, error)
           .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
-          .andThen(r => r.map(r => enumValue(version, okResult(r))))
-          .orElse(r => ok(enumValue(version, errResult(r))))
-          .unwrapOr(enumValue(version, errResult(error)));
+          .andThen(r => r.map(r => enumValue(version, resultOk(r))))
+          .orElse(r => ok(enumValue(version, resultErr(r))))
+          .unwrapOr(enumValue(version, resultErr(error)));
       });
     },
 
@@ -236,9 +236,9 @@ export function createContainer(provider: Provider): Container {
 
         return guardVersion(params, version, error)
           .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
-          .andThen(r => r.map(r => enumValue(version, okResult(r))))
-          .orElse(r => ok(enumValue(version, errResult(r))))
-          .unwrapOr(enumValue(version, errResult(error)));
+          .andThen(r => r.map(r => enumValue(version, resultOk(r))))
+          .orElse(r => ok(enumValue(version, resultErr(r))))
+          .unwrapOr(enumValue(version, resultErr(error)));
       });
     },
 
@@ -262,9 +262,9 @@ export function createContainer(provider: Provider): Container {
 
         return guardVersion(params, version, error)
           .asyncMap(async params => handler(params, { ok: okAsync<any>, err: errAsync<never, any> }))
-          .andThen(r => r.map(r => enumValue(version, okResult(r))))
-          .orElse(r => ok(enumValue(version, errResult(r))))
-          .unwrapOr(enumValue(version, errResult(error)));
+          .andThen(r => r.map(r => enumValue(version, resultOk(r))))
+          .orElse(r => ok(enumValue(version, resultErr(r))))
+          .unwrapOr(enumValue(version, resultErr(error)));
       });
     },
 
@@ -285,10 +285,10 @@ export function createContainer(provider: Provider): Container {
           assertEnumVariant(message, 'v1', UNSUPPORTED_MESSAGE_FORMAT_ERROR);
           const [requestedGenesisHash, payload] = message.value;
           if (requestedGenesisHash !== genesisHash) {
-            return enumValue('v1', okResult(undefined));
+            return enumValue('v1', resultOk(undefined));
           }
           connection.send(payload);
-          return enumValue('v1', okResult(undefined));
+          return enumValue('v1', resultOk(undefined));
         });
 
         return () => {

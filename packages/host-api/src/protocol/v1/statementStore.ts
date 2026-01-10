@@ -1,6 +1,7 @@
+import { Enum, ErrEnum } from '@novasamatech/scale';
 import { Bytes, Option, Result, Struct, Tuple, Vector, _void, u32, u64 } from 'scale-ts';
 
-import { Enum, ErrEnum, GenericErr } from '../commonCodecs.js';
+import { GenericErr } from '../commonCodecs.js';
 
 import { ProductAccountId } from './accounts.js';
 

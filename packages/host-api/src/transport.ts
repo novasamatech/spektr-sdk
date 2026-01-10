@@ -1,16 +1,8 @@
+import { enumValue, isEnumVariant, resultErr, resultOk } from '@novasamatech/scale';
 import { createNanoEvents } from 'nanoevents';
 
 import { HANDSHAKE_INTERVAL, HANDSHAKE_TIMEOUT, JAM_CODEC_PROTOCOL_ID } from './constants.js';
-import {
-  composeAction,
-  createRequestId,
-  delay,
-  enumValue,
-  errResult,
-  isEnumVariant,
-  okResult,
-  promiseWithResolvers,
-} from './helpers.js';
+import { composeAction, createRequestId, delay, promiseWithResolvers } from './helpers.js';
 import type {
   ComposeMessageAction,
   MessageAction,
@@ -355,13 +347,13 @@ export function createTransport(provider: Provider): Transport {
 
           switch (version.value) {
             case JAM_CODEC_PROTOCOL_ID:
-              return enumValue(version.tag, okResult(undefined));
+              return enumValue(version.tag, resultOk(undefined));
             default:
-              return enumValue(version.tag, errResult(new HandshakeErr.UnsupportedProtocolVersion(undefined)));
+              return enumValue(version.tag, resultErr(new HandshakeErr.UnsupportedProtocolVersion(undefined)));
           }
         }
         default:
-          return enumValue(version.tag, errResult(new HandshakeErr.UnsupportedProtocolVersion(undefined)));
+          return enumValue(version.tag, resultErr(new HandshakeErr.UnsupportedProtocolVersion(undefined)));
       }
     });
   }
