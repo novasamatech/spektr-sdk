@@ -16,7 +16,7 @@ import type { Callback } from '../types.js';
 import type { Encryption } from './encyption.js';
 import { DecodingError, DecryptionError, UnknownError } from './error.js';
 import { toMessage } from './messageMapper.js';
-import type { ResponseCode } from './scale/statementData.js';
+import type { ResponseStatus } from './scale/statementData.js';
 import { StatementData } from './scale/statementData.js';
 import type { StatementProver } from './statementProver.js';
 import type { Filter, Message, ResponseMessage, Session } from './types.js';
@@ -75,7 +75,7 @@ export function createSession({
         .map(() => ({ requestId }));
     },
 
-    submitResponseMessage(requestId: string, responseCode: ResponseCode) {
+    submitResponseMessage(requestId: string, responseCode: ResponseStatus) {
       const sessionId = createSessionId(remoteAccount.publicKey, localAccount, remoteAccount);
 
       const encode = fromThrowable(StatementData.enc, toError);
@@ -167,7 +167,7 @@ export function createSession({
   return session;
 }
 
-function mapResponseCode(responseCode: ResponseCode) {
+function mapResponseCode(responseCode: ResponseStatus) {
   switch (responseCode) {
     case 'success':
       return ok();
