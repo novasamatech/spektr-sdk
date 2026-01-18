@@ -6,9 +6,10 @@ import { GenericErr, GenesisHash } from '../commonCodecs.js';
 // common structures
 
 export const SigningErr = ErrEnum('SigningErr', {
-  FailedToDecode: [_void, 'Signing: failed to decode'],
-  Rejected: [_void, 'Signing: rejected'],
-  Unknown: [GenericErr, 'Signing: unknown error'],
+  FailedToDecode: [_void, 'Failed to decode'],
+  Rejected: [_void, 'Rejected'],
+  PermissionDenied: [_void, 'Permission denied'],
+  Unknown: [GenericErr, 'Unknown error'],
 });
 
 export const SigningResult = Struct({

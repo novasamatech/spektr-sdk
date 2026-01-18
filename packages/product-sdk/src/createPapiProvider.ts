@@ -5,27 +5,21 @@ import { getSyncProvider } from '@polkadot-api/json-rpc-provider-proxy';
 
 import { defaultTransport } from './defaultTransport.js';
 
-type Params = {
-  chainId: HexString;
-  fallback: JsonRpcProvider;
-};
-
 type InternalParams = {
   transport?: Transport;
 };
 
-export function createPapiProvider(
-  { chainId: genesisHash, fallback }: Params,
-  internal?: InternalParams,
-): JsonRpcProvider {
+export function createPapiProvider(genesisHash: HexString, internal?: InternalParams): JsonRpcProvider {
   const version = 'v1';
   const transport = internal?.transport ?? defaultTransport;
-  if (!transport.isCorrectEnvironment()) return fallback;
+  if (!transport.isCorrectEnvironment()) {
+    throw new Error('PapiProvider can only be used in a product environment');
+  }
 
   const hostApi = createHostApi(transport);
 
   const spektrProvider: JsonRpcProvider = onMessage => {
-    const subscription = hostApi.jsonrpc_message_subscribe(enumValue(version, genesisHash), payload => {
+    const subscription = hostApi.jsonrpcMessageSubscribe(enumValue(version, genesisHash), payload => {
       switch (payload.tag) {
         case version:
           onMessage(payload.value);
@@ -37,7 +31,7 @@ export function createPapiProvider(
 
     return {
       send(message) {
-        hostApi.jsonrpc_message_send(enumValue(version, [genesisHash, message]));
+        hostApi.jsonrpcMessageSend(enumValue(version, [genesisHash, message]));
       },
       disconnect() {
         subscription.unsubscribe();
@@ -67,5 +61,10 @@ export function createPapiProvider(
     });
   }
 
-  return getSyncProvider(() => checkIfReady().then(ready => (ready ? spektrProvider : fallback)));
+  return getSyncProvider(() =>
+    checkIfReady().then(ready => {
+      if (ready) return spektrProvider;
+      throw new Error(`Chain ${genesisHash} not supported by host`);
+    }),
+  );
 }

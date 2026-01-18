@@ -1,4 +1,5 @@
 import { StatementData } from '@novasamatech/statement-store';
+import { AccountId } from '@polkadot-api/substrate-bindings';
 import { describe, it } from 'vitest';
 
 import { ChatMessage } from './message.js';
@@ -16,5 +17,14 @@ describe('codec', () => {
         console.log(JSON.stringify(message.versioned.value, null, 2));
       });
     }
+  });
+  it('should work 2', () => {
+    const hex = '0xb69193b12a3eb9b97210c5d862228735ac7be3eb33085821fc405a928e2f3d7c';
+
+    const acc = AccountId();
+
+    const a = acc.dec(hex);
+
+    console.log(a);
   });
 });

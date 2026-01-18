@@ -12,7 +12,7 @@ import type {
 import { Message } from './protocol/messageCodec.js';
 import { HandshakeErr } from './protocol/v1/handshake.js';
 import type { Provider } from './provider.js';
-import type { ConnectionStatus, RequestHandler, SubscriptionHandler, Transport } from './types.js';
+import type { ConnectionStatus, HostApiMethod, RequestHandler, SubscriptionHandler, Transport } from './types.js';
 
 const isConnected = (status: ConnectionStatus) => status === 'connected';
 
@@ -132,7 +132,7 @@ export function createTransport(provider: Provider): Transport {
       return handshakePromise;
     },
 
-    async request<const Method extends string>(
+    async request<const Method extends HostApiMethod>(
       method: Method,
       payload: PickMessagePayloadValue<ComposeMessageAction<Method, 'request'>>,
       signal?: AbortSignal,
@@ -180,7 +180,7 @@ export function createTransport(provider: Provider): Transport {
       return promise;
     },
 
-    handleRequest<const Method extends string>(method: Method, handler: RequestHandler<Method>) {
+    handleRequest<const Method extends HostApiMethod>(method: Method, handler: RequestHandler<Method>) {
       checks();
 
       const requestAction = composeAction(method, 'request');
@@ -197,7 +197,7 @@ export function createTransport(provider: Provider): Transport {
       });
     },
 
-    subscribe<const Method extends string>(
+    subscribe<const Method extends HostApiMethod>(
       method: Method,
       payload: PickMessagePayloadValue<ComposeMessageAction<Method, 'start'>>,
       callback: (payload: PickMessagePayloadValue<ComposeMessageAction<Method, 'receive'>>) => void,
@@ -254,7 +254,7 @@ export function createTransport(provider: Provider): Transport {
       };
     },
 
-    handleSubscription<const Method extends string>(method: Method, handler: SubscriptionHandler<Method>) {
+    handleSubscription<const Method extends HostApiMethod>(method: Method, handler: SubscriptionHandler<Method>) {
       checks();
 
       const startAction = composeAction(method, 'start');

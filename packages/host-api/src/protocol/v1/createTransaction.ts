@@ -13,12 +13,13 @@ import { ProductAccountId } from './accounts.js';
  */
 
 export const CreateTransactionErr = ErrEnum('CreateTransactionErr', {
-  FailedToDecode: [_void, 'CreateTransaction: failed to decode'],
-  Rejected: [_void, 'CreateTransaction: rejected'],
+  FailedToDecode: [_void, 'Failed to decode'],
+  Rejected: [_void, 'Rejected'],
   // Unsupported payload version
   // Failed to infer missing extensions, some extension is unsupported, etc.
-  NotSupported: [str, 'CreateTransaction: not supported'],
-  Unknown: [GenericErr, 'CreateTransaction: unknown error'],
+  NotSupported: [str, 'Not Supported'],
+  PermissionDenied: [_void, 'Permission denied'],
+  Unknown: [GenericErr, 'Unknown error'],
 });
 
 export const TxPayloadExtensionV1 = Struct({

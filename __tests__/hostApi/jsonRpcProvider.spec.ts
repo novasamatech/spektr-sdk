@@ -16,22 +16,7 @@ function setup(chainId: HexString) {
   const container = createContainer(providers.host);
   const sdkTransport = createTransport(providers.sdk);
 
-  const provider = createPapiProvider(
-    {
-      chainId,
-      fallback: () => {
-        return {
-          send() {
-            /* empty */
-          },
-          disconnect() {
-            /* empty */
-          },
-        };
-      },
-    },
-    { transport: sdkTransport },
-  );
+  const provider = createPapiProvider(chainId, { transport: sdkTransport });
 
   return { container, provider };
 }

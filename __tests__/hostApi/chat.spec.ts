@@ -1,6 +1,6 @@
-import { createTransport } from '@novasamatech/host-api';
+import { createTransport, enumValue } from '@novasamatech/host-api';
 import { createContainer } from '@novasamatech/host-container';
-import type { ChatMessage } from '@novasamatech/product-sdk';
+import type { ChatMessageContent } from '@novasamatech/product-sdk';
 import { createChat } from '@novasamatech/product-sdk';
 
 import { describe, expect, it, vi } from 'vitest';
@@ -19,10 +19,10 @@ function setup() {
 describe('Host API: Chat', () => {
   it('should register chat', async () => {
     const { container, chat } = setup();
-    const registrationInfo = { name: 'test chat', icon: 'http://product.com/icon.png' };
+    const registrationInfo = { roomId: 'test', name: 'test chat', icon: 'http://product.com/icon.png' };
 
-    const handler = vi.fn<Parameters<typeof container.handleChatCreateContact>[0]>((_, { ok }) => ok('New'));
-    container.handleChatCreateContact(handler);
+    const handler = vi.fn<Parameters<typeof container.handleChatCreateRoom>[0]>((_, { ok }) => ok({ status: 'New' }));
+    container.handleChatCreateRoom(handler);
 
     await chat.register(registrationInfo);
 
@@ -31,37 +31,34 @@ describe('Host API: Chat', () => {
 
   it('should send message', async () => {
     const { container, chat } = setup();
-    const registrationInfo = { name: 'test chat', icon: 'http://product.com/icon.png' };
-    const message: ChatMessage = {
-      tag: 'Text',
-      value: 'test message',
-    };
+    const registrationInfo = { roomId: 'test', name: 'test chat', icon: 'http://product.com/icon.png' };
+    const message: ChatMessageContent = enumValue('Text', 'test message');
     const response = { messageId: 'hello' };
 
-    container.handleChatCreateContact((_, { ok }) => ok('New'));
+    container.handleChatCreateRoom((_, { ok }) => ok({ status: 'New' }));
     const handler = vi.fn<Parameters<typeof container.handleChatPostMessage>[0]>((_, { ok }) => ok(response));
     container.handleChatPostMessage(handler);
 
     await chat.register(registrationInfo);
-    const result = await chat.sendMessage(message);
+    const result = await chat.sendMessage('test', message);
 
-    expect(handler).toBeCalledWith(message, { ok: expect.any(Function), err: expect.any(Function) });
+    expect(handler).toBeCalledWith(
+      { roomId: registrationInfo.roomId, payload: message },
+      { ok: expect.any(Function), err: expect.any(Function) },
+    );
     expect(result).toEqual(response);
   });
 
   it('should react to message', async () => {
     const { container, chat } = setup();
-    const registrationInfo = { name: 'test chat', icon: 'http://product.com/icon.png' };
-    const message: ChatMessage = {
-      tag: 'Text',
-      value: 'test message',
-    };
+    const registrationInfo = { roomId: 'test', name: 'test chat', icon: 'http://product.com/icon.png' };
+    const message: ChatMessageContent = enumValue('Text', 'test message');
 
-    container.handleChatCreateContact((_, { ok }) => ok('New'));
+    container.handleChatCreateRoom((_, { ok }) => ok({ status: 'New' }));
     container.handleChatActionSubscribe((_, send) => {
       // sending back and forth
       return container.handleChatPostMessage((message, { ok }) => {
-        send({ tag: 'MessagePosted', value: message });
+        send({ roomId: message.roomId, peer: 'test', payload: enumValue('MessagePosted', message.payload) });
         return ok({ messageId: 'hello' });
       });
     });
@@ -71,8 +68,12 @@ describe('Host API: Chat', () => {
     chat.subscribeAction(handler);
 
     await chat.register(registrationInfo);
-    await chat.sendMessage(message);
+    await chat.sendMessage('test', message);
 
-    expect(handler).toBeCalledWith({ tag: 'MessagePosted', value: message });
+    expect(handler).toBeCalledWith({
+      roomId: registrationInfo.roomId,
+      peer: 'test',
+      payload: enumValue('MessagePosted', message),
+    });
   });
 });

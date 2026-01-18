@@ -1,5 +1,5 @@
-import { ErrEnum, Hex } from '@novasamatech/scale';
-import { Bytes, Option, Result, Tuple, _void } from 'scale-ts';
+import { ErrEnum } from '@novasamatech/scale';
+import { Bytes, Option, Result, Tuple, _void, str } from 'scale-ts';
 
 import { GenericErr } from '../commonCodecs.js';
 
@@ -10,7 +10,7 @@ export const StorageErr = ErrEnum('StorageErr', {
   Unknown: [GenericErr, 'Unknown storage error'],
 });
 
-export const StorageKey = Hex();
+export const StorageKey = str;
 export const StorageValue = Bytes();
 
 // actions

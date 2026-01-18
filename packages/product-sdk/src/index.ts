@@ -4,5 +4,7 @@ export { hostApi } from './hostApi.js';
 export { createMetaProvider, metaProvider } from './createMetaProvider.js';
 export { createExtensionEnableFactory, injectSpektrExtension } from './injectSpektrExtension.js';
 export { createPapiProvider } from './createPapiProvider.js';
-export type { ChatMessage, ReceivedChatAction } from './chat.js';
+export type { ChatMessageContent, ReceivedChatAction } from './chat.js';
 export { createChat } from './chat.js';
+export type { ProductAccountId, SignedStatement, Statement, Topic } from './statementStore.js';
+export { createStatementStore } from './statementStore.js';
