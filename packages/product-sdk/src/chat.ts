@@ -1,6 +1,7 @@
 import type {
-  ChatContactRegistrationStatus as ChatContactRegistrationStatusCodec,
-  ChatMessage as ChatMessageCodec,
+  ChatMessageContent as ChatMessageContentCodec,
+  ChatRoom as ChatRoomCodec,
+  ChatRoomRegistrationResult as ChatRoomRegistrationResultCodec,
   CodecType,
   ReceivedChatAction as ReceivedChatActionCodec,
   Transport,
@@ -12,27 +13,29 @@ import { promiseWithResolvers } from './helpers.js';
 
 promiseWithResolvers();
 
-export type ChatMessage = CodecType<typeof ChatMessageCodec>;
+export type ChatMessageContent = CodecType<typeof ChatMessageContentCodec>;
 export type ReceivedChatAction = CodecType<typeof ReceivedChatActionCodec>;
-export type ChatContactRegistrationStatus = CodecType<typeof ChatContactRegistrationStatusCodec>;
+export type ChatRoomRegistrationResult = CodecType<typeof ChatRoomRegistrationResultCodec>;
+export type ChatRoom = CodecType<typeof ChatRoomCodec>;
 
 export const createChat = (transport: Transport = defaultTransport) => {
   const hostApi = createHostApi(transport);
-  let registrationStatus: ChatContactRegistrationStatus | null = null;
+  let registrationStatus: ChatRoomRegistrationResult | null = null;
 
   const messageQueue: {
-    message: ChatMessage;
+    roomId: string;
+    content: ChatMessageContent;
     resolve: (response: { messageId: string }) => void;
     reject: (reason: unknown) => void;
   }[] = [];
 
   const chat = {
-    async register(params: { name: string; icon: string }) {
+    async register(params: { roomId: string; name: string; icon: string }) {
       if (registrationStatus) {
         return registrationStatus;
       }
 
-      const result = await hostApi.chat_create_contact(enumValue('v1', params));
+      const result = await hostApi.chatCreateRoom(enumValue('v1', params));
 
       return result.match(
         payload => {
@@ -40,8 +43,8 @@ export const createChat = (transport: Transport = defaultTransport) => {
             registrationStatus = payload.value;
 
             if (messageQueue.length > 0) {
-              messageQueue.forEach(({ message, resolve, reject }) => {
-                chat.sendMessage(message).then(resolve, reject);
+              messageQueue.forEach(({ roomId, content, resolve, reject }) => {
+                chat.sendMessage(roomId, content).then(resolve, reject);
               });
               messageQueue.length = 0;
             }
@@ -56,9 +59,9 @@ export const createChat = (transport: Transport = defaultTransport) => {
         },
       );
     },
-    async sendMessage(message: ChatMessage) {
+    async sendMessage(roomId: string, payload: ChatMessageContent) {
       if (registrationStatus) {
-        const result = await hostApi.chat_post_message(enumValue('v1', message));
+        const result = await hostApi.chatPostMessage(enumValue('v1', { roomId, payload }));
 
         return result.match(
           payload => {
@@ -74,12 +77,19 @@ export const createChat = (transport: Transport = defaultTransport) => {
         );
       } else {
         const { promise, resolve, reject } = promiseWithResolvers<{ messageId: string }>();
-        messageQueue.push({ message, resolve, reject });
+        messageQueue.push({ roomId, content: payload, resolve, reject });
         return promise;
       }
     },
+    subscribeChatList(callback: (rooms: ChatRoom[]) => void) {
+      return hostApi.chatListSubscribe(enumValue('v1', undefined), action => {
+        if (action.tag === 'v1') {
+          callback(action.value);
+        }
+      });
+    },
     subscribeAction(callback: (action: ReceivedChatAction) => void) {
-      return hostApi.chat_action_subscribe(enumValue('v1', undefined), action => {
+      return hostApi.chatActionSubscribe(enumValue('v1', undefined), action => {
         if (action.tag === 'v1') {
           callback(action.value);
         }

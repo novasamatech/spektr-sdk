@@ -8,6 +8,7 @@ Product SDK provides a set of tools to integrate your application with any Polka
 Core features:
 - Generic account provider similar to [polkadot-js extension](https://polkadot.js.org/extension/)
 - Chat module integration
+- Statement store integration
 - Redirect [PAPI](https://papi.how/) requests to host application
 - Receive additional information from host application - supported chains, theme, etc.
 
@@ -113,4 +114,52 @@ const subscriber = chat.subscribeAction((action) => {
 ```
 
 **Note:** Messages sent before registration will be queued and sent automatically after successful registration.
+
+### Statement Store
+
+The Statement Store provides a decentralized way to store statements (messages).
+It can be used for various purposes like p2p communication, storing temp data, etc.
+
+```ts
+import { createStatementStore } from '@novasamatech/product-sdk';
+import type { Topic, Statement, SignedStatement } from '@novasamatech/product-sdk';
+
+// Create statement store instance
+const statementStore = createStatementStore();
+
+// Define topics (32-byte identifiers) to categorize statements
+const topic: Topic = new Uint8Array(32);
+
+// Query existing statements by topics
+const statements: SignedStatement[] = await statementStore.query([topic]);
+
+// Subscribe to statement updates for specific topics
+const subscription = statementStore.subscribe([topic], (statements) => {
+  console.log('Received statement updates:', statements);
+});
+
+// Create a proof for a new statement
+const accountId = ['product.dot', 0]; // [DotNS identifier, derivation index]
+const statement: Statement = {
+  proof: undefined,
+  decryptionKey: undefined,
+  priority: undefined,
+  channel: undefined,
+  topics: [topic],
+  data: new Uint8Array([/* your data */]),
+};
+
+const proof = await statementStore.createProof(accountId, statement);
+
+// Submit a signed statement
+const signedStatement: SignedStatement = {
+  ...statement,
+  proof,
+};
+
+await statementStore.submit(signedStatement);
+
+// Unsubscribe when done
+subscription.unsubscribe();
+```
 

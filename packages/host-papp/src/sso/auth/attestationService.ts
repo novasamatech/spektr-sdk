@@ -18,7 +18,7 @@ import { toError } from '../../helpers/utils.js';
 
 const accountId = AccountId();
 
-export function createAliceVerifier(): DerivedSr25519Account {
+export function createSudoAliceVerifier(): DerivedSr25519Account {
   return deriveSr25519Account('bottom drive obey lake curtain smoke basket hold race lonely fit walk', '//Alice');
 }
 

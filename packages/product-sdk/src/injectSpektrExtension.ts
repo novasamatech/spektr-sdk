@@ -39,7 +39,7 @@ export async function createExtensionEnableFactory(transport: Transport) {
 
   async function enable(): Promise<Injected> {
     async function getAccounts() {
-      const response = await hostApi.get_non_product_accounts(enumValue('v1', undefined));
+      const response = await hostApi.getNonProductAccounts(enumValue('v1', undefined));
 
       return response.match(
         response => {
@@ -87,7 +87,7 @@ export async function createExtensionEnableFactory(transport: Transport) {
                   },
           };
 
-          const response = await hostApi.sign_raw(enumValue('v1', payload));
+          const response = await hostApi.signRaw(enumValue('v1', payload));
 
           return response.match(
             response => {
@@ -114,7 +114,7 @@ export async function createExtensionEnableFactory(transport: Transport) {
             metadataHash: payload.metadataHash,
           };
 
-          const response = await hostApi.sign_payload(enumValue('v1', codecPayload));
+          const response = await hostApi.signPayload(enumValue('v1', codecPayload));
 
           return response.match(
             response => {
@@ -132,7 +132,7 @@ export async function createExtensionEnableFactory(transport: Transport) {
           );
         },
         async createTransaction(payload) {
-          const response = await hostApi.create_transaction_with_non_product_account(enumValue('v1', payload));
+          const response = await hostApi.createTransactionWithNonProductAccount(enumValue('v1', payload));
 
           return response.match<HexString, HexString>(
             response => {
