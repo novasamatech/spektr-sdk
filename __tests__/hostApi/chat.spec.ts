@@ -1,4 +1,4 @@
-import { createTransport, enumValue } from '@novasamatech/host-api';
+import { ChatMessagePostingErr, ChatRoomRegistrationErr, createTransport, enumValue } from '@novasamatech/host-api';
 import { createContainer } from '@novasamatech/host-container';
 import type { ChatMessageContent } from '@novasamatech/product-sdk';
 import { createChat } from '@novasamatech/product-sdk';
@@ -17,36 +17,64 @@ function setup() {
 }
 
 describe('Host API: Chat', () => {
-  it('should register chat', async () => {
-    const { container, chat } = setup();
-    const registrationInfo = { roomId: 'test', name: 'test chat', icon: 'http://product.com/icon.png' };
+  describe('registration', () => {
+    it('should register chat', async () => {
+      const { container, chat } = setup();
+      const registrationInfo = { roomId: 'test', name: 'test chat', icon: 'http://product.com/icon.png' };
 
-    const handler = vi.fn<Parameters<typeof container.handleChatCreateRoom>[0]>((_, { ok }) => ok({ status: 'New' }));
-    container.handleChatCreateRoom(handler);
+      const handler = vi.fn<Parameters<typeof container.handleChatCreateRoom>[0]>((_, { ok }) => ok({ status: 'New' }));
+      container.handleChatCreateRoom(handler);
 
-    await chat.register(registrationInfo);
+      await chat.register(registrationInfo);
 
-    expect(handler).toBeCalledWith(registrationInfo, { ok: expect.any(Function), err: expect.any(Function) });
+      expect(handler).toBeCalledWith(registrationInfo, { ok: expect.any(Function), err: expect.any(Function) });
+    });
+
+    it('should handle registration error', async () => {
+      const { container, chat } = setup();
+      const registrationInfo = { roomId: 'test', name: 'test chat', icon: 'http://product.com/icon.png' };
+      const error = new ChatRoomRegistrationErr.Unknown({ reason: 'Registration service unavailable' });
+
+      container.handleChatCreateRoom((_, { err }) => err(error));
+
+      await expect(chat.register(registrationInfo)).rejects.toEqual(error);
+    });
   });
 
-  it('should send message', async () => {
-    const { container, chat } = setup();
-    const registrationInfo = { roomId: 'test', name: 'test chat', icon: 'http://product.com/icon.png' };
-    const message: ChatMessageContent = enumValue('Text', 'test message');
-    const response = { messageId: 'hello' };
+  describe('send message', () => {
+    it('should send message', async () => {
+      const { container, chat } = setup();
+      const registrationInfo = { roomId: 'test', name: 'test chat', icon: 'http://product.com/icon.png' };
+      const message: ChatMessageContent = enumValue('Text', 'test message');
+      const response = { messageId: 'hello' };
 
-    container.handleChatCreateRoom((_, { ok }) => ok({ status: 'New' }));
-    const handler = vi.fn<Parameters<typeof container.handleChatPostMessage>[0]>((_, { ok }) => ok(response));
-    container.handleChatPostMessage(handler);
+      container.handleChatCreateRoom((_, { ok }) => ok({ status: 'New' }));
+      const handler = vi.fn<Parameters<typeof container.handleChatPostMessage>[0]>((_, { ok }) => ok(response));
+      container.handleChatPostMessage(handler);
 
-    await chat.register(registrationInfo);
-    const result = await chat.sendMessage('test', message);
+      await chat.register(registrationInfo);
+      const result = await chat.sendMessage('test', message);
 
-    expect(handler).toBeCalledWith(
-      { roomId: registrationInfo.roomId, payload: message },
-      { ok: expect.any(Function), err: expect.any(Function) },
-    );
-    expect(result).toEqual(response);
+      expect(handler).toBeCalledWith(
+        { roomId: registrationInfo.roomId, payload: message },
+        { ok: expect.any(Function), err: expect.any(Function) },
+      );
+      expect(result).toEqual(response);
+    });
+
+    it('should handle send message error', async () => {
+      const { container, chat } = setup();
+      const registrationInfo = { roomId: 'test', name: 'test chat', icon: 'http://product.com/icon.png' };
+      const message: ChatMessageContent = enumValue('Text', 'test message');
+      const error = new ChatMessagePostingErr.Unknown({ reason: 'Message delivery failed' });
+
+      container.handleChatCreateRoom((_, { ok }) => ok({ status: 'New' }));
+      container.handleChatPostMessage((_, { err }) => err(error));
+
+      await chat.register(registrationInfo);
+
+      await expect(chat.sendMessage('test', message)).rejects.toEqual(error);
+    });
   });
 
   it('should react to message', async () => {

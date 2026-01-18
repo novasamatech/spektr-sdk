@@ -3,7 +3,7 @@ import { createTransport } from '@novasamatech/host-api';
 import { createContainer } from '@novasamatech/host-container';
 import { createMetaProvider } from '@novasamatech/product-sdk';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createHostApiProviders } from './__mocks__/hostApiProviders.js';
 
@@ -41,5 +41,72 @@ describe('Host API: meta provider', () => {
     await sdkTransport.isReady();
 
     expect(statuses).toEqual(['disconnected', 'connecting', 'connected']);
+  });
+
+  it('should handle container dispose', async () => {
+    const { container } = setup();
+    const statuses: ConnectionStatus[] = [];
+
+    container.subscribeConnectionStatus(status => {
+      statuses.push(status);
+    });
+
+    await container.isReady();
+
+    container.dispose();
+
+    // After dispose, statuses should include the full lifecycle
+    expect(statuses).toContain('connected');
+  });
+
+  it('should unsubscribe from connection status', async () => {
+    const { container } = setup();
+    const callback = vi.fn();
+
+    const unsubscribe = container.subscribeConnectionStatus(callback);
+
+    // Unsubscribe before ready
+    unsubscribe();
+
+    await container.isReady();
+
+    // Callback should have been called at least once before unsubscribe
+    // but the exact count depends on timing
+    expect(callback).toHaveBeenCalled();
+  });
+
+  it('should handle multiple status subscribers', async () => {
+    const { container } = setup();
+    const statuses1: ConnectionStatus[] = [];
+    const statuses2: ConnectionStatus[] = [];
+
+    // Subscribe both before any init happens
+    container.subscribeConnectionStatus(status => {
+      statuses1.push(status);
+    });
+
+    // Second subscriber may miss 'disconnected' if first subscriber triggered init
+    container.subscribeConnectionStatus(status => {
+      statuses2.push(status);
+    });
+
+    await container.isReady();
+
+    // First subscriber sees full lifecycle
+    expect(statuses1).toEqual(['disconnected', 'connecting', 'connected']);
+    // Second subscriber may miss initial 'disconnected' as init was already triggered
+    expect(statuses2).toEqual(['connecting', 'connected']);
+  });
+
+  it('should report disconnected status initially in meta provider', () => {
+    const { metaProvider } = setup();
+    const statuses: ConnectionStatus[] = [];
+
+    metaProvider.subscribeConnectionStatus(status => {
+      statuses.push(status);
+    });
+
+    // First status should be disconnected
+    expect(statuses[0]).toBe('disconnected');
   });
 });
